@@ -29,10 +29,10 @@ import { toast } from 'sonner';
 import { useI18n } from '@/app/hooks/use-i18n.js';
 import { ImageCropDialog } from '@/components/media/ImageCropDialog.jsx';
 import {
-    ResizableTableCell,
-    ResizableTableHead
+    ResizableTableCell
 } from '@/components/data-table/ResizableTableParts.jsx';
 import {
+    DataTableHeader,
     DataTablePagination,
     DataTableScrollArea,
     DataTableSurface
@@ -79,19 +79,10 @@ import {
     PopoverContent,
     PopoverTrigger
 } from '@/ui/shadcn/popover';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from '@/ui/shadcn/select';
 import { Slider } from '@/ui/shadcn/slider';
 import {
     Table,
     TableBody,
-    TableHeader,
     TableRow
 } from '@/ui/shadcn/table';
 import { Spinner } from '@/ui/shadcn/spinner';
@@ -650,6 +641,9 @@ export function MyAvatarsPage({ embedded = false } = {}) {
     const [columnSizing, setColumnSizing] = useState(() =>
         sanitizeMyAvatarsColumnSizing(persistedState.columnSizing)
     );
+    const [columnOrderLocked, setColumnOrderLocked] = useState(
+        () => persistedState.columnOrderLocked === true
+    );
     const [gridScrollMetrics, setGridScrollMetrics] = useState({
         scrollTop: 0,
         viewportHeight: 0,
@@ -1178,9 +1172,10 @@ export function MyAvatarsPage({ embedded = false } = {}) {
         writePersistedMyAvatarsState({
             columnVisibility: sanitizeMyAvatarsColumnVisibility(columnVisibility),
             columnOrder: sanitizeMyAvatarsColumnOrder(columnOrder),
-            columnSizing: sanitizeMyAvatarsColumnSizing(columnSizing)
+            columnSizing: sanitizeMyAvatarsColumnSizing(columnSizing),
+            columnOrderLocked
         });
-    }, [columnOrder, columnSizing, columnVisibility]);
+    }, [columnOrder, columnOrderLocked, columnSizing, columnVisibility]);
 
     useEffect(() => {
         setPagination((current) => ({
@@ -1550,7 +1545,11 @@ export function MyAvatarsPage({ embedded = false } = {}) {
         getSortedRowModel: getSortedRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         enableColumnResizing: true,
-        columnResizeMode: 'onChange'
+        columnResizeMode: 'onChange',
+        meta: {
+            columnOrderLocked,
+            setColumnOrderLocked
+        }
     });
 
     const {
@@ -1666,30 +1665,6 @@ export function MyAvatarsPage({ embedded = false } = {}) {
                         />
                     ) : null}
                     {viewMode === 'table' ? <TableColumnVisibilityMenu table={table} /> : null}
-                    {viewMode === 'table' ? (
-                        <Select
-                            value={String(pagination.pageSize)}
-                            onValueChange={(value) => {
-                                const nextPageSize = resolveMyAvatarsPageSize(value, pageSizes, pagination.pageSize);
-                                setPagination({
-                                    pageIndex: 0,
-                                    pageSize: nextPageSize
-                                });
-                            }}>
-                            <SelectTrigger className="w-24">
-                                <SelectValue placeholder="Page size" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    {pageSizes.map((size) => (
-                                        <SelectItem key={size} value={String(size)}>
-                                            {size}
-                                        </SelectItem>
-                                    ))}
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                    ) : null}
                     <Button
                         type="button"
                         variant="ghost"
@@ -1720,15 +1695,7 @@ export function MyAvatarsPage({ embedded = false } = {}) {
                                 <DataTableSurface>
                                     <DataTableScrollArea>
                                         <Table className="app-data-table table-fixed">
-                                            <TableHeader>
-                                                {table.getHeaderGroups().map((headerGroup) => (
-                                                    <TableRow key={headerGroup.id}>
-                                                        {headerGroup.headers.map((header) => (
-                                                            <ResizableTableHead key={header.id} header={header} />
-                                                        ))}
-                                                    </TableRow>
-                                                ))}
-                                            </TableHeader>
+                                            <DataTableHeader table={table} />
                                             <TableBody>
                                             {table.getRowModel().rows.map((row) => (
                                                 <ContextMenu key={row.original?.id || row.id}>
@@ -1786,7 +1753,20 @@ export function MyAvatarsPage({ embedded = false } = {}) {
                                         </span>{' '}
                                         avatar{filteredAvatars.length === 1 ? '' : 's'}
                                     </div>
-                                    <DataTablePagination table={table} pageIndex={pagination.pageIndex} />
+                                    <DataTablePagination
+                                        table={table}
+                                        pageIndex={pagination.pageIndex}
+                                        pageSize={pagination.pageSize}
+                                        pageSizes={pageSizes}
+                                        pageSizeLabel={t('table.pagination.rows_per_page')}
+                                        onPageSizeChange={(value) => {
+                                            const nextPageSize = resolveMyAvatarsPageSize(value, pageSizes, pagination.pageSize);
+                                            setPagination({
+                                                pageIndex: 0,
+                                                pageSize: nextPageSize
+                                            });
+                                        }}
+                                    />
                                 </div>
                             </>
                         ) : (

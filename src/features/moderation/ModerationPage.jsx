@@ -16,10 +16,10 @@ import {
 
 import { formatDateFilter } from '@/lib/dateTime.js';
 import {
-    ResizableTableCell,
-    ResizableTableHead
+    ResizableTableCell
 } from '@/components/data-table/ResizableTableParts.jsx';
 import {
+    DataTableHeader,
     DataTablePagination,
     DataTableScrollArea,
     DataTableSurface
@@ -49,19 +49,10 @@ import {
     DropdownMenuTrigger
 } from '@/ui/shadcn/dropdown-menu';
 import { Input } from '@/ui/shadcn/input';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from '@/ui/shadcn/select';
 import { Spinner } from '@/ui/shadcn/spinner';
 import {
     Table,
     TableBody,
-    TableHeader,
     TableRow
 } from '@/ui/shadcn/table';
 import { useI18n } from '@/app/hooks/use-i18n.js';
@@ -380,6 +371,9 @@ export function ModerationPage({ embedded = false } = {}) {
     );
     const [columnOrder, setColumnOrder] = useState(() => sanitizeColumnOrder(persistedState.columnOrder));
     const [columnSizing, setColumnSizing] = useState(() => sanitizeColumnSizing(persistedState.columnSizing));
+    const [columnOrderLocked, setColumnOrderLocked] = useState(
+        () => persistedState.columnOrderLocked === true
+    );
     const [pagination, setPagination] = useState(() => ({
         pageIndex: 0,
         pageSize: resolvePageSize(
@@ -500,9 +494,10 @@ export function ModerationPage({ embedded = false } = {}) {
         writePersistedState({
             columnVisibility: sanitizeColumnVisibility(columnVisibility),
             columnOrder: sanitizeColumnOrder(columnOrder),
-            columnSizing: sanitizeColumnSizing(columnSizing)
+            columnSizing: sanitizeColumnSizing(columnSizing),
+            columnOrderLocked
         });
-    }, [columnOrder, columnSizing, columnVisibility]);
+    }, [columnOrder, columnOrderLocked, columnSizing, columnVisibility]);
 
     useEffect(() => {
         setPagination((current) => ({
@@ -846,7 +841,11 @@ export function ModerationPage({ embedded = false } = {}) {
         getSortedRowModel: getSortedRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         enableColumnResizing: true,
-        columnResizeMode: 'onChange'
+        columnResizeMode: 'onChange',
+        meta: {
+            columnOrderLocked,
+            setColumnOrderLocked
+        }
     });
 
     const hasRows = filteredRows.length > 0;
@@ -882,28 +881,6 @@ export function ModerationPage({ embedded = false } = {}) {
                         )}
                     </Button>
                     <TableColumnVisibilityMenu table={table} />
-                    <Select
-                        value={String(pagination.pageSize)}
-                        onValueChange={(value) => {
-                            const nextPageSize = resolvePageSize(value, pageSizes, pagination.pageSize);
-                            setPagination({
-                                pageIndex: 0,
-                                pageSize: nextPageSize
-                            });
-                        }}>
-                        <SelectTrigger className="w-24">
-                            <SelectValue placeholder="Page size" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectGroup>
-                                {pageSizes.map((size) => (
-                                    <SelectItem key={size} value={String(size)}>
-                                        {size}
-                                    </SelectItem>
-                                ))}
-                            </SelectGroup>
-                        </SelectContent>
-                    </Select>
                 </PageToolbarRow>
 
                 {detail ? <div className="text-sm text-muted-foreground">{detail}</div> : null}
@@ -922,15 +899,7 @@ export function ModerationPage({ embedded = false } = {}) {
                         <DataTableSurface>
                             <DataTableScrollArea>
                                 <Table className="app-data-table table-fixed">
-                                    <TableHeader>
-                                        {table.getHeaderGroups().map((headerGroup) => (
-                                            <TableRow key={headerGroup.id}>
-                                                {headerGroup.headers.map((header) => (
-                                                    <ResizableTableHead key={header.id} header={header} />
-                                                ))}
-                                            </TableRow>
-                                        ))}
-                                    </TableHeader>
+                                    <DataTableHeader table={table} />
                                     <TableBody>
                                         {table.getRowModel().rows.map((row) => (
                                             <TableRow key={row.original?.id || row.id}>
@@ -956,7 +925,20 @@ export function ModerationPage({ embedded = false } = {}) {
                                 </span>{' '}
                                 moderation row{filteredRows.length === 1 ? '' : 's'}
                             </div>
-                            <DataTablePagination table={table} pageIndex={pagination.pageIndex} />
+                            <DataTablePagination
+                                table={table}
+                                pageIndex={pagination.pageIndex}
+                                pageSize={pagination.pageSize}
+                                pageSizes={pageSizes}
+                                pageSizeLabel={t('table.pagination.rows_per_page')}
+                                onPageSizeChange={(value) => {
+                                    const nextPageSize = resolvePageSize(value, pageSizes, pagination.pageSize);
+                                    setPagination({
+                                        pageIndex: 0,
+                                        pageSize: nextPageSize
+                                    });
+                                }}
+                            />
                         </PageFooter>
                     </>
                 ) : (

@@ -21,11 +21,11 @@ import { formatDateFilter, timeToText } from '@/lib/dateTime.js';
 import { cn } from '@/lib/utils.js';
 import { useI18n } from '@/app/hooks/use-i18n.js';
 import {
-    ResizableTableCell,
-    ResizableTableHead
+    ResizableTableCell
 } from '@/components/data-table/ResizableTableParts.jsx';
 import { TableColumnVisibilityMenu } from '@/components/data-table/TableColumnVisibilityMenu.jsx';
 import {
+    DataTableHeader,
     DataTablePagination,
     DataTableScrollArea,
     DataTableSurface
@@ -76,19 +76,10 @@ import {
     DropdownMenuTrigger
 } from '@/ui/shadcn/dropdown-menu';
 import { Input } from '@/ui/shadcn/input';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from '@/ui/shadcn/select';
 import { Spinner } from '@/ui/shadcn/spinner';
 import {
     Table,
     TableBody,
-    TableHeader,
     TableRow
 } from '@/ui/shadcn/table';
 import { Switch } from '@/ui/shadcn/switch';
@@ -238,6 +229,9 @@ export function FriendListPage({ embedded = false } = {}) {
     const [columnVisibility, setColumnVisibility] = useState(() => sanitizeColumnVisibility(persistedState.columnVisibility));
     const [columnOrder, setColumnOrder] = useState(() => sanitizeColumnOrder(persistedState.columnOrder));
     const [columnSizing, setColumnSizing] = useState(() => sanitizeColumnSizing(persistedState.columnSizing));
+    const [columnOrderLocked, setColumnOrderLocked] = useState(
+        () => persistedState.columnOrderLocked === true
+    );
     const [pagination, setPagination] = useState(() => ({
         pageIndex: 0,
         pageSize: resolvePageSize(
@@ -338,9 +332,10 @@ export function FriendListPage({ embedded = false } = {}) {
         writePersistedState({
             columnVisibility: sanitizeColumnVisibility(columnVisibility),
             columnOrder: sanitizeColumnOrder(columnOrder),
-            columnSizing: sanitizeColumnSizing(columnSizing)
+            columnSizing: sanitizeColumnSizing(columnSizing),
+            columnOrderLocked
         });
-    }, [columnOrder, columnSizing, columnVisibility]);
+    }, [columnOrder, columnOrderLocked, columnSizing, columnVisibility]);
 
     useEffect(() => {
         setPagination((current) => ({
@@ -1211,7 +1206,11 @@ export function FriendListPage({ embedded = false } = {}) {
         getSortedRowModel: getSortedRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         enableColumnResizing: true,
-        columnResizeMode: 'onChange'
+        columnResizeMode: 'onChange',
+        meta: {
+            columnOrderLocked,
+            setColumnOrderLocked
+        }
     });
 
     function resetFriendListTableLayout() {
@@ -1297,28 +1296,6 @@ export function FriendListPage({ embedded = false } = {}) {
                         table={table}
                         onResetLayout={resetFriendListTableLayout}
                     />
-                    <Select
-                        value={String(pagination.pageSize)}
-                        onValueChange={(value) => {
-                            const nextPageSize = resolvePageSize(value, pageSizes, pagination.pageSize);
-                            setPagination({
-                                pageIndex: 0,
-                                pageSize: nextPageSize
-                            });
-                        }}>
-                        <SelectTrigger className="h-9 w-24">
-                            <SelectValue placeholder="Page size" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectGroup>
-                                {pageSizes.map((size) => (
-                                    <SelectItem key={size} value={String(size)}>
-                                        {size}
-                                    </SelectItem>
-                                ))}
-                            </SelectGroup>
-                        </SelectContent>
-                    </Select>
                 </div>
                 </PageToolbarRow>
 
@@ -1344,15 +1321,10 @@ export function FriendListPage({ embedded = false } = {}) {
                     <DataTableSurface>
                         <DataTableScrollArea>
                             <Table className="min-w-max w-max">
-                                <TableHeader>
-                                    {table.getHeaderGroups().map((headerGroup) => (
-                                        <TableRow key={headerGroup.id}>
-                                            {headerGroup.headers.map((header) => (
-                                                <ResizableTableHead key={header.id} header={header} />
-                                            ))}
-                                        </TableRow>
-                                    ))}
-                                </TableHeader>
+                                <DataTableHeader
+                                    table={table}
+                                    onResetLayout={resetFriendListTableLayout}
+                                />
                                 <TableBody>
                                     {table.getRowModel().rows.map((row) => (
                                         <TableRow
@@ -1402,6 +1374,16 @@ export function FriendListPage({ embedded = false } = {}) {
                             table={table}
                             pageIndex={pagination.pageIndex}
                             pageCount={pageCount}
+                            pageSize={pagination.pageSize}
+                            pageSizes={pageSizes}
+                            pageSizeLabel={t('table.pagination.rows_per_page')}
+                            onPageSizeChange={(value) => {
+                                const nextPageSize = resolvePageSize(value, pageSizes, pagination.pageSize);
+                                setPagination({
+                                    pageIndex: 0,
+                                    pageSize: nextPageSize
+                                });
+                            }}
                         />
                     </PageFooter>
                 </>

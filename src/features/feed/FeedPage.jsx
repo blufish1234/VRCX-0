@@ -10,7 +10,6 @@ import {
     ExternalLinkIcon,
     ListFilterIcon,
     LockIcon,
-    RefreshCwIcon,
     StarIcon,
     XIcon
 } from 'lucide-react';
@@ -26,10 +25,10 @@ import {
 import { cn } from '@/lib/utils.js';
 import { useI18n } from '@/app/hooks/use-i18n.js';
 import {
-    ResizableTableCell,
-    ResizableTableHead
+    ResizableTableCell
 } from '@/components/data-table/ResizableTableParts.jsx';
 import {
+    DataTableHeader,
     DataTableEmptyRow,
     DataTablePagination,
     DataTableScrollArea,
@@ -86,20 +85,11 @@ import {
 } from '@/ui/shadcn/context-menu';
 import { Input } from '@/ui/shadcn/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/ui/shadcn/popover';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from '@/ui/shadcn/select';
 import { Spinner } from '@/ui/shadcn/spinner';
 import {
     Table,
     TableBody,
     TableCell,
-    TableHeader,
     TableRow
 } from '@/ui/shadcn/table';
 import {
@@ -1035,7 +1025,6 @@ export function FeedPage({ embedded = false } = {}) {
     const [friendLogNamesById, setFriendLogNamesById] = useState({});
     const [loadStatus, setLoadStatus] = useState('idle');
     const [preferencesReady, setPreferencesReady] = useState(false);
-    const [refreshToken, setRefreshToken] = useState(0);
     const [expanded, setExpanded] = useState({});
     const [pageSizes, setPageSizes] = useState(initialPageSizes);
     const [previousInstancesOpen, setPreviousInstancesOpen] = useState(false);
@@ -1051,6 +1040,9 @@ export function FeedPage({ embedded = false } = {}) {
     );
     const [columnSizing, setColumnSizing] = useState(() =>
         sanitizeColumnSizing(persistedState.columnSizing)
+    );
+    const [columnOrderLocked, setColumnOrderLocked] = useState(
+        () => persistedState.columnOrderLocked === true
     );
     const [pagination, setPagination] = useState({
         pageIndex: 0,
@@ -1550,9 +1542,10 @@ export function FeedPage({ embedded = false } = {}) {
     useEffect(() => {
         writePersistedState({
             columnOrder: sanitizeColumnOrder(columnOrder),
-            columnSizing: sanitizeColumnSizing(columnSizing)
+            columnSizing: sanitizeColumnSizing(columnSizing),
+            columnOrderLocked
         });
-    }, [columnOrder, columnSizing]);
+    }, [columnOrder, columnOrderLocked, columnSizing]);
 
     useEffect(() => {
         setPagination((current) => ({
@@ -1642,8 +1635,7 @@ export function FeedPage({ embedded = false } = {}) {
         favoritesOnly,
         isFavoritesLoaded,
         maxFeedRows,
-        preferencesReady,
-        refreshToken
+        preferencesReady
     ]);
 
     useEffect(() => {
@@ -1864,7 +1856,11 @@ export function FeedPage({ embedded = false } = {}) {
         getSortedRowModel: getSortedRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         getRowId: (row) => getFeedRowId(row),
-        getRowCanExpand: () => true
+        getRowCanExpand: () => true,
+        meta: {
+            columnOrderLocked,
+            setColumnOrderLocked
+        }
     });
 
     return (
@@ -1972,39 +1968,6 @@ export function FeedPage({ embedded = false } = {}) {
 
                             <div className="flex items-center gap-2">
                                 <TableColumnVisibilityMenu table={table} />
-                                <Select
-                                    value={String(pagination.pageSize)}
-                                    onValueChange={(value) =>
-                                        setPagination({
-                                            pageIndex: 0,
-                                            pageSize: resolvePageSize(value, pageSizes, pagination.pageSize)
-                                        })
-                                    }>
-                                    <SelectTrigger className="w-28">
-                                        <SelectValue placeholder="Rows" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectGroup>
-                                            {pageSizes.map((size) => (
-                                                <SelectItem key={size} value={String(size)}>
-                                                    {size} rows
-                                                </SelectItem>
-                                            ))}
-                                        </SelectGroup>
-                                    </SelectContent>
-                                </Select>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="icon"
-                                    aria-label="Refresh feed"
-                                    onClick={() => setRefreshToken((current) => current + 1)}>
-                                    {loadStatus === 'running' ? (
-                                        <Spinner data-icon="icon" />
-                                    ) : (
-                                        <RefreshCwIcon data-icon="icon" />
-                                    )}
-                                </Button>
                             </div>
                 </PageToolbarRow>
             </PageToolbar>
@@ -2013,15 +1976,7 @@ export function FeedPage({ embedded = false } = {}) {
                 <DataTableSurface>
                     <DataTableScrollArea>
                         <Table className="table-fixed">
-                            <TableHeader>
-                                {table.getHeaderGroups().map((headerGroup) => (
-                                    <TableRow key={headerGroup.id}>
-                                        {headerGroup.headers.map((header) => (
-                                            <ResizableTableHead key={header.id} header={header} />
-                                        ))}
-                                    </TableRow>
-                                ))}
-                            </TableHeader>
+                            <DataTableHeader table={table} />
                             <TableBody>
                                 {table.getRowModel().rows.length > 0 ? (
                                     table.getRowModel().rows.map((row) => (
@@ -2077,6 +2032,15 @@ export function FeedPage({ embedded = false } = {}) {
                         table={table}
                         pageIndex={table.getState().pagination.pageIndex}
                         pageCount={table.getPageCount() || 1}
+                        pageSize={pagination.pageSize}
+                        pageSizes={pageSizes}
+                        pageSizeLabel={t('table.pagination.rows_per_page')}
+                        onPageSizeChange={(value) =>
+                            setPagination({
+                                pageIndex: 0,
+                                pageSize: resolvePageSize(value, pageSizes, pagination.pageSize)
+                            })
+                        }
                     />
                 </PageFooter>
             </PageBody>
