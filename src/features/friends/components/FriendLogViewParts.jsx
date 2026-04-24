@@ -4,9 +4,8 @@ import {
     ArrowUpDownIcon,
     ArrowUpIcon
 } from 'lucide-react';
-import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 
-import { useI18n } from '@/app/hooks/use-i18n.js';
 import { EmptyState } from '@/components/layout/PageScaffold.jsx';
 import { openUserDialog } from '@/services/dialogService.js';
 import { Button } from '@/ui/shadcn/button';
@@ -56,13 +55,13 @@ export function FriendLogEmptyState({ title, description }) {
     return <EmptyState title={title} description={description} />;
 }
 
-function friendLogTypeLabel(type, t) {
+export function friendLogTypeLabel(type, t) {
     return type ? t(`view.friend_log.filters.${type}`) : '';
 }
 
 export function FriendLogTypeFilterDropdown({ value, onChange }) {
-    const { t } = useI18n();
-    const valueSet = useMemo(() => new Set(value), [value]);
+    const { t } = useTranslation();
+    const valueSet = new Set(value);
     const label = value.length
         ? value
               .map((type) => friendLogTypeLabel(type, t))

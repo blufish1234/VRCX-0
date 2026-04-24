@@ -1,9 +1,7 @@
-import { ClockIcon, NetworkIcon } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-import { useI18n } from '@/app/hooks/use-i18n.js';
-import { cn } from '@/lib/utils.js';
+import { useTranslation } from 'react-i18next';
 import { backend } from '@/platform/index.js';
 import { configRepository } from '@/repositories/index.js';
 import {
@@ -13,28 +11,12 @@ import {
 import { useModalStore } from '@/state/modalStore.js';
 import { usePreferencesStore } from '@/state/preferencesStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
-import { Button } from '@/ui/shadcn/button';
 import {
     ContextMenu,
-    ContextMenuCheckboxItem,
-    ContextMenuContent,
-    ContextMenuSeparator,
-    ContextMenuSub,
-    ContextMenuSubContent,
-    ContextMenuSubTrigger,
     ContextMenuTrigger
 } from '@/ui/shadcn/context-menu';
-import { Popover, PopoverContent, PopoverTrigger } from '@/ui/shadcn/popover';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from '@/ui/shadcn/select';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
-import { appI18n } from '@/services/i18nService.js';
+import { StatusBarContextMenuContent } from './status-bar/StatusBarContextMenuContent.jsx';
+import { StatusBarFooter } from './status-bar/StatusBarFooter.jsx';
 
 const VISIBILITY_KEY = 'VRCX_statusBarVisibility';
 const CLOCKS_KEY = 'VRCX_statusBarClocks';
@@ -50,15 +32,6 @@ const DEFAULT_VISIBILITY = {
     clocks: true,
     servers: true
 };
-
-const VISIBILITY_MENU_ITEMS = [
-    ['vrchat', 'VRChat'],
-    ['steamvr', 'SteamVR'],
-    ['proxy', 'Proxy'],
-    ['ws', 'Realtime'],
-    ['nowPlaying', 'Now Playing'],
-    ['servers', 'Servers']
-];
 
 function normalizeUtcHour(value) {
     const numeric = Number(value);
@@ -120,6 +93,11 @@ function formatUtcHour(offset) {
     return `UTC${normalized >= 0 ? '+' : ''}${normalized}`;
 }
 
+const TIMEZONE_OPTIONS = Array.from({ length: 27 }, (_, index) => {
+    const value = index - 12;
+    return { value, label: formatUtcHour(value) };
+});
+
 function formatClock(nowMs, offset) {
     const shifted = new Date(nowMs + normalizeUtcHour(offset) * 60 * 60 * 1000);
     const hours = String(shifted.getUTCHours()).padStart(2, '0');
@@ -164,87 +142,8 @@ function formatStatusDate(value) {
     }).format(date);
 }
 
-function StatusDot({ active, warn = false }) {
-    const color = warn
-        ? 'bg-[var(--status-active)]'
-        : active
-          ? 'bg-[var(--status-online)]'
-          : 'bg-muted-foreground/40';
-    return (
-        <span
-            className={cn('inline-block size-2 shrink-0 rounded-full', color)}
-        />
-    );
-}
-
-function StatusSegment({
-    visible = true,
-    active = false,
-    warn = false,
-    label,
-    value,
-    children,
-    onClick,
-    tooltip
-}) {
-    if (!visible) {
-        return null;
-    }
-
-    const content = (
-        <>
-            <StatusDot active={active} warn={warn} />
-            <span className="text-muted-foreground text-xs">{label}</span>
-            {value ? (
-                <span className="text-foreground truncate text-xs">
-                    {value}
-                </span>
-            ) : null}
-            {children}
-        </>
-    );
-
-    if (typeof onClick === 'function') {
-        const segment = (
-            <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-6 min-w-0 justify-start gap-1.5 rounded-none border-r px-2 text-left font-normal"
-                onClick={onClick}
-            >
-                {content}
-            </Button>
-        );
-        if (!tooltip) {
-            return segment;
-        }
-        return (
-            <Tooltip>
-                <TooltipTrigger asChild>{segment}</TooltipTrigger>
-                <TooltipContent className="max-w-xs">{tooltip}</TooltipContent>
-            </Tooltip>
-        );
-    }
-
-    const segment = (
-        <div className="flex h-6 min-w-0 items-center gap-1.5 border-r px-2">
-            {content}
-        </div>
-    );
-    if (!tooltip) {
-        return segment;
-    }
-    return (
-        <Tooltip>
-            <TooltipTrigger asChild>{segment}</TooltipTrigger>
-            <TooltipContent className="max-w-xs">{tooltip}</TooltipContent>
-        </Tooltip>
-    );
-}
-
 export function AppStatusBar() {
-    const { t } = useI18n();
+    const { t } = useTranslation();
     const transportMessageCountRef = useRef(0);
     const messageHistoryRef = useRef(new Array(60).fill(0));
     const [nowMs, setNowMs] = useState(Date.now());
@@ -257,42 +156,125 @@ export function AppStatusBar() {
         false,
         false
     ]);
-    const runtimeTransport = useRuntimeStore((state) => state.transport);
-    const runtimeGameState = useRuntimeStore((state) => state.gameState);
-    const nowPlaying = useRuntimeStore((state) => state.nowPlaying);
+    const transportMessageCount = useRuntimeStore(
+        (state) => state.transport.messageCount
+    );
+    const websocketConnected = useRuntimeStore(
+        (state) => state.transport.websocketConnected
+    );
+    const lastGameStartedAt = useRuntimeStore(
+        (state) => state.gameState.lastGameStartedAt
+    );
+    const currentLocationStartedAt = useRuntimeStore(
+        (state) => state.gameState.currentLocationStartedAt
+    );
+    const currentWorldName = useRuntimeStore(
+        (state) => state.gameState.currentWorldName
+    );
+    const currentWorldId = useRuntimeStore(
+        (state) => state.gameState.currentWorldId
+    );
+    const lastGameLogAt = useRuntimeStore(
+        (state) => state.gameState.lastGameLogAt
+    );
+    const lastGameLogType = useRuntimeStore(
+        (state) => state.gameState.lastGameLogType
+    );
+    const nowPlayingUrl = useRuntimeStore((state) => state.nowPlaying.url);
+    const nowPlayingName = useRuntimeStore((state) => state.nowPlaying.name);
+    const nowPlayingStartedAt = useRuntimeStore(
+        (state) => state.nowPlaying.startedAt
+    );
+    const nowPlayingPosition = useRuntimeStore(
+        (state) => state.nowPlaying.position
+    );
+    const nowPlayingLength = useRuntimeStore(
+        (state) => state.nowPlaying.length
+    );
     const isGameRunning = useRuntimeStore(
         (state) => state.gameState.isGameRunning
     );
     const isSteamVRRunning = useRuntimeStore(
         (state) => state.gameState.isSteamVRRunning
     );
-    const vrcStatus = useRuntimeStore((state) => state.vrcStatus);
+    const vrcStatusIndicator = useRuntimeStore(
+        (state) => state.vrcStatus.indicator
+    );
+    const vrcStatusSummary = useRuntimeStore(
+        (state) => state.vrcStatus.summary
+    );
+    const vrcStatusStatus = useRuntimeStore((state) => state.vrcStatus.status);
     const preferencesHydrated = usePreferencesStore(
         (state) => state.preferencesHydrated
     );
     const proxyServer = usePreferencesStore((state) => state.proxyServer);
     const prompt = useModalStore((state) => state.prompt);
-    const visibleClocks = useMemo(
-        () =>
-            clocks.slice(0, Math.max(0, Math.min(3, Number(clockCount) || 0))),
-        [clocks, clockCount]
+    const visibleClocks = clocks.slice(
+        0,
+        Math.max(0, Math.min(3, Number(clockCount) || 0))
     );
-    const gameStartedAt = Date.parse(runtimeGameState.lastGameStartedAt || '');
-    const currentLocationStartedAt = Date.parse(
-        runtimeGameState.currentLocationStartedAt || ''
+    const runtimeTransport = useMemo(
+        () => ({
+            messageCount: transportMessageCount,
+            websocketConnected
+        }),
+        [transportMessageCount, websocketConnected]
+    );
+    const runtimeGameState = useMemo(
+        () => ({
+            lastGameStartedAt,
+            currentLocationStartedAt,
+            currentWorldName,
+            currentWorldId,
+            lastGameLogAt,
+            lastGameLogType
+        }),
+        [
+            currentLocationStartedAt,
+            currentWorldId,
+            currentWorldName,
+            lastGameLogAt,
+            lastGameLogType,
+            lastGameStartedAt
+        ]
+    );
+    const nowPlaying = useMemo(
+        () => ({
+            url: nowPlayingUrl,
+            name: nowPlayingName,
+            startedAt: nowPlayingStartedAt,
+            position: nowPlayingPosition,
+            length: nowPlayingLength
+        }),
+        [
+            nowPlayingLength,
+            nowPlayingName,
+            nowPlayingPosition,
+            nowPlayingStartedAt,
+            nowPlayingUrl
+        ]
+    );
+    const vrcStatus = useMemo(
+        () => ({
+            indicator: vrcStatusIndicator,
+            summary: vrcStatusSummary,
+            status: vrcStatusStatus
+        }),
+        [vrcStatusIndicator, vrcStatusStatus, vrcStatusSummary]
+    );
+    const gameStartedAt = Date.parse(lastGameStartedAt || '');
+    const currentLocationStartedTimestamp = Date.parse(
+        currentLocationStartedAt || ''
     );
     const gameDuration =
         isGameRunning && gameStartedAt
             ? formatDuration(nowMs - gameStartedAt)
             : '';
     const currentLocationDuration =
-        isGameRunning && currentLocationStartedAt
-            ? formatDuration(nowMs - currentLocationStartedAt)
+        isGameRunning && currentLocationStartedTimestamp
+            ? formatDuration(nowMs - currentLocationStartedTimestamp)
             : '';
-    const currentWorld =
-        runtimeGameState.currentWorldName ||
-        runtimeGameState.currentWorldId ||
-        '';
+    const currentWorld = currentWorldName || currentWorldId || '';
     const nowPlayingElapsed = nowPlaying.startedAt
         ? Math.max(
               0,
@@ -303,14 +285,7 @@ export function AppStatusBar() {
     const nowPlayingProgress = nowPlaying.length
         ? `${formatDuration(nowPlayingElapsed * 1000)} / ${formatDuration(Number(nowPlaying.length) * 1000)}`
         : '';
-    const timezoneOptions = useMemo(
-        () =>
-            Array.from({ length: 27 }, (_, index) => {
-                const value = index - 12;
-                return { value, label: formatUtcHour(value) };
-            }),
-        []
-    );
+    const timezoneOptions = TIMEZONE_OPTIONS;
 
     useEffect(() => {
         let active = true;
@@ -371,8 +346,8 @@ export function AppStatusBar() {
     }, []);
 
     useEffect(() => {
-        transportMessageCountRef.current = runtimeTransport.messageCount;
-    }, [runtimeTransport.messageCount]);
+        transportMessageCountRef.current = transportMessageCount;
+    }, [transportMessageCount]);
 
     useEffect(() => {
         const timer = window.setInterval(() => {
@@ -403,7 +378,7 @@ export function AppStatusBar() {
                 toast.error(
                     error instanceof Error
                         ? error.message
-                        : appI18n.t('component.app_status_bar.generated_toast.failed_to_save_status_bar_visibility')
+                        : t('component.app_status_bar.generated_toast.failed_to_save_status_bar_visibility')
                 );
             });
     }
@@ -431,7 +406,7 @@ export function AppStatusBar() {
                 toast.error(
                     error instanceof Error
                         ? error.message
-                        : appI18n.t('component.app_status_bar.generated_toast.failed_to_save_clock_count')
+                        : t('component.app_status_bar.generated_toast.failed_to_save_clock_count')
                 );
             });
     }
@@ -458,7 +433,7 @@ export function AppStatusBar() {
                     toast.error(
                         error instanceof Error
                             ? error.message
-                            : appI18n.t('component.app_status_bar.generated_toast.failed_to_save_status_bar_clocks')
+                            : t('component.app_status_bar.generated_toast.failed_to_save_status_bar_clocks')
                     );
                 });
             return nextClocks;
@@ -473,7 +448,7 @@ export function AppStatusBar() {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : appI18n.t('component.app_status_bar.generated_toast.failed_to_open_vrchat_status')
+                    : t('component.app_status_bar.generated_toast.failed_to_open_vrchat_status')
             );
         }
     }
@@ -484,12 +459,12 @@ export function AppStatusBar() {
         }
         const currentProxyServer = usePreferencesStore.getState().proxyServer;
         const result = await prompt({
-            title: appI18n.t('component.app_status_bar.generated_modal.proxy_settings'),
+            title: t('component.app_status_bar.generated_modal.proxy_settings'),
             description:
-                appI18n.t('component.app_status_bar.generated_modal.set_the_proxy_server_used_by_vrcx_0_restart_is_r'),
+                t('component.app_status_bar.generated_modal.set_the_proxy_server_used_by_vrcx_0_restart_is_r'),
             inputValue: currentProxyServer,
-            confirmText: appI18n.t('component.app_status_bar.generated_modal.restart'),
-            cancelText: appI18n.t('common.actions.close')
+            confirmText: t('component.app_status_bar.generated_modal.restart'),
+            cancelText: t('common.actions.close')
         });
         if (!result.ok) {
             return;
@@ -502,326 +477,66 @@ export function AppStatusBar() {
     return (
         <ContextMenu>
             <ContextMenuTrigger asChild>
-                <footer className="bg-background/95 border-t text-xs backdrop-blur">
-                    <div className="flex min-h-7 flex-col gap-1 overflow-hidden lg:flex-row lg:items-center lg:justify-between">
-                        <div className="flex min-w-0 flex-1 items-center overflow-hidden">
-                            <StatusSegment
-                                visible={visibility.steamvr}
-                                active={Boolean(isSteamVRRunning)}
-                                label={t('status_bar.steamvr')}
-                            />
-                            <StatusSegment
-                                visible={visibility.vrchat}
-                                active={Boolean(isGameRunning)}
-                                label={t('view.settings.advanced.advanced.vrchat_settings.header')}
-                                tooltip={
-                                    <div className="flex flex-col gap-1 text-xs">
-                                        {isGameRunning ? (
-                                            <>
-                                                <div className="flex justify-between gap-4">
-                                                    <span className="text-muted-foreground">
-                                                        {t('app_menu.generated.started_at')}
-                                                    </span>
-                                                    <span>
-                                                        {formatStatusDate(
-                                                            runtimeGameState.lastGameStartedAt
-                                                        )}
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between gap-4">
-                                                    <span className="text-muted-foreground">
-                                                        {t('app_menu.generated.session_duration')}
-                                                    </span>
-                                                    <span>
-                                                        {gameDuration || '-'}
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between gap-4">
-                                                    <span className="text-muted-foreground">
-                                                        {t('app_menu.generated.instance_duration')}
-                                                    </span>
-                                                    <span>
-                                                        {currentLocationDuration ||
-                                                            '-'}
-                                                    </span>
-                                                </div>
-                                                {currentWorld ? (
-                                                    <div className="text-muted-foreground max-w-64 truncate">
-                                                        {currentWorld}
-                                                    </div>
-                                                ) : null}
-                                            </>
-                                        ) : (
-                                            <>
-                                                <div className="flex justify-between gap-4">
-                                                    <span className="text-muted-foreground">
-                                                        {t('app_menu.generated.last_game_event')}
-                                                    </span>
-                                                    <span>
-                                                        {formatStatusDate(
-                                                            runtimeGameState.lastGameLogAt
-                                                        )}
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between gap-4">
-                                                    <span className="text-muted-foreground">
-                                                        {t('app_menu.generated.last_event_type')}
-                                                    </span>
-                                                    <span>
-                                                        {runtimeGameState.lastGameLogType ||
-                                                            '-'}
-                                                    </span>
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                }
-                            />
-                            <StatusSegment
-                                visible={visibility.servers}
-                                active={
-                                    !vrcStatus.indicator ||
-                                    vrcStatus.indicator === 'none'
-                                }
-                                warn={
-                                    vrcStatus.indicator &&
-                                    vrcStatus.indicator !== 'none'
-                                }
-                                label={t('status_bar.servers')}
-                                onClick={() => void openStatusPage()}
-                                tooltip={
-                                    vrcStatus.summary ||
-                                    vrcStatus.status ||
-                                    'VRChat status'
-                                }
-                            />
-                            {visibility.ws ? (
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <div className="-ml-px flex h-6 items-center gap-1.5 border-x px-2">
-                                            <StatusDot
-                                                active={Boolean(
-                                                    runtimeTransport.websocketConnected
-                                                )}
-                                            />
-                                            <span className="text-muted-foreground text-xs">
-                                                {t(
-                                                    'status_bar.realtime_connection'
-                                                )}
-                                            </span>
-                                        </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="flex max-w-xs flex-col gap-1 text-xs">
-                                        <span>
-                                            {t('view.login.field.websocket')}{' '}
-                                            {runtimeTransport.websocketConnected
-                                                ? t('status_bar.ws_connected')
-                                                : t(
-                                                      'status_bar.ws_disconnected'
-                                                  )}
-                                        </span>
-                                        <span className="text-muted-foreground">
-                                            {t('status_bar.ws_avg_per_minute', {
-                                                count: messagesPerMinute
-                                            })}
-                                        </span>
-                                    </TooltipContent>
-                                </Tooltip>
-                            ) : null}
-                            <StatusSegment
-                                visible={
-                                    visibility.nowPlaying &&
-                                    Boolean(nowPlaying.url)
-                                }
-                                active
-                                label={t('status_bar.now_playing')}
-                                value={nowPlaying.name || nowPlaying.url}
-                                onClick={() => {
-                                    void backend.app
-                                        .OpenLink(nowPlaying.url)
-                                        .catch((error) => {
-                                            toast.error(
-                                                error instanceof Error
-                                                    ? error.message
-                                                    : appI18n.t('component.app_status_bar.generated_toast.failed_to_open_media_link')
-                                            );
-                                        });
-                                }}
-                            >
-                                {nowPlayingProgress ? (
-                                    <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
-                                        {nowPlayingProgress}
-                                    </span>
-                                ) : null}
-                            </StatusSegment>
-                        </div>
-
-                        <div className="flex shrink-0 items-center justify-end overflow-hidden">
-                            {visibility.clocks
-                                ? visibleClocks.map((clock, index) => (
-                                      <Popover
-                                          key={`${clock.offset}-${index}`}
-                                          open={Boolean(
-                                              clockPopoverOpen[index]
-                                          )}
-                                          onOpenChange={(open) =>
-                                              setClockPopoverValue(index, open)
-                                          }
-                                      >
-                                          <PopoverTrigger asChild>
-                                              <Button
-                                                  type="button"
-                                                  variant="ghost"
-                                                  size="sm"
-                                                  className="h-6 gap-1.5 rounded-none border-r px-2 text-xs font-normal tabular-nums"
-                                              >
-                                                  <ClockIcon
-                                                      data-icon="inline-start"
-                                                      className="text-muted-foreground"
-                                                  />
-                                                  {formatClock(
-                                                      nowMs,
-                                                      clock.offset
-                                                  )}
-                                              </Button>
-                                          </PopoverTrigger>
-                                          <PopoverContent
-                                              side="top"
-                                              align="center"
-                                              className="w-72"
-                                          >
-                                              <div className="flex flex-col gap-2 p-1">
-                                                  <label className="text-xs font-medium">
-                                                      {t('status_bar.timezone')}
-                                                  </label>
-                                                  <Select
-                                                      value={String(
-                                                          normalizeUtcHour(
-                                                              clock.offset
-                                                          )
-                                                      )}
-                                                      onValueChange={(offset) =>
-                                                          updateClockTimezone(
-                                                              index,
-                                                              offset
-                                                          )
-                                                      }
-                                                  >
-                                                      <SelectTrigger
-                                                          size="sm"
-                                                          className="w-full"
-                                                      >
-                                                          <SelectValue
-                                                              placeholder={t(
-                                                                  'status_bar.timezone'
-                                                              )}
-                                                          />
-                                                      </SelectTrigger>
-                                                      <SelectContent className="max-h-60">
-                                                          <SelectGroup>
-                                                              {timezoneOptions.map(
-                                                                  (option) => (
-                                                                      <SelectItem
-                                                                          key={
-                                                                              option.value
-                                                                          }
-                                                                          value={String(
-                                                                              option.value
-                                                                          )}
-                                                                      >
-                                                                          <span className="w-full text-right font-mono">
-                                                                              {
-                                                                                  option.label
-                                                                              }
-                                                                          </span>
-                                                                      </SelectItem>
-                                                                  )
-                                                              )}
-                                                          </SelectGroup>
-                                                      </SelectContent>
-                                                  </Select>
-                                              </div>
-                                          </PopoverContent>
-                                      </Popover>
-                                  ))
-                                : null}
-                            {visibility.proxy ? (
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            aria-label={"Proxy settings"}
-                                            className={cn(
-                                                '-ml-px h-6 w-7 rounded-none border-l',
-                                                proxyServer
-                                                    ? 'bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary'
-                                                    : 'text-muted-foreground hover:text-muted-foreground'
-                                            )}
-                                            onClick={() => {
-                                                void promptProxySettings().catch(
-                                                    (error) => {
-                                                        toast.error(
-                                                            error instanceof
-                                                                Error
-                                                                ? error.message
-                                                                : appI18n.t('component.app_status_bar.generated_toast.failed_to_update_proxy_settings')
-                                                        );
-                                                    }
-                                                );
-                                            }}
-                                        >
-                                            <NetworkIcon data-icon="icon" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="max-w-xs">
-                                        {proxyServer
-                                            ? `Proxy: ${proxyServer}`
-                                            : 'Proxy disabled'}
-                                    </TooltipContent>
-                                </Tooltip>
-                            ) : null}
-                        </div>
-                    </div>
-                </footer>
+                <StatusBarFooter
+                    t={t}
+                    helpers={{ formatClock, formatStatusDate }}
+                    handlers={{
+                        onOpenMediaLink: () => {
+                            void backend.app
+                                .OpenLink(nowPlaying.url)
+                                .catch((error) => {
+                                    toast.error(
+                                        error instanceof Error
+                                            ? error.message
+                                            : t(
+                                                  'component.app_status_bar.generated_toast.failed_to_open_media_link'
+                                              )
+                                    );
+                                });
+                        },
+                        onOpenStatusPage: openStatusPage,
+                        onPromptProxySettings: () => {
+                            void promptProxySettings().catch((error) => {
+                                toast.error(
+                                    error instanceof Error
+                                        ? error.message
+                                        : t(
+                                              'component.app_status_bar.generated_toast.failed_to_update_proxy_settings'
+                                          )
+                                );
+                            });
+                        },
+                        onSetClockPopoverValue: setClockPopoverValue,
+                        onUpdateClockTimezone: updateClockTimezone
+                    }}
+                    state={{
+                        clockPopoverOpen,
+                        currentLocationDuration,
+                        currentWorld,
+                        gameDuration,
+                        isGameRunning,
+                        isSteamVRRunning,
+                        messagesPerMinute,
+                        nowMs,
+                        nowPlaying,
+                        nowPlayingProgress,
+                        proxyServer,
+                        runtimeGameState,
+                        runtimeTransport,
+                        timezoneOptions,
+                        visibility,
+                        visibleClocks,
+                        vrcStatus
+                    }}
+                />
             </ContextMenuTrigger>
-            <ContextMenuContent>
-                {VISIBILITY_MENU_ITEMS.map(([key, label]) => (
-                    <ContextMenuCheckboxItem
-                        key={key}
-                        checked={Boolean(visibility[key])}
-                        onSelect={(event) => event.preventDefault()}
-                        onCheckedChange={(checked) =>
-                            toggleVisibility(key, checked)
-                        }
-                    >
-                        {label}
-                    </ContextMenuCheckboxItem>
-                ))}
-                <ContextMenuSeparator />
-                <ContextMenuSub>
-                    <ContextMenuSubTrigger>{t('app_menu.generated.clocks')}</ContextMenuSubTrigger>
-                    <ContextMenuSubContent>
-                        {[0, 1, 2, 3].map((count) => (
-                            <ContextMenuCheckboxItem
-                                key={count}
-                                checked={clockCount === count}
-                                onSelect={(event) => event.preventDefault()}
-                                onCheckedChange={(checked) => {
-                                    if (checked) {
-                                        setClockCountValue(count);
-                                    }
-                                }}
-                            >
-                                {count === 0
-                                    ? 'No clocks'
-                                    : `${count} clock${count === 1 ? '' : 's'}`}
-                            </ContextMenuCheckboxItem>
-                        ))}
-                    </ContextMenuSubContent>
-                </ContextMenuSub>
-            </ContextMenuContent>
+            <StatusBarContextMenuContent
+                clockCount={clockCount}
+                onSetClockCountValue={setClockCountValue}
+                onToggleVisibility={toggleVisibility}
+                t={t}
+                visibility={visibility}
+            />
         </ContextMenu>
     );
 }

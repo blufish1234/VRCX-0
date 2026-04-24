@@ -13,7 +13,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import { useI18n } from '@/app/hooks/use-i18n.js';
+import { useTranslation } from 'react-i18next';
 import {
     loadNavMenuModel,
     NAV_LAYOUT_UPDATED_EVENT,
@@ -30,7 +30,6 @@ import {
 import { useDashboardStore } from '@/state/dashboardStore.js';
 import { usePreferencesStore } from '@/state/preferencesStore.js';
 import { Button } from '@/ui/shadcn/button';
-import { appI18n } from '@/services/i18nService.js';
 
 const collapsibleCategories = toolCategories.map((category) => category.key);
 const configKey = 'VRCX_toolsCategoryCollapsed';
@@ -42,6 +41,12 @@ const defaultCollapsedState = {
     user: false,
     other: false
 };
+const toolsPageCategories = toolCategories
+    .filter((category) => collapsibleCategories.includes(category.key))
+    .map((category) => ({
+        ...category,
+        tools: getToolsByCategory(category.key)
+    }));
 
 const categoryIconByKey = {
     image: ImageIcon,
@@ -162,28 +167,63 @@ function removeToolNavItem(layout, navKey) {
         .filter(Boolean);
 }
 
+function useToolsCollapsedState() {
+    const [collapsed, setCollapsed] = useState({
+        ...defaultCollapsedState
+    });
+
+    useEffect(() => {
+        let active = true;
+        configRepository
+            .getString(configKey, '{}')
+            .then((value) => {
+                if (!active) {
+                    return;
+                }
+                const parsed = JSON.parse(value || '{}');
+                setCollapsed((current) => ({
+                    ...current,
+                    ...Object.fromEntries(
+                        Object.keys(defaultCollapsedState).map((key) => [
+                            key,
+                            Boolean(parsed[key])
+                        ])
+                    )
+                }));
+            })
+            .catch(() => {});
+
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    function toggleCategoryCollapsed(categoryKey) {
+        setCollapsed((current) => {
+            const nextState = {
+                ...current,
+                [categoryKey]: !current[categoryKey]
+            };
+            void configRepository.setString(
+                configKey,
+                JSON.stringify(nextState)
+            );
+            return nextState;
+        });
+    }
+
+    return { collapsed, toggleCategoryCollapsed };
+}
+
 export function ToolsPage() {
     const navigate = useNavigate();
-    const { t, i18n } = useI18n();
+    const { t, i18n } = useTranslation();
     const dashboards = useDashboardStore((state) => state.dashboards);
     const ensureDashboardsLoaded = useDashboardStore(
         (state) => state.ensureLoaded
     );
-    const categories = useMemo(
-        () =>
-            toolCategories
-                .filter((category) =>
-                    collapsibleCategories.includes(category.key)
-                )
-                .map((category) => ({
-                    ...category,
-                    tools: getToolsByCategory(category.key)
-                })),
-        []
-    );
-    const [collapsed, setCollapsed] = useState({
-        ...defaultCollapsedState
-    });
+    const categories = toolsPageCategories;
+    const { collapsed, toggleCategoryCollapsed } = useToolsCollapsedState();
     const [navLayout, setNavLayout] = useState([]);
     const [navHiddenKeys, setNavHiddenKeys] = useState([]);
     const preferencesHydrated = usePreferencesStore(
@@ -251,37 +291,6 @@ export function ToolsPage() {
         };
     }, [dashboards, notificationLayout, preferencesHydrated, t]);
 
-    useEffect(() => {
-        let active = true;
-        configRepository
-            .getString(configKey, '{}')
-            .then((value) => {
-                if (!active) {
-                    return;
-                }
-                const parsed = JSON.parse(value || '{}');
-                setCollapsed((current) => ({
-                    ...current,
-                    ...Object.fromEntries(
-                        Object.keys(defaultCollapsedState).map((key) => [
-                            key,
-                            Boolean(parsed[key])
-                        ])
-                    )
-                }));
-            })
-            .catch(() => {});
-
-        return () => {
-            active = false;
-        };
-    }, []);
-
-    function saveCollapsedState(nextState) {
-        setCollapsed(nextState);
-        void configRepository.setString(configKey, JSON.stringify(nextState));
-    }
-
     async function triggerTool(tool) {
         await triggerToolByKey(tool?.key, {
             navigate,
@@ -309,7 +318,7 @@ export function ToolsPage() {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : appI18n.t('view.tools.generated_toast.failed_to_pin_tool_to_navigation')
+                    : t('view.tools.generated_toast.failed_to_pin_tool_to_navigation')
             );
         }
     }
@@ -336,7 +345,7 @@ export function ToolsPage() {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : appI18n.t('view.tools.generated_toast.failed_to_unpin_tool_from_navigation')
+                    : t('view.tools.generated_toast.failed_to_unpin_tool_from_navigation')
             );
         }
     }
@@ -365,11 +374,9 @@ export function ToolsPage() {
                                         variant="ghost"
                                         className="mb-2 h-auto justify-start gap-2 px-2.5 py-1.5 text-left"
                                         onClick={() =>
-                                            saveCollapsedState({
-                                                ...collapsed,
-                                                [category.key]:
-                                                    !collapsed[category.key]
-                                            })
+                                            toggleCategoryCollapsed(
+                                                category.key
+                                            )
                                         }
                                     >
                                         <ChevronDownIcon

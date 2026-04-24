@@ -4,275 +4,57 @@ import {
     getSortedRowModel,
     useReactTable
 } from '@tanstack/react-table';
-import {
-    RefreshCwIcon,
-    SearchIcon,
-    Trash2Icon,
-    XIcon
-} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
-import { useI18n } from '@/app/hooks/use-i18n.js';
-import {
-    DataTableHeader,
-    DataTablePagination,
-    DataTableScrollArea,
-    DataTableSurface
-} from '@/components/data-table/DataTableView.jsx';
-import { ResizableTableCell } from '@/components/data-table/ResizableTableParts.jsx';
-import { TableColumnVisibilityMenu } from '@/components/data-table/TableColumnVisibilityMenu.jsx';
 import {
     LoadingState,
     PageBody,
-    PageFooter,
     PageScaffold,
-    PageToolbar,
-    PageToolbarRow
+    PageToolbar
 } from '@/components/layout/PageScaffold.jsx';
-import { formatDateFilter } from '@/lib/dateTime.js';
 import { userFacingErrorMessage } from '@/lib/errorDisplay.js';
 import {
     configRepository,
     friendLogHistoryRepository
 } from '@/repositories/index.js';
-import { getTablePageSizesPreference } from '@/services/preferencesService.js';
+import {
+    getTablePageSizePreference,
+    getTablePageSizesPreference
+} from '@/services/preferencesService.js';
 import { useModalStore } from '@/state/modalStore.js';
 import { usePreferencesStore } from '@/state/preferencesStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
-import { Badge } from '@/ui/shadcn/badge';
-import { Button } from '@/ui/shadcn/button';
+
+import { buildFriendLogColumns } from './components/FriendLogColumns.jsx';
+import { FriendLogPageTable } from './components/FriendLogPageTable.jsx';
+import { FriendLogPageToolbar } from './components/FriendLogPageToolbar.jsx';
+import { FriendLogEmptyState } from './components/FriendLogViewParts.jsx';
 import {
-    InputGroup,
-    InputGroupAddon,
-    InputGroupInput
-} from '@/ui/shadcn/input-group';
-import { Spinner } from '@/ui/shadcn/spinner';
-import { Table, TableBody, TableRow } from '@/ui/shadcn/table';
-import { appI18n } from '@/services/i18nService.js';
+    getFriendLogRowKey,
+    matchesSearch,
+    normalizeUserId,
+    sortRows
+} from './friendLogRows.js';
 import {
-    FRIEND_LOG_TYPES,
-    FriendLogEmptyState,
-    FriendLogTypeFilterDropdown,
-    SortButton,
-    renderUserCell
-} from './components/FriendLogViewParts.jsx';
-
-const DEFAULT_PAGE_SIZES = [10, 25, 50];
-const DEFAULT_SORTING = [];
-const COLUMN_IDS = [
-    'spacer',
-    'created_at',
-    'type',
-    'displayName',
-    'action',
-    'trailing'
-];
-const STORAGE_KEY = 'vrcx:table:friendLog';
-
-function safeJsonParse(value) {
-    if (!value) {
-        return null;
-    }
-
-    try {
-        return JSON.parse(value);
-    } catch {
-        return null;
-    }
-}
-
-function readPersistedState() {
-    if (typeof window === 'undefined') {
-        return {};
-    }
-
-    try {
-        return safeJsonParse(window.localStorage.getItem(STORAGE_KEY)) ?? {};
-    } catch {
-        return {};
-    }
-}
-
-function writePersistedState(patch) {
-    if (typeof window === 'undefined') {
-        return;
-    }
-
-    try {
-        const current = readPersistedState();
-        window.localStorage.setItem(
-            STORAGE_KEY,
-            JSON.stringify({
-                ...current,
-                ...patch,
-                updatedAt: Date.now()
-            })
-        );
-    } catch {
-        // Persisted table state is optional.
-    }
-}
-
-function sanitizeSorting(value) {
-    if (!Array.isArray(value)) {
-        return DEFAULT_SORTING;
-    }
-
-    return value.filter(
-        (entry) =>
-            entry &&
-            typeof entry.id === 'string' &&
-            COLUMN_IDS.includes(entry.id)
-    );
-}
-
-function sanitizePageSizes(value) {
-    if (!Array.isArray(value)) {
-        return DEFAULT_PAGE_SIZES;
-    }
-
-    const normalized = Array.from(
-        new Set(
-            value
-                .map((entry) => Number.parseInt(entry, 10))
-                .filter((entry) => Number.isFinite(entry) && entry > 0)
-        )
-    ).sort((left, right) => left - right);
-
-    return normalized.length ? normalized : DEFAULT_PAGE_SIZES;
-}
-
-function sanitizeColumnVisibility(value) {
-    const visibility = {};
-    if (!value || typeof value !== 'object') {
-        return visibility;
-    }
-
-    for (const columnId of COLUMN_IDS) {
-        if (typeof value[columnId] === 'boolean') {
-            visibility[columnId] = value[columnId];
-        }
-    }
-
-    return visibility;
-}
-
-function sanitizeColumnOrder(value) {
-    if (!Array.isArray(value)) {
-        return COLUMN_IDS;
-    }
-
-    const orderedColumns = value.filter((columnId) =>
-        COLUMN_IDS.includes(columnId)
-    );
-    const missingColumns = COLUMN_IDS.filter(
-        (columnId) => !orderedColumns.includes(columnId)
-    );
-    return [...orderedColumns, ...missingColumns];
-}
-
-function sanitizeColumnSizing(value) {
-    if (!value || typeof value !== 'object') {
-        return {};
-    }
-
-    const sizing = {};
-    for (const columnId of COLUMN_IDS) {
-        const width = Number.parseInt(value[columnId], 10);
-        if (Number.isFinite(width) && width > 0) {
-            sizing[columnId] = width;
-        }
-    }
-    return sizing;
-}
-
-function resolvePageSize(candidate, allowed, fallback = DEFAULT_PAGE_SIZES[1]) {
-    const parsed = Number.parseInt(candidate, 10);
-    if (Number.isFinite(parsed) && parsed > 0) {
-        if (allowed.includes(parsed)) {
-            return parsed;
-        }
-
-        if (allowed.includes(fallback)) {
-            return fallback;
-        }
-
-        return allowed[0] ?? DEFAULT_PAGE_SIZES[0];
-    }
-
-    if (allowed.includes(fallback)) {
-        return fallback;
-    }
-
-    return allowed[0] ?? DEFAULT_PAGE_SIZES[0];
-}
-
-function parseTypeFilters(value) {
-    const parsed = safeJsonParse(value);
-    if (!Array.isArray(parsed)) {
-        return [];
-    }
-
-    return parsed.filter(
-        (entry) => typeof entry === 'string' && FRIEND_LOG_TYPES.includes(entry)
-    );
-}
-
-function sortRows(rows) {
-    return rows.slice().sort((left, right) => {
-        const leftTs = Date.parse(left?.created_at ?? '');
-        const rightTs = Date.parse(right?.created_at ?? '');
-        if (
-            Number.isFinite(leftTs) &&
-            Number.isFinite(rightTs) &&
-            leftTs !== rightTs
-        ) {
-            return rightTs - leftTs;
-        }
-
-        const leftId = Number.parseInt(left?.rowId ?? 0, 10) || 0;
-        const rightId = Number.parseInt(right?.rowId ?? 0, 10) || 0;
-        return rightId - leftId;
-    });
-}
-
-function normalizeUserId(value) {
-    return typeof value === 'string'
-        ? value.trim()
-        : String(value ?? '').trim();
-}
-
-function getFriendLogRowKey(row, ownerUserId = '') {
-    const owner = normalizeUserId(ownerUserId);
-    const rowId = Number.parseInt(row?.rowId ?? 0, 10) || 0;
-    if (rowId > 0) {
-        return `${owner}:row:${rowId}`;
-    }
-
-    return `${owner}:composite:${row?.created_at || ''}:${row?.type || ''}:${row?.userId || ''}`;
-}
-
-function matchesSearch(row, searchQuery) {
-    if (!searchQuery) {
-        return true;
-    }
-
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) {
-        return true;
-    }
-
-    return String(row?.displayName ?? '')
-        .toLowerCase()
-        .includes(query);
-}
+    DEFAULT_PAGE_SIZES,
+    parseTypeFilters,
+    readPersistedState,
+    resolvePageSize,
+    sanitizeColumnOrder,
+    sanitizeColumnSizing,
+    sanitizeColumnVisibility,
+    sanitizePageSizes,
+    sanitizeSorting,
+    writePersistedState
+} from './friendLogState.js';
 
 export function FriendLogPage({ embedded = false } = {}) {
-    const { t } = useI18n();
+    const { t } = useTranslation();
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
     const confirm = useModalStore((state) => state.confirm);
 
-    const persistedState = useMemo(() => readPersistedState(), []);
+    const [persistedState] = useState(() => readPersistedState());
     const hasWrittenSortingRef = useRef(false);
     const hasWrittenPageSizeRef = useRef(false);
     const hasWrittenTableStateRef = useRef(false);
@@ -331,7 +113,7 @@ export function FriendLogPage({ embedded = false } = {}) {
 
         Promise.all([
             getTablePageSizesPreference(DEFAULT_PAGE_SIZES),
-            configRepository.getInt('tablePageSize', DEFAULT_PAGE_SIZES[1]),
+            getTablePageSizePreference(20),
             configRepository.getString('friendLogTableFilters', '[]')
         ])
             .then(([nextPageSizes, nextPageSize, nextTypeFilters]) => {
@@ -360,14 +142,7 @@ export function FriendLogPage({ embedded = false } = {}) {
                       )
                     : resolvedConfiguredPageSize;
 
-                setPageSizes((current) =>
-                    sanitizePageSizes([
-                        ...current,
-                        ...resolvedPageSizes,
-                        resolvedConfiguredPageSize,
-                        resolvedActivePageSize
-                    ])
-                );
+                setPageSizes(resolvedPageSizes);
 
                 setPagination((current) => ({
                     ...current,
@@ -392,11 +167,18 @@ export function FriendLogPage({ embedded = false } = {}) {
         }
         const resolvedPageSizes = sanitizePageSizes(tablePageSizesPreference);
         setPageSizes(resolvedPageSizes);
-        setPagination((current) => ({
-            ...current,
-            pageIndex: 0,
-            pageSize: resolvePageSize(current.pageSize, resolvedPageSizes)
-        }));
+        setPagination((current) => {
+            const pageSize = resolvePageSize(
+                current.pageSize,
+                resolvedPageSizes
+            );
+            return pageSize === current.pageSize
+                ? current
+                : {
+                      ...current,
+                      pageSize
+                  };
+        });
     }, [preferencesHydrated, tablePageSizesPreference]);
 
     useEffect(() => {
@@ -565,10 +347,10 @@ export function FriendLogPage({ embedded = false } = {}) {
         const result = skipConfirm
             ? { ok: true }
             : await confirm({
-                  title: appI18n.t('common.actions.confirm'),
+                  title: t('common.actions.confirm'),
                   description: t('confirm.delete_log'),
-                  confirmText: appI18n.t('common.actions.delete'),
-                  cancelText: appI18n.t('common.actions.cancel'),
+                  confirmText: t('common.actions.delete'),
+                  cancelText: t('common.actions.cancel'),
                   destructive: true
               });
 
@@ -641,160 +423,20 @@ export function FriendLogPage({ embedded = false } = {}) {
     }, [orderedRows.length, pagination.pageIndex, pagination.pageSize]);
 
     const columns = useMemo(
-        () => [
-            {
-                id: 'spacer',
-                size: 20,
-                minSize: 0,
-                maxSize: 20,
-                enableSorting: false,
-                enableResizing: false,
-                header: () => null,
-                cell: () => null
-            },
-            {
-                id: 'created_at',
-                size: 120,
-                accessorFn: (row) => row?.created_at || '',
-                header: ({ column }) => (
-                    <SortButton
-                        column={column}
-                        label={t('table.friendLog.date')}
-                    />
-                ),
-                sortingFn: (rowA, rowB) => {
-                    const leftTs = Date.parse(rowA.original?.created_at ?? '');
-                    const rightTs = Date.parse(rowB.original?.created_at ?? '');
-                    if (
-                        Number.isFinite(leftTs) &&
-                        Number.isFinite(rightTs) &&
-                        leftTs !== rightTs
-                    ) {
-                        return leftTs - rightTs;
-                    }
-
-                    return (
-                        (Number.parseInt(rowA.original?.rowId ?? 0, 10) || 0) -
-                        (Number.parseInt(rowB.original?.rowId ?? 0, 10) || 0)
-                    );
-                },
-                cell: ({ row }) => {
-                    const createdAt = row.original?.created_at || '';
-                    return (
-                        <span
-                            className="text-sm"
-                            title={formatDateFilter(createdAt, 'long')}
-                        >
-                            {formatDateFilter(createdAt, 'short')}
-                        </span>
-                    );
-                }
-            },
-            {
-                id: 'type',
-                size: 160,
-                accessorFn: (row) => row?.type || '',
-                header: ({ column }) => (
-                    <SortButton
-                        column={column}
-                        label={t('table.friendLog.type')}
-                    />
-                ),
-                cell: ({ row }) => (
-                    <Badge variant="outline" className="text-muted-foreground">
-                        {friendLogTypeLabel(row.original?.type, t) ||
-                            row.original?.type ||
-                            ''}
-                    </Badge>
-                )
-            },
-            {
-                id: 'displayName',
-                size: 260,
-                minSize: 80,
-                accessorFn: (row) => row?.displayName || row?.userId || '',
-                header: ({ column }) => (
-                    <SortButton
-                        column={column}
-                        label={t('table.friendLog.user')}
-                    />
-                ),
-                sortingFn: (rowA, rowB) =>
-                    String(
-                        rowA.original?.displayName ||
-                            rowA.original?.userId ||
-                            ''
-                    ).localeCompare(
-                        String(
-                            rowB.original?.displayName ||
-                                rowB.original?.userId ||
-                                ''
-                        ),
-                        undefined,
-                        { sensitivity: 'base' }
-                    ),
-                cell: ({ row }) => renderUserCell(row.original)
-            },
-            {
-                id: 'action',
-                size: 80,
-                maxSize: 80,
-                enableSorting: false,
-                accessorFn: (row) => getFriendLogRowKey(row, rowsOwnerUserId),
-                header: () => t('table.friendLog.action'),
-                cell: ({ row }) => {
-                    const rowKey = getFriendLogRowKey(
-                        row.original,
-                        rowsOwnerUserId
-                    );
-                    return (
-                        <div className="flex justify-end">
-                            <Button
-                                type="button"
-                                size="icon-xs"
-                                variant="ghost"
-                                className="text-muted-foreground hover:text-foreground"
-                                aria-label={"Delete"}
-                                disabled={
-                                    !currentUserId ||
-                                    rowsOwnerUserId !==
-                                        normalizeUserId(currentUserId) ||
-                                    loadStatus === 'running' ||
-                                    deletingRowKey === rowKey
-                                }
-                                onClick={(event) =>
-                                    handleDeleteRow(row.original, {
-                                        skipConfirm: shiftHeld || event.shiftKey
-                                    })
-                                }
-                            >
-                                {deletingRowKey === rowKey ? (
-                                    <Spinner data-icon="inline-start" />
-                                ) : shiftHeld ? (
-                                    <XIcon
-                                        data-icon="inline-start"
-                                        className="text-destructive"
-                                    />
-                                ) : (
-                                    <Trash2Icon data-icon="inline-start" />
-                                )}
-                            </Button>
-                        </div>
-                    );
-                }
-            },
-            {
-                id: 'trailing',
-                size: 5,
-                enableSorting: false,
-                enableResizing: false,
-                header: () => null,
-                cell: () => null
-            }
-        ],
+        () =>
+            buildFriendLogColumns({
+                currentUserId,
+                deletingRowKey,
+                handleDeleteRow,
+                loadStatus,
+                rowsOwnerUserId,
+                shiftHeld,
+                t
+            }),
         [
             currentUserId,
             deletingRowKey,
+            handleDeleteRow,
             loadStatus,
             rowsOwnerUserId,
             shiftHeld,
@@ -835,135 +477,66 @@ export function FriendLogPage({ embedded = false } = {}) {
     return (
         <PageScaffold embedded={embedded}>
             <PageToolbar>
-                <PageToolbarRow className="xl:justify-between">
-                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-                        <FriendLogTypeFilterDropdown
-                            value={selectedTypes}
-                            onChange={setSelectedTypes}
-                        />
-                        <InputGroup className="min-w-56 flex-1">
-                            <InputGroupAddon>
-                                <SearchIcon />
-                            </InputGroupAddon>
-                            <InputGroupInput
-                                value={searchQuery}
-                                onChange={(event) =>
-                                    setSearchQuery(event.target.value)
-                                }
-                                placeholder={t(
-                                    'view.friend_log.search_placeholder'
-                                )}
-                            />
-                        </InputGroup>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            title={t('common.actions.refresh')}
-                            aria-label={"Refresh friend history"}
-                            disabled={
-                                !currentUserId || loadStatus === 'running'
-                            }
-                            onClick={() =>
-                                setRefreshToken((value) => value + 1)
-                            }
-                        >
-                            {loadStatus === 'running' ? (
-                                <Spinner data-icon="inline-start" />
-                            ) : (
-                                <RefreshCwIcon data-icon="inline-start" />
-                            )}
-                        </Button>
-                    </div>
-                    <TableColumnVisibilityMenu table={table} />
-                </PageToolbarRow>
-                {detail ? (
-                    <div className="text-muted-foreground text-sm">
-                        {userFacingErrorMessage(
-                            detail,
-                            'Failed to load the friend history snapshot.'
-                        )}
-                    </div>
-                ) : null}
+                <FriendLogPageToolbar
+                    selectedTypes={selectedTypes}
+                    onSelectedTypesChange={setSelectedTypes}
+                    searchQuery={searchQuery}
+                    onSearchQueryChange={setSearchQuery}
+                    detail={userFacingErrorMessage(
+                        detail,
+                        'Failed to load the friend history snapshot.'
+                    )}
+                    currentUserId={currentUserId}
+                    loadStatus={loadStatus}
+                    onRefresh={() => setRefreshToken((value) => value + 1)}
+                    table={table}
+                    t={t}
+                />
             </PageToolbar>
 
             <PageBody>
                 {isLoading ? (
-                    <LoadingState label={t('view.friend_log.generated.loading_the_friend_history_snapshot')} />
+                    <LoadingState
+                        label={t(
+                            'view.friend_log.generated.loading_the_friend_history_snapshot'
+                        )}
+                    />
                 ) : isError ? (
                     <FriendLogEmptyState
-                        title={t('view.friend_log.generated.friend_history_failed_to_load')}
+                        title={t(
+                            'view.friend_log.generated.friend_history_failed_to_load'
+                        )}
                         description={
                             detail || 'The history query did not complete.'
                         }
                     />
                 ) : hasRows ? (
-                    <>
-                        <DataTableSurface>
-                            <DataTableScrollArea wideTable>
-                                <Table className="w-max min-w-full">
-                                    <DataTableHeader table={table} />
-                                    <TableBody>
-                                        {table.getRowModel().rows.map((row) => (
-                                            <TableRow
-                                                key={
-                                                    row.original?.rowId ||
-                                                    row.id
-                                                }
-                                            >
-                                                {row
-                                                    .getVisibleCells()
-                                                    .map((cell) => (
-                                                        <ResizableTableCell
-                                                            key={cell.id}
-                                                            cell={cell}
-                                                        />
-                                                    ))}
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </DataTableScrollArea>
-                        </DataTableSurface>
-
-                        <PageFooter>
-                            <div className="text-muted-foreground text-sm">
-                                {t('view.friend_log.generated.showing')}{' '}
-                                <span className="text-foreground font-medium">
-                                    {table.getRowModel().rows.length}
-                                </span>{' '}
-                                {t('view.friend_log.generated.of')}{' '}
-                                <span className="text-foreground font-medium">
-                                    {orderedRows.length}
-                                </span>{' '}
-                                {t('view.friend_log.generated.log_row')}{orderedRows.length === 1 ? '' : 's'}
-                            </div>
-                            <DataTablePagination
-                                table={table}
-                                pageIndex={pagination.pageIndex}
-                                pageSize={pagination.pageSize}
-                                pageSizes={pageSizes}
-                                pageSizeLabel={t(
-                                    'table.pagination.rows_per_page'
-                                )}
-                                onPageSizeChange={(value) => {
-                                    const nextPageSize = resolvePageSize(
-                                        value,
-                                        pageSizes,
-                                        pagination.pageSize
-                                    );
-                                    setPagination({
-                                        pageIndex: 0,
-                                        pageSize: nextPageSize
-                                    });
-                                }}
-                            />
-                        </PageFooter>
-                    </>
+                    <FriendLogPageTable
+                        table={table}
+                        orderedRowsLength={orderedRows.length}
+                        pagination={pagination}
+                        pageSizes={pageSizes}
+                        onPageSizeChange={(value) => {
+                            const nextPageSize = resolvePageSize(
+                                value,
+                                pageSizes,
+                                pagination.pageSize
+                            );
+                            setPagination({
+                                pageIndex: 0,
+                                pageSize: nextPageSize
+                            });
+                        }}
+                        t={t}
+                    />
                 ) : (
                     <FriendLogEmptyState
-                        title={t('view.friend_log.generated.no_friend_history_rows_match_the_current_filters')}
-                        description={t('view.friend_log.generated.broaden_the_type_filters_or_search_query_to_see_more_history')}
+                        title={t(
+                            'view.friend_log.generated.no_friend_history_rows_match_the_current_filters'
+                        )}
+                        description={t(
+                            'view.friend_log.generated.broaden_the_type_filters_or_search_query_to_see_more_history'
+                        )}
                     />
                 )}
             </PageBody>

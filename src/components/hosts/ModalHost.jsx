@@ -1,5 +1,4 @@
-import { useMemo } from 'react';
-
+import { useTranslation } from 'react-i18next';
 import { FullscreenImageViewer } from '@/components/media/FullscreenImageViewer.jsx';
 import { useModalStore } from '@/state/modalStore.js';
 import {
@@ -21,7 +20,6 @@ import {
 } from '@/ui/shadcn/dialog';
 import { Input } from '@/ui/shadcn/input';
 import { Textarea } from '@/ui/shadcn/textarea';
-import { appI18n } from '@/services/i18nService.js';
 
 function matchesPromptPattern(pattern, value) {
     if (!(pattern instanceof RegExp)) {
@@ -33,6 +31,8 @@ function matchesPromptPattern(pattern, value) {
 }
 
 export function ModalHost() {
+    const { t } = useTranslation();
+
     const alertDialog = useModalStore((state) => state.alertDialog);
     const promptDialog = useModalStore((state) => state.promptDialog);
     const otpDialog = useModalStore((state) => state.otpDialog);
@@ -56,35 +56,6 @@ export function ModalHost() {
     const promptValueIsValid = matchesPromptPattern(
         promptDialog.inputPattern,
         promptDialog.value
-    );
-
-    const promptFooter = useMemo(
-        () => (
-            <DialogFooter>
-                <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => handlePromptCancel(promptDialog.value)}
-                >
-                    {promptDialog.cancelText}
-                </Button>
-                <Button
-                    type="button"
-                    disabled={!promptValueIsValid}
-                    onClick={() => handlePromptOk(promptDialog.value)}
-                >
-                    {promptDialog.confirmText}
-                </Button>
-            </DialogFooter>
-        ),
-        [
-            handlePromptCancel,
-            handlePromptOk,
-            promptDialog.cancelText,
-            promptDialog.confirmText,
-            promptValueIsValid,
-            promptDialog.value
-        ]
     );
 
     return (
@@ -128,7 +99,6 @@ export function ModalHost() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-
             <Dialog
                 open={promptDialog.open}
                 onOpenChange={(open) => {
@@ -150,7 +120,7 @@ export function ModalHost() {
                             onChange={(event) =>
                                 updatePromptValue(event.target.value)
                             }
-                            placeholder={appI18n.t('dialog.tools.generated.prompt_value')}
+                            placeholder={t('dialog.tools.generated.prompt_value')}
                             className="min-h-32"
                         />
                     ) : (
@@ -160,13 +130,27 @@ export function ModalHost() {
                             onChange={(event) =>
                                 updatePromptValue(event.target.value)
                             }
-                            placeholder={appI18n.t('dialog.tools.generated.prompt_value')}
+                            placeholder={t('dialog.tools.generated.prompt_value')}
                         />
                     )}
-                    {promptFooter}
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => handlePromptCancel(promptDialog.value)}
+                        >
+                            {promptDialog.cancelText}
+                        </Button>
+                        <Button
+                            type="button"
+                            disabled={!promptValueIsValid}
+                            onClick={() => handlePromptOk(promptDialog.value)}
+                        >
+                            {promptDialog.confirmText}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
-
             <Dialog
                 open={otpDialog.open}
                 onOpenChange={(open) => {
@@ -206,7 +190,6 @@ export function ModalHost() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-
             <FullscreenImageViewer
                 open={imageDialog.open}
                 url={imageDialog.url}

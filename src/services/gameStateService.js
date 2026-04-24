@@ -10,6 +10,7 @@ import {
     resetGameLogIngestSessionState,
     resetNowPlayingState
 } from '@/services/gameLogIngestService.js';
+import { showSQLiteErrorDialog } from '@/services/sqliteErrorDialogService.js';
 import { isRealInstance } from '@/shared/utils/instance.js';
 import { useModalStore } from '@/state/modalStore.js';
 import { useNotificationStore } from '@/state/notificationStore.js';
@@ -200,6 +201,7 @@ async function scheduleCrashRelaunchIfNeeded(previousGameState) {
                 });
                 await launchVrchat(location, previousGameState.isGameNoVR);
             })().catch((error) => {
+                void showSQLiteErrorDialog(error);
                 useNotificationStore.getState().pushNotification({
                     level: 'error',
                     title: 'VRChat relaunch failed',
@@ -224,6 +226,7 @@ async function handleGameStopped(previousGameState, currentUserSnapshot) {
     ]);
     for (const result of finalizeResult) {
         if (result.status === 'rejected') {
+            void showSQLiteErrorDialog(result.reason);
             console.warn(
                 'Game stop session finalization failed:',
                 result.reason
@@ -277,15 +280,14 @@ function clearStoppedGameLocationSnapshot(
         return;
     }
 
-    let changed = false;
+    const clearedFields = {};
     const clearIfMatches = (field, ...values) => {
         const currentValue = normalizeString(currentUserSnapshot[field]);
         if (
             currentValue &&
             values.some((value) => value && currentValue === value)
         ) {
-            currentUserSnapshot[field] = '';
-            changed = true;
+            clearedFields[field] = '';
         }
     };
 
@@ -295,9 +297,12 @@ function clearStoppedGameLocationSnapshot(
     clearIfMatches('$travelingToLocation', stoppedDestination);
     clearIfMatches('worldId', stoppedWorldId);
 
-    if (changed) {
+    if (Object.keys(clearedFields).length) {
         useRuntimeStore.getState().setAuthBootstrap({
-            currentUserSnapshot
+            currentUserSnapshot: {
+                ...currentUserSnapshot,
+                ...clearedFields
+            }
         });
     }
 }

@@ -7,6 +7,7 @@ import { useSessionStore } from '@/state/sessionStore.js';
 
 import { refreshCurrentUserFriendsAndFavorites } from './backgroundMaintenanceService.js';
 import { handleRealtimePresenceEvent } from './realtimePresenceService.js';
+import { showSQLiteErrorDialog } from './sqliteErrorDialogService.js';
 import { syncStartupServicesTask } from './startupServicesStatus.js';
 
 let activeSocket = null;
@@ -91,7 +92,7 @@ function parseTransportMessage(data) {
 }
 
 function isCurrentTransportTarget(context = activeContext) {
-    if (!context?.userId || !context?.currentUserSnapshot) {
+    if (!context?.userId) {
         return false;
     }
 
@@ -100,7 +101,8 @@ function isCurrentTransportTarget(context = activeContext) {
 
     return (
         runtimeState.auth.currentUserId === context.userId &&
-        runtimeState.auth.currentUserSnapshot === context.currentUserSnapshot &&
+        runtimeState.auth.currentUserEndpoint === context.endpoint &&
+        runtimeState.auth.currentUserWebsocket === context.websocket &&
         sessionState.isLoggedIn &&
         sessionState.sessionPhase === 'ready' &&
         sessionState.isFriendsLoaded
@@ -201,13 +203,6 @@ function attachSocketHandlers(
             return;
         }
 
-        if (typeof data === 'string') {
-            if (lastSocketMessage === data) {
-                return;
-            }
-            lastSocketMessage = data;
-        }
-
         const parsedMessage = parseTransportMessage(data);
         useRuntimeStore
             .getState()
@@ -216,10 +211,18 @@ function attachSocketHandlers(
                 getByteLength(data)
             );
 
+        if (typeof data === 'string') {
+            if (lastSocketMessage === data) {
+                return;
+            }
+            lastSocketMessage = data;
+        }
+
         if (parsedMessage.json) {
             Promise.resolve(
                 handleRealtimePresenceEvent(parsedMessage.json)
-            ).catch((error) => {
+            ).catch(async (error) => {
+                await showSQLiteErrorDialog(error);
                 useNotificationStore.getState().pushNotification({
                     level: 'warning',
                     title: 'Realtime event failed',
@@ -354,7 +357,8 @@ export async function startRealtimeTransport({
 
     if (
         activeContext?.userId === normalizedUserId &&
-        activeContext?.currentUserSnapshot === currentUserSnapshot &&
+        activeContext?.endpoint === endpoint &&
+        activeContext?.websocket === websocket &&
         activeSocket !== null
     ) {
         return stopRealtimeTransport;

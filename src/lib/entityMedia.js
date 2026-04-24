@@ -12,7 +12,7 @@ import { normalizeVrchatEndpointDomain } from '@/shared/vrchatEndpoint.js';
 import { useModalStore } from '@/state/modalStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
 import { useShellStore } from '@/state/shellStore.js';
-import { appI18n } from '@/services/i18nService.js';
+import i18n from '@/services/i18nService.js';
 
 export function convertFileUrlToImageUrl(
     url,
@@ -240,7 +240,12 @@ async function openDirectAccessTarget(input) {
     }
 
     if (value.startsWith('https://vrchat.')) {
-        const url = new URL(value);
+        let url;
+        try {
+            url = new URL(value);
+        } catch {
+            return false;
+        }
         const urlPathSplit = url.pathname.split('/');
         if (urlPathSplit[2] === 'launch') {
             const worldId = url.searchParams.get('worldId');
@@ -345,10 +350,10 @@ export async function openExternalLink(link) {
     }
 
     const result = await useModalStore.getState().confirm({
-        title: appI18n.t('lib.entity_media.generated_modal.open_external_link'),
+        title: i18n.t('lib.entity_media.generated_modal.open_external_link'),
         description: normalizedLink,
-        confirmText: appI18n.t('common.actions.open'),
-        cancelText: appI18n.t('common.actions.copy')
+        confirmText: i18n.t('common.actions.open'),
+        cancelText: i18n.t('common.actions.copy')
     });
 
     if (!result.ok) {

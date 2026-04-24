@@ -1,26 +1,17 @@
-import {
-    AlertTriangleIcon,
-    CopyIcon,
-    ExternalLinkIcon,
-    FlagIcon,
-    HistoryIcon,
-    LockIcon,
-    MessageSquareIcon,
-    Share2Icon
-} from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { AlertTriangleIcon, LockIcon } from 'lucide-react';
+import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { useI18n } from '@/app/hooks/use-i18n.js';
-import { PreviousInstancesTableDialog } from '@/components/dialogs/PreviousInstancesTableDialog.jsx';
+import { LocationContextMenu } from '@/components/location/LocationContextMenu.jsx';
 import { RegionCodeBadge } from '@/components/location/RegionCodeBadge.jsx';
 import {
     normalizeString,
     useLocationMetadata
 } from '@/components/location/useLocationMetadata.js';
+import { useLocationPreviousInstancesDialog } from '@/components/location/useLocationPreviousInstancesDialog.jsx';
 import { copyTextToClipboard } from '@/lib/entityMedia.js';
 import { cn } from '@/lib/utils.js';
-import { gameLogRepository } from '@/repositories/index.js';
 import { openGroupDialog, openWorldDialog } from '@/services/dialogService.js';
 import { directAccessParse } from '@/services/directAccessService.js';
 import { selfInviteToInstance } from '@/services/launchService.js';
@@ -34,17 +25,8 @@ import {
 import { useLaunchStore } from '@/state/launchStore.js';
 import { usePreferencesStore } from '@/state/preferencesStore.js';
 import { Button } from '@/ui/shadcn/button';
-import {
-    ContextMenu,
-    ContextMenuContent,
-    ContextMenuGroup,
-    ContextMenuItem,
-    ContextMenuSeparator,
-    ContextMenuTrigger
-} from '@/ui/shadcn/context-menu';
 import { Spinner } from '@/ui/shadcn/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
-import { appI18n } from '@/services/i18nService.js';
 
 function locationTarget(location, traveling) {
     const normalizedLocation = normalizeLocationValue(location);
@@ -90,7 +72,7 @@ export function Location({
     showGroupLink = true,
     className = ''
 }) {
-    const { t } = useI18n();
+    const { t } = useTranslation();
     const showLaunchDialog = useLaunchStore((state) => state.showLaunchDialog);
     const preferencesHydrated = usePreferencesStore(
         (state) => state.preferencesHydrated
@@ -103,14 +85,6 @@ export function Location({
     );
     const ageGatedInstancesVisible =
         preferencesHydrated && ageGatedInstancesVisiblePreference;
-    const [previousInstancesOpen, setPreviousInstancesOpen] = useState(false);
-    const [previousInstancesRows, setPreviousInstancesRows] = useState([]);
-    const [previousInstancesTitle, setPreviousInstancesTitle] =
-        useState('Instance History');
-    const [previousInstancesDetailsOnly, setPreviousInstancesDetailsOnly] =
-        useState(false);
-    const [previousInstancesLoading, setPreviousInstancesLoading] =
-        useState(false);
     const currentLocation = locationTarget(location, traveling);
     const hasShortNameHint = Boolean(
         !normalizeString(currentLocation) && normalizeString(hint).length === 8
@@ -181,33 +155,20 @@ export function Location({
         parsedLocation.isRealInstance &&
         parsedLocation.worldId
     );
-
-    function showExactPreviousInstanceInfo() {
-        const payload = {
-            location: currentLocation,
-            worldId: parsedLocation.worldId,
-            worldName: worldName || worldNameHint,
-            groupName
-        };
-        if (typeof onShowPreviousInstances === 'function') {
-            onShowPreviousInstances(payload);
-            return;
-        }
-        if (!currentLocation) {
-            return;
-        }
-        setPreviousInstancesRows([
-            {
-                location: currentLocation,
-                worldId: parsedLocation.worldId,
-                worldName: worldName || worldNameHint || parsedLocation.worldId,
-                groupName
-            }
-        ]);
-        setPreviousInstancesTitle('Instance Details');
-        setPreviousInstancesDetailsOnly(true);
-        setPreviousInstancesOpen(true);
-    }
+    const {
+        previousInstancesDialog,
+        previousInstancesLoading,
+        showExactPreviousInstanceInfo,
+        showPreviousInstances
+    } = useLocationPreviousInstancesDialog({
+        currentLocation,
+        groupName,
+        onShowPreviousInstances,
+        parsedLocation,
+        t,
+        worldName,
+        worldNameHint
+    });
 
     function openWorld(event) {
         if (stopPropagation) {
@@ -251,6 +212,10 @@ export function Location({
         toast.success(t('message.world.url_copied'));
     }
 
+    function copyCurrentLocation() {
+        void copyTextToClipboard(currentLocation);
+    }
+
     function launchCurrentInstance() {
         if (!canUseCurrentInstance) {
             return;
@@ -275,7 +240,9 @@ export function Location({
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : appI18n.t('component.location.generated_toast.failed_to_send_self_invite')
+                    : t(
+                          'component.location.generated_toast.failed_to_send_self_invite'
+                      )
             );
         }
     }
@@ -299,77 +266,6 @@ export function Location({
             title: worldDialogTitle,
             initialAction: selfInvite ? 'newInstanceSelfInvite' : 'newInstance'
         });
-    }
-
-    async function showPreviousInstances() {
-        if (!currentLocation && !parsedLocation.worldId) {
-            return;
-        }
-        if (typeof onShowPreviousInstances === 'function') {
-            onShowPreviousInstances({
-                location: currentLocation,
-                worldId: parsedLocation.worldId,
-                worldName: worldName || worldNameHint,
-                groupName
-            });
-            return;
-        }
-
-        if (!parsedLocation.worldId || previousInstancesLoading) {
-            return;
-        }
-
-        setPreviousInstancesLoading(true);
-        try {
-            const instances =
-                await gameLogRepository.getPreviousInstancesByWorldId({
-                    worldId: parsedLocation.worldId
-                });
-            const normalizedCurrentLocation = normalizeString(currentLocation);
-            const currentInstanceRow = {
-                location: normalizedCurrentLocation,
-                worldId: parsedLocation.worldId,
-                worldName: worldName || worldNameHint || parsedLocation.worldId
-            };
-            const nextRows = [
-                ...(normalizedCurrentLocation ? [currentInstanceRow] : []),
-                ...instances
-            ].sort((left, right) => {
-                if (normalizedCurrentLocation) {
-                    if (
-                        normalizeString(left?.location) ===
-                        normalizedCurrentLocation
-                    ) {
-                        return -1;
-                    }
-                    if (
-                        normalizeString(right?.location) ===
-                        normalizedCurrentLocation
-                    ) {
-                        return 1;
-                    }
-                }
-                return (
-                    Date.parse(right?.created_at || right?.createdAt || 0) -
-                    Date.parse(left?.created_at || left?.createdAt || 0)
-                );
-            });
-
-            setPreviousInstancesRows(nextRows);
-            setPreviousInstancesTitle(
-                `Instance History - ${worldName || worldNameHint || parsedLocation.worldId}`
-            );
-            setPreviousInstancesDetailsOnly(false);
-            setPreviousInstancesOpen(true);
-        } catch (error) {
-            toast.error(
-                error instanceof Error
-                    ? error.message
-                    : appI18n.t('component.location.generated_toast.failed_to_load_instance_history')
-            );
-        } finally {
-            setPreviousInstancesLoading(false);
-        }
     }
 
     function openWorldFromKeyboard(event) {
@@ -477,18 +373,6 @@ export function Location({
             )}
         </div>
     );
-    const previousInstancesDialog = previousInstancesOpen ? (
-        <PreviousInstancesTableDialog
-            open={previousInstancesOpen}
-            onOpenChange={setPreviousInstancesOpen}
-            title={previousInstancesTitle}
-            instances={previousInstancesRows}
-            variant="world"
-            onRowsChange={setPreviousInstancesRows}
-            detailsOnly={previousInstancesDetailsOnly}
-        />
-    ) : null;
-
     if (!showContextMenu) {
         return (
             <>
@@ -499,105 +383,27 @@ export function Location({
     }
 
     return (
-        <>
-            <ContextMenu>
-                <ContextMenuTrigger asChild>
-                    <span className="inline-flex max-w-full min-w-0">
-                        {content}
-                    </span>
-                </ContextMenuTrigger>
-                <ContextMenuContent className="w-56">
-                    <ContextMenuGroup>
-                        <ContextMenuItem
-                            disabled={!canOpenWorld}
-                            onSelect={openWorld}
-                        >
-                            <ExternalLinkIcon />
-                            {t('common.actions.view_details')}
-                        </ContextMenuItem>
-                        <ContextMenuItem
-                            disabled={!shareUrl}
-                            onSelect={copyShareLink}
-                        >
-                            <Share2Icon />
-                            {t('dialog.world.actions.share')}
-                        </ContextMenuItem>
-                        <ContextMenuItem
-                            disabled={!currentLocation}
-                            onSelect={() =>
-                                void copyTextToClipboard(currentLocation)
-                            }
-                        >
-                            <CopyIcon />
-                            {t('common.generated.generated.copy_location')}
-                        </ContextMenuItem>
-                    </ContextMenuGroup>
-                    <ContextMenuSeparator />
-                    <ContextMenuGroup>
-                        <ContextMenuItem
-                            disabled={!parsedLocation.worldId}
-                            onSelect={() => newInstance(false)}
-                        >
-                            <FlagIcon />
-                            {t('dialog.world.actions.new_instance')}
-                        </ContextMenuItem>
-                        <ContextMenuItem
-                            disabled={!parsedLocation.worldId}
-                            onSelect={() => newInstance(true)}
-                        >
-                            <MessageSquareIcon />
-                            {t(
-                                'dialog.world.actions.new_instance_and_self_invite'
-                            )}
-                        </ContextMenuItem>
-                    </ContextMenuGroup>
-                    <ContextMenuSeparator />
-                    <ContextMenuGroup>
-                        <ContextMenuItem
-                            disabled={
-                                previousInstancesDisabled ||
-                                previousInstancesLoading ||
-                                (!parsedLocation.worldId &&
-                                    !isOpenPreviousInstanceInfoDialog)
-                            }
-                            onSelect={() => {
-                                if (isOpenPreviousInstanceInfoDialog) {
-                                    showExactPreviousInstanceInfo();
-                                    return;
-                                }
-                                void showPreviousInstances();
-                            }}
-                        >
-                            <HistoryIcon />
-                            {t('dialog.world.actions.show_previous_instances')}
-                        </ContextMenuItem>
-                    </ContextMenuGroup>
-                    {showLaunchActions ? (
-                        <>
-                            <ContextMenuSeparator />
-                            <ContextMenuGroup>
-                                <ContextMenuItem
-                                    disabled={!canUseCurrentInstance}
-                                    onSelect={launchCurrentInstance}
-                                >
-                                    <ExternalLinkIcon />
-                                    {t('common.generated.generated.launch_in_vrchat')}
-                                </ContextMenuItem>
-                                <ContextMenuItem
-                                    disabled={!canUseCurrentInstance}
-                                    onSelect={() =>
-                                        void selfInviteCurrentInstance()
-                                    }
-                                >
-                                    <MessageSquareIcon />
-                                    {t('common.generated.generated.self_invite')}
-                                </ContextMenuItem>
-                            </ContextMenuGroup>
-                        </>
-                    ) : null}
-                </ContextMenuContent>
-            </ContextMenu>
-            {previousInstancesDialog}
-        </>
+        <LocationContextMenu
+            canOpenWorld={canOpenWorld}
+            canUseCurrentInstance={canUseCurrentInstance}
+            currentLocation={currentLocation}
+            isOpenPreviousInstanceInfoDialog={isOpenPreviousInstanceInfoDialog}
+            onCopyCurrentLocation={copyCurrentLocation}
+            onCopyShareLink={copyShareLink}
+            onLaunchCurrentInstance={launchCurrentInstance}
+            onNewInstance={newInstance}
+            onOpenWorld={openWorld}
+            onSelfInviteCurrentInstance={selfInviteCurrentInstance}
+            onShowExactPreviousInstanceInfo={showExactPreviousInstanceInfo}
+            onShowPreviousInstances={showPreviousInstances}
+            previousInstancesDialog={previousInstancesDialog}
+            previousInstancesDisabled={previousInstancesDisabled}
+            previousInstancesLoading={previousInstancesLoading}
+            shareUrl={shareUrl}
+            showLaunchActions={showLaunchActions}
+            worldId={parsedLocation.worldId}
+        >
+            {content}
+        </LocationContextMenu>
     );
 }

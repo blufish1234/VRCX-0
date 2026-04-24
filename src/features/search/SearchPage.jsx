@@ -1,16 +1,9 @@
-import {
-    SettingsIcon,
-    Trash2Icon,
-    XIcon
-} from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { useI18n } from '@/app/hooks/use-i18n.js';
 import { AvatarProviderSettingsDialog } from '@/components/search/AvatarProviderSettingsDialog.jsx';
-import { SearchPagination } from '@/components/search/SearchPagination.jsx';
 import { onPreferenceChanged } from '@/lib/preferenceEvents.js';
-import { cn } from '@/lib/utils.js';
 import {
     AVATAR_SEARCH_PROVIDER_PREFERENCE_KEYS,
     avatarSearchProviderRepository,
@@ -19,20 +12,15 @@ import {
     worldProfileRepository
 } from '@/repositories/index.js';
 import { usePreferencesStore } from '@/state/preferencesStore.js';
-import { Button } from '@/ui/shadcn/button';
-import { Checkbox } from '@/ui/shadcn/checkbox';
-import { Field, FieldGroup, FieldLabel } from '@/ui/shadcn/field';
-import { Input } from '@/ui/shadcn/input';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from '@/ui/shadcn/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/shadcn/tabs';
+import { Tabs } from '@/ui/shadcn/tabs';
 
+import { SearchPageToolbar } from './components/SearchPageToolbar.jsx';
+import {
+    SearchAvatarTabPanel,
+    SearchGroupTabPanel,
+    SearchUserTabPanel,
+    SearchWorldTabPanel
+} from './components/SearchTabPanels.jsx';
 import {
     buildAvatarSearchRequest,
     buildGroupSearchRequest,
@@ -41,18 +29,10 @@ import {
     SEARCH_PAGE_SIZE as PAGE_SIZE
 } from './searchRequests.js';
 import { dedupeById, emptyArray } from './searchResults.js';
-import { appI18n } from '@/services/i18nService.js';
-import {
-    AvatarCard,
-    GroupRow,
-    SearchEmptyState,
-    SearchLoadingState,
-    UserRow,
-    WorldCard
-} from './components/SearchResultParts.jsx';
+import { useSearchPagination } from './useSearchPagination.js';
 
 export function SearchPage() {
-    const { t } = useI18n();
+    const { t } = useTranslation();
     const searchSequenceRef = useRef({
         user: 0,
         world: 0,
@@ -117,7 +97,9 @@ export function SearchPage() {
                 toast.error(
                     error instanceof Error
                         ? error.message
-                        : appI18n.t('view.search.generated_toast.failed_to_load_world_categories')
+                        : t(
+                              'view.search.generated_toast.failed_to_load_world_categories'
+                          )
                 );
             });
 
@@ -160,7 +142,9 @@ export function SearchPage() {
                 toast.error(
                     error instanceof Error
                         ? error.message
-                        : appI18n.t('view.search.generated_toast.failed_to_load_avatar_providers')
+                        : t(
+                              'view.search.generated_toast.failed_to_load_avatar_providers'
+                          )
                 );
             });
 
@@ -235,7 +219,9 @@ export function SearchPage() {
                 toast.error(
                     error instanceof Error
                         ? error.message
-                        : appI18n.t('view.search.generated_toast.failed_to_search_users')
+                        : t(
+                              'view.search.generated_toast.failed_to_search_users'
+                          )
                 );
             }
         } finally {
@@ -269,7 +255,9 @@ export function SearchPage() {
                 toast.error(
                     error instanceof Error
                         ? error.message
-                        : appI18n.t('view.search.generated_toast.failed_to_search_worlds')
+                        : t(
+                              'view.search.generated_toast.failed_to_search_worlds'
+                          )
                 );
             }
         } finally {
@@ -298,7 +286,9 @@ export function SearchPage() {
                 toast.error(
                     error instanceof Error
                         ? error.message
-                        : appI18n.t('view.search.generated_toast.failed_to_search_groups')
+                        : t(
+                              'view.search.generated_toast.failed_to_search_groups'
+                          )
                 );
             }
         } finally {
@@ -330,7 +320,9 @@ export function SearchPage() {
                 toast.error(
                     error instanceof Error
                         ? error.message
-                        : appI18n.t('view.search.generated_toast.failed_to_search_avatars')
+                        : t(
+                              'view.search.generated_toast.failed_to_search_avatars'
+                          )
                 );
             }
         } finally {
@@ -415,7 +407,9 @@ export function SearchPage() {
                 toast.error(
                     error instanceof Error
                         ? error.message
-                        : appI18n.t('view.search.generated_toast.failed_to_save_avatar_provider')
+                        : t(
+                              'view.search.generated_toast.failed_to_save_avatar_provider'
+                          )
                 );
             });
     }
@@ -429,180 +423,30 @@ export function SearchPage() {
         );
     }
 
-    const pagination = useMemo(() => {
-        if (activeTab === 'user') {
-            return {
-                show: userResults.length > 0 && !isUserLoading,
-                prevDisabled: !userRequest?.params?.offset,
-                nextDisabled:
-                    userResults.length < (userRequest?.params?.n ?? PAGE_SIZE),
-                onPrev() {
-                    if (!userRequest) {
-                        return;
-                    }
-                    const offset = Math.max(
-                        0,
-                        (userRequest.params.offset ?? 0) -
-                            (userRequest.params.n ?? PAGE_SIZE)
-                    );
-                    void runUserSearch({
-                        ...userRequest,
-                        params: {
-                            ...userRequest.params,
-                            offset
-                        }
-                    });
-                },
-                onNext() {
-                    if (!userRequest) {
-                        return;
-                    }
-                    const step = userRequest.params.n ?? PAGE_SIZE;
-                    void runUserSearch({
-                        ...userRequest,
-                        params: {
-                            ...userRequest.params,
-                            offset: (userRequest.params.offset ?? 0) + step
-                        }
-                    });
-                }
-            };
-        }
-
-        if (activeTab === 'world') {
-            return {
-                show: worldResults.length > 0 && !isWorldLoading,
-                prevDisabled: !worldRequest?.params?.offset,
-                nextDisabled:
-                    worldResults.length <
-                    (worldRequest?.params?.n ?? PAGE_SIZE),
-                onPrev() {
-                    if (!worldRequest) {
-                        return;
-                    }
-                    const offset = Math.max(
-                        0,
-                        (worldRequest.params.offset ?? 0) -
-                            (worldRequest.params.n ?? PAGE_SIZE)
-                    );
-                    void runWorldSearch({
-                        ...worldRequest,
-                        params: {
-                            ...worldRequest.params,
-                            offset
-                        }
-                    });
-                },
-                onNext() {
-                    if (!worldRequest) {
-                        return;
-                    }
-                    const step = worldRequest.params.n ?? PAGE_SIZE;
-                    void runWorldSearch({
-                        ...worldRequest,
-                        params: {
-                            ...worldRequest.params,
-                            offset: (worldRequest.params.offset ?? 0) + step
-                        }
-                    });
-                }
-            };
-        }
-
-        if (activeTab === 'group') {
-            return {
-                show: groupResults.length > 0 && !isGroupLoading,
-                prevDisabled: !groupRequest?.params?.offset,
-                nextDisabled:
-                    groupResults.length <
-                    (groupRequest?.params?.n ?? PAGE_SIZE),
-                onPrev() {
-                    if (!groupRequest) {
-                        return;
-                    }
-                    const offset = Math.max(
-                        0,
-                        (groupRequest.params.offset ?? 0) -
-                            (groupRequest.params.n ?? PAGE_SIZE)
-                    );
-                    void runGroupSearch({
-                        ...groupRequest,
-                        params: {
-                            ...groupRequest.params,
-                            offset
-                        }
-                    });
-                },
-                onNext() {
-                    if (!groupRequest) {
-                        return;
-                    }
-                    const step = groupRequest.params.n ?? PAGE_SIZE;
-                    void runGroupSearch({
-                        ...groupRequest,
-                        params: {
-                            ...groupRequest.params,
-                            offset: (groupRequest.params.offset ?? 0) + step
-                        }
-                    });
-                }
-            };
-        }
-
-        if (activeTab === 'avatar') {
-            const offset = avatarRequest?.offset ?? 0;
-            return {
-                show: avatarResults.length > 0 && !isAvatarLoading,
-                prevDisabled: offset <= 0,
-                nextDisabled: offset + PAGE_SIZE >= avatarResults.length,
-                onPrev() {
-                    if (!avatarRequest) {
-                        return;
-                    }
-                    setAvatarRequest({
-                        ...avatarRequest,
-                        offset: Math.max(0, offset - PAGE_SIZE)
-                    });
-                },
-                onNext() {
-                    if (!avatarRequest) {
-                        return;
-                    }
-                    setAvatarRequest({
-                        ...avatarRequest,
-                        offset: offset + PAGE_SIZE
-                    });
-                }
-            };
-        }
-
-        return {
-            show: false,
-            prevDisabled: true,
-            nextDisabled: true,
-            onPrev() {},
-            onNext() {}
-        };
-    }, [
+    const pagination = useSearchPagination({
         activeTab,
         avatarRequest,
-        avatarResults.length,
+        avatarResults,
         groupRequest,
-        groupResults.length,
+        groupResults,
         isAvatarLoading,
         isGroupLoading,
         isUserLoading,
         isWorldLoading,
+        runGroupSearch,
+        runUserSearch,
+        runWorldSearch,
+        setAvatarRequest,
         userRequest,
-        userResults.length,
+        userResults,
         worldRequest,
-        worldResults.length
-    ]);
-
-    const avatarPageResults = useMemo(() => {
-        const offset = avatarRequest?.offset ?? 0;
-        return avatarResults.slice(offset, offset + PAGE_SIZE);
-    }, [avatarRequest, avatarResults]);
+        worldResults
+    });
+    const avatarOffset = avatarRequest?.offset ?? 0;
+    const avatarPageResults = avatarResults.slice(
+        avatarOffset,
+        avatarOffset + PAGE_SIZE
+    );
 
     return (
         <div className="x-container flex min-h-0 flex-1 flex-col overflow-hidden p-4">
@@ -611,329 +455,56 @@ export function SearchPage() {
                 onValueChange={setActiveTab}
                 className="flex min-h-0 flex-1 flex-col"
             >
-                <div className="mb-2 flex items-center gap-5">
-                    <TabsList className="h-auto shrink-0 flex-wrap">
-                        <TabsTrigger value="user">
-                            {t('view.search.user.header')}
-                        </TabsTrigger>
-                        <TabsTrigger value="world">
-                            {t('view.search.world.header')}
-                        </TabsTrigger>
-                        <TabsTrigger value="avatar">
-                            {t('view.search.avatar.header')}
-                        </TabsTrigger>
-                        <TabsTrigger value="group">
-                            {t('view.search.group.header')}
-                        </TabsTrigger>
-                    </TabsList>
-
-                    <div className="flex min-w-0 flex-1 items-center">
-                        <div className="relative flex min-w-0 flex-1">
-                            <Input
-                                value={searchText}
-                                placeholder={searchPlaceholder}
-                                className={cn(
-                                    'min-w-0 flex-1',
-                                    searchText && 'pr-8'
-                                )}
-                                onChange={(event) =>
-                                    setSearchText(event.target.value)
-                                }
-                                onKeyDown={(event) => {
-                                    if (event.key === 'Enter') {
-                                        event.preventDefault();
-                                        handleSearch();
-                                    }
-                                }}
-                            />
-                            {searchText ? (
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon-xs"
-                                    className="text-muted-foreground absolute top-1/2 right-2 -translate-y-1/2"
-                                    aria-label={"Clear input"}
-                                    onClick={() => setSearchText('')}
-                                >
-                                    <XIcon data-icon="inline-start" />
-                                </Button>
-                            ) : null}
-                        </div>
-                        <Button
-                            type="button"
-                            className="ml-2"
-                            size="icon"
-                            variant="ghost"
-                            title={t('view.search.clear_results_tooltip')}
-                            aria-label={"Clear Search Results"}
-                            onClick={handleClearSearch}
-                        >
-                            <Trash2Icon data-icon="inline-start" />
-                            <span className="sr-only">
-                                {t('view.search.clear_results_tooltip')}
-                            </span>
-                        </Button>
-                    </div>
-                </div>
-
-                <TabsContent
-                    value="user"
-                    forceMount
-                    className="m-0 flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden"
-                >
-                    <div className="flex min-h-0 flex-col" style={{ flex: 9 }}>
-                        <FieldGroup
-                            data-slot="checkbox-group"
-                            className="mb-3 flex shrink-0 flex-row flex-wrap justify-end gap-4"
-                        >
-                            <Field orientation="horizontal" className="w-auto">
-                                <Checkbox
-                                    id="search-user-by-bio"
-                                    checked={searchUserByBio}
-                                    onCheckedChange={(checked) =>
-                                        setSearchUserByBio(checked === true)
-                                    }
-                                />
-                                <FieldLabel htmlFor="search-user-by-bio">
-                                    {t('view.search.user.search_by_bio')}
-                                </FieldLabel>
-                            </Field>
-                            <Field orientation="horizontal" className="w-auto">
-                                <Checkbox
-                                    id="search-user-sort-by-last-logged-in"
-                                    checked={searchUserSortByLastLoggedIn}
-                                    onCheckedChange={(checked) =>
-                                        setSearchUserSortByLastLoggedIn(
-                                            checked === true
-                                        )
-                                    }
-                                />
-                                <FieldLabel htmlFor="search-user-sort-by-last-logged-in">
-                                    {t(
-                                        'view.search.user.sort_by_last_logged_in'
-                                    )}
-                                </FieldLabel>
-                            </Field>
-                        </FieldGroup>
-
-                        <div className="min-h-0 flex-1 overflow-y-auto">
-                            {isUserLoading ? (
-                                <SearchLoadingState />
-                            ) : userResults.length > 0 ? (
-                                <div>
-                                    {userResults.map((user) => (
-                                        <UserRow
-                                            key={user.id}
-                                            user={user}
-                                            randomUserColours={
-                                                randomUserColours
-                                            }
-                                            isDarkMode={isDarkMode}
-                                        />
-                                    ))}
-                                </div>
-                            ) : (
-                                <SearchEmptyState />
-                            )}
-                        </div>
-                    </div>
-                    <SearchPagination
-                        show={pagination.show}
-                        prevDisabled={pagination.prevDisabled}
-                        nextDisabled={pagination.nextDisabled}
-                        onPrev={pagination.onPrev}
-                        onNext={pagination.onNext}
-                    />
-                </TabsContent>
-
-                <TabsContent
-                    value="world"
-                    forceMount
-                    className="m-0 flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden"
-                >
-                    <div className="flex min-h-0 flex-col" style={{ flex: 9 }}>
-                        <div className="mb-4 flex w-full shrink-0 justify-end gap-2">
-                            <FieldGroup
-                                data-slot="checkbox-group"
-                                className="w-auto flex-row items-center gap-2"
-                            >
-                                <Field
-                                    orientation="horizontal"
-                                    className="w-auto"
-                                >
-                                    <Checkbox
-                                        id="search-world-community-lab"
-                                        checked={includeCommunityLabs}
-                                        onCheckedChange={(checked) =>
-                                            setIncludeCommunityLabs(
-                                                checked === true
-                                            )
-                                        }
-                                    />
-                                    <FieldLabel htmlFor="search-world-community-lab">
-                                        {t('view.search.world.community_lab')}
-                                    </FieldLabel>
-                                </Field>
-                            </FieldGroup>
-                            <Select
-                                value={selectedWorldCategory}
-                                onValueChange={handleWorldCategoryChange}
-                            >
-                                <SelectTrigger size="sm">
-                                    <SelectValue
-                                        placeholder={t(
-                                            'view.search.world.category'
-                                        )}
-                                    />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectGroup>
-                                        {worldCategories.map((row) => (
-                                            <SelectItem
-                                                key={row.index}
-                                                value={String(row.index)}
-                                            >
-                                                {row.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectGroup>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="min-h-0 flex-1 overflow-y-auto">
-                            {isWorldLoading ? (
-                                <SearchLoadingState />
-                            ) : worldResults.length > 0 ? (
-                                <div className="grid [grid-template-columns:repeat(auto-fill,minmax(180px,1fr))] gap-3">
-                                    {worldResults.map((world) => (
-                                        <WorldCard
-                                            key={world.id}
-                                            world={world}
-                                        />
-                                    ))}
-                                </div>
-                            ) : (
-                                <SearchEmptyState />
-                            )}
-                        </div>
-                    </div>
-                    <SearchPagination
-                        show={pagination.show}
-                        prevDisabled={pagination.prevDisabled}
-                        nextDisabled={pagination.nextDisabled}
-                        onPrev={pagination.onPrev}
-                        onNext={pagination.onNext}
-                    />
-                </TabsContent>
-
-                <TabsContent
-                    value="avatar"
-                    forceMount
-                    className="m-0 flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden"
-                >
-                    <div className="flex min-h-0 flex-col" style={{ flex: 9 }}>
-                        <div className="mb-3 flex shrink-0 items-center justify-end gap-2">
-                            {avatarProviderList.length > 0 ? (
-                                <Select
-                                    value={selectedAvatarProvider}
-                                    onValueChange={handleAvatarProviderChange}
-                                >
-                                    <SelectTrigger size="sm">
-                                        <SelectValue
-                                            placeholder={t(
-                                                'view.search.avatar.search_provider'
-                                            )}
-                                        />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectGroup>
-                                            {avatarProviderList
-                                                .filter(Boolean)
-                                                .map((provider) => (
-                                                    <SelectItem
-                                                        key={provider}
-                                                        value={provider}
-                                                    >
-                                                        {provider}
-                                                    </SelectItem>
-                                                ))}
-                                        </SelectGroup>
-                                    </SelectContent>
-                                </Select>
-                            ) : (
-                                <span className="text-muted-foreground text-sm">
-                                    {t('view.search.avatar.no_provider')}
-                                </span>
-                            )}
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                aria-label={"Search Provider"}
-                                onClick={() =>
-                                    setIsAvatarProviderDialogOpen(true)
-                                }
-                            >
-                                <SettingsIcon data-icon="inline-start" />
-                            </Button>
-                        </div>
-
-                        <div className="mt-2 min-h-0 flex-1 overflow-y-auto">
-                            {isAvatarLoading ? (
-                                <SearchLoadingState />
-                            ) : avatarPageResults.length > 0 ? (
-                                <div className="grid [grid-template-columns:repeat(auto-fill,minmax(180px,1fr))] gap-3">
-                                    {avatarPageResults.map((avatar) => (
-                                        <AvatarCard
-                                            key={avatar.id}
-                                            avatar={avatar}
-                                        />
-                                    ))}
-                                </div>
-                            ) : (
-                                <SearchEmptyState />
-                            )}
-                        </div>
-                    </div>
-                    <SearchPagination
-                        show={pagination.show}
-                        prevDisabled={pagination.prevDisabled}
-                        nextDisabled={pagination.nextDisabled}
-                        onPrev={pagination.onPrev}
-                        onNext={pagination.onNext}
-                    />
-                </TabsContent>
-
-                <TabsContent
-                    value="group"
-                    forceMount
-                    className="m-0 flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden"
-                >
-                    <div
-                        className="min-h-0 flex-1 overflow-y-auto"
-                        style={{ flex: 9 }}
-                    >
-                        {isGroupLoading ? (
-                            <SearchLoadingState />
-                        ) : groupResults.length > 0 ? (
-                            <div>
-                                {groupResults.map((group) => (
-                                    <GroupRow key={group.id} group={group} />
-                                ))}
-                            </div>
-                        ) : (
-                            <SearchEmptyState />
-                        )}
-                    </div>
-                    <SearchPagination
-                        show={pagination.show}
-                        prevDisabled={pagination.prevDisabled}
-                        nextDisabled={pagination.nextDisabled}
-                        onPrev={pagination.onPrev}
-                        onNext={pagination.onNext}
-                    />
-                </TabsContent>
+                <SearchPageToolbar
+                    t={t}
+                    searchText={searchText}
+                    searchPlaceholder={searchPlaceholder}
+                    onSearchTextChange={setSearchText}
+                    onSearch={handleSearch}
+                    onClearSearch={handleClearSearch}
+                />
+                <SearchUserTabPanel
+                    t={t}
+                    searchUserByBio={searchUserByBio}
+                    onSearchUserByBioChange={setSearchUserByBio}
+                    searchUserSortByLastLoggedIn={searchUserSortByLastLoggedIn}
+                    onSearchUserSortByLastLoggedInChange={
+                        setSearchUserSortByLastLoggedIn
+                    }
+                    isLoading={isUserLoading}
+                    results={userResults}
+                    randomUserColours={randomUserColours}
+                    isDarkMode={isDarkMode}
+                    pagination={pagination}
+                />
+                <SearchWorldTabPanel
+                    t={t}
+                    includeCommunityLabs={includeCommunityLabs}
+                    onIncludeCommunityLabsChange={setIncludeCommunityLabs}
+                    selectedWorldCategory={selectedWorldCategory}
+                    onWorldCategoryChange={handleWorldCategoryChange}
+                    worldCategories={worldCategories}
+                    isLoading={isWorldLoading}
+                    results={worldResults}
+                    pagination={pagination}
+                />
+                <SearchAvatarTabPanel
+                    t={t}
+                    avatarProviderList={avatarProviderList}
+                    selectedAvatarProvider={selectedAvatarProvider}
+                    onAvatarProviderChange={handleAvatarProviderChange}
+                    onOpenAvatarProviderSettings={() =>
+                        setIsAvatarProviderDialogOpen(true)
+                    }
+                    isLoading={isAvatarLoading}
+                    results={avatarPageResults}
+                    pagination={pagination}
+                />
+                <SearchGroupTabPanel
+                    isLoading={isGroupLoading}
+                    results={groupResults}
+                    pagination={pagination}
+                />
             </Tabs>
             <AvatarProviderSettingsDialog
                 open={isAvatarProviderDialogOpen}

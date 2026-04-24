@@ -1,24 +1,8 @@
-import {
-    ChevronRightIcon,
-    HeartIcon,
-    LogOutIcon,
-    MoonIcon,
-    MoreHorizontalIcon,
-    PencilIcon,
-    PlusIcon,
-    SettingsIcon,
-    PanelLeftCloseIcon,
-    PanelLeftOpenIcon,
-    SunIcon,
-    Trash2Icon
-} from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import { useI18n } from '@/app/hooks/use-i18n.js';
-import { openExternalLink } from '@/lib/entityMedia.js';
-import { cn } from '@/lib/utils.js';
+import { useTranslation } from 'react-i18next';
 import { logoutFromReactShell } from '@/services/authExecutionService.js';
 import {
     setSidebarCollapsedPreference,
@@ -27,16 +11,8 @@ import {
 } from '@/services/preferencesService.js';
 import { triggerToolByKey } from '@/services/toolActionService.js';
 import {
-    DASHBOARD_NAV_KEY_PREFIX,
-    DEFAULT_DASHBOARD_ICON
+    DASHBOARD_NAV_KEY_PREFIX
 } from '@/shared/constants/dashboard.js';
-import { links } from '@/shared/constants/link.js';
-import {
-    DEFAULT_FOLDER_ICON,
-    DEFAULT_NAV_ICON_KEY,
-    getNavIconComponent
-} from '@/shared/constants/navIcons.js';
-import { isToolNavKey } from '@/shared/constants/tools.js';
 import { formatReleaseDisplayVersion } from '@/shared/utils/releaseVersion.js';
 import { useDashboardStore } from '@/state/dashboardStore.js';
 import { useModalStore } from '@/state/modalStore.js';
@@ -45,43 +21,19 @@ import { useRuntimeStore } from '@/state/runtimeStore.js';
 import { useSessionStore } from '@/state/sessionStore.js';
 import { useShellStore } from '@/state/shellStore.js';
 import { useVrcNotificationStore } from '@/state/vrcNotificationStore.js';
-import { Button } from '@/ui/shadcn/button';
-import {
-    ContextMenu,
-    ContextMenuContent,
-    ContextMenuGroup,
-    ContextMenuItem,
-    ContextMenuSeparator,
-    ContextMenuTrigger
-} from '@/ui/shadcn/context-menu';
-import {
-    DropdownMenu,
-    DropdownMenuCheckboxItem,
-    DropdownMenuContent,
-    DropdownMenuGroup,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuSub,
-    DropdownMenuSubContent,
-    DropdownMenuSubTrigger,
-    DropdownMenuTrigger
-} from '@/ui/shadcn/dropdown-menu';
-import {
-    SidebarContent,
-    SidebarFooter,
-    SidebarGroup,
-    SidebarGroupContent,
-    SidebarHeader,
-    SidebarMenu,
-    SidebarMenuAction,
-    SidebarMenuButton,
-    SidebarMenuItem,
-    SidebarMenuSub,
-    SidebarMenuSubButton,
-    SidebarMenuSubItem
-} from '@/ui/shadcn/sidebar';
 
 import { CustomNavDialog } from './CustomNavDialog.jsx';
+import {
+    isDashboardEntry,
+    isEntryActive,
+    isToolEntry,
+    removeNavKeyFromLayout,
+} from './AppNavMenuParts.jsx';
+import {
+    AppNavCreateDashboardHeader,
+    AppNavFooter,
+    AppNavMenuContent
+} from './AppNavMenuSections.jsx';
 import {
     getPathForNavEntry,
     loadNavMenuModel,
@@ -89,565 +41,6 @@ import {
     routePathByName,
     saveNavMenuModel
 } from './navMenuModel.js';
-import { appI18n } from '@/services/i18nService.js';
-
-const themeModeOptions = ['system', 'light', 'dark'];
-const tableDensityOptions = [
-    {
-        value: 'standard',
-        labelKey: 'view.settings.appearance.appearance.table_density_standard'
-    },
-    {
-        value: 'compact',
-        labelKey: 'view.settings.appearance.appearance.table_density_compact'
-    }
-];
-const vrcxLogo = new URL('../../../images/VRCX-0.png', import.meta.url).href;
-
-function labelForEntry(entry, t) {
-    if (!entry) {
-        return '';
-    }
-    if (entry.titleIsCustom) {
-        return (
-            entry.title ||
-            entry.label ||
-            entry.labelKey ||
-            entry.key ||
-            entry.index ||
-            ''
-        );
-    }
-    return t(
-        entry.title ||
-            entry.label ||
-            entry.labelKey ||
-            entry.tooltip ||
-            entry.key ||
-            ''
-    );
-}
-
-function themeModeLabel(themeMode, t) {
-    return t(`view.settings.appearance.appearance.theme_mode_${themeMode}`);
-}
-
-function NavIcon({ entry, className = undefined }) {
-    const fallback = String(entry?.index || '').startsWith(
-        DASHBOARD_NAV_KEY_PREFIX
-    )
-        ? DEFAULT_DASHBOARD_ICON
-        : entry?.children
-          ? DEFAULT_FOLDER_ICON
-          : DEFAULT_NAV_ICON_KEY;
-    const Icon = getNavIconComponent(entry?.icon, fallback);
-    return <Icon className={className} />;
-}
-
-function NotifiedNavIcon({ entry, isNotified, className = undefined }) {
-    return (
-        <span className="relative inline-flex size-4 shrink-0 items-center justify-center">
-            <NavIcon entry={entry} className={className} />
-            {isNotified ? (
-                <span
-                    className="bg-destructive absolute -top-0.5 -right-0.5 size-1.5 rounded-full"
-                    aria-hidden="true"
-                />
-            ) : null}
-        </span>
-    );
-}
-
-function isEntryActive(entry, pathname) {
-    const path = getPathForNavEntry(entry);
-    if (!path) {
-        return false;
-    }
-    if (entry?.routeName === 'tools') {
-        return pathname === '/tools';
-    }
-    return pathname === path || pathname.startsWith(`${path}/`);
-}
-
-function isDashboardEntry(entry) {
-    return String(entry?.index || '').startsWith(DASHBOARD_NAV_KEY_PREFIX);
-}
-
-function isToolEntry(entry) {
-    return isToolNavKey(entry?.index || entry?.key);
-}
-
-function isEntryNotified(entry, notifiedKeys) {
-    if (!entry || !notifiedKeys?.size) {
-        return false;
-    }
-    const targets = [entry.index, entry.key, entry.routeName].filter(Boolean);
-    if (entry.path) {
-        const lastSegment = String(entry.path).split('/').filter(Boolean).pop();
-        if (lastSegment) {
-            targets.push(lastSegment);
-        }
-    }
-    return targets.some((key) => notifiedKeys.has(key));
-}
-
-function isNavItemNotified(entry, notifiedKeys) {
-    if (isEntryNotified(entry, notifiedKeys)) {
-        return true;
-    }
-    return Boolean(
-        entry?.children?.some((child) => isEntryNotified(child, notifiedKeys))
-    );
-}
-
-function getFolderItemKey(item) {
-    return typeof item === 'string' ? item : item?.key;
-}
-
-function removeNavKeyFromLayout(layout, navKey) {
-    return (layout || [])
-        .map((entry) => {
-            if (entry.type === 'item') {
-                return entry.key === navKey ? null : entry;
-            }
-            if (entry.type === 'folder') {
-                const nextItems = (entry.items || []).filter(
-                    (item) => getFolderItemKey(item) !== navKey
-                );
-                return nextItems.length
-                    ? {
-                          ...entry,
-                          items: nextItems
-                      }
-                    : null;
-            }
-            return entry;
-        })
-        .filter(Boolean);
-}
-
-function DashboardEntryAction({
-    entry,
-    onEditDashboard,
-    onDeleteDashboard,
-    onUnpinTool,
-    t,
-    compact = false
-}) {
-    const isDashboard = isDashboardEntry(entry);
-    const isTool = isToolEntry(entry);
-    if (!isDashboard && !isTool) {
-        return null;
-    }
-
-    const trigger = compact ? (
-        <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="text-sidebar-foreground hover:bg-sidebar-accent absolute top-1 right-1 flex size-5 items-center justify-center rounded-md opacity-0 group-hover/menu-sub-item:opacity-100 focus:opacity-100"
-            onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-            }}
-        >
-            <MoreHorizontalIcon data-icon="inline-start" />
-        </Button>
-    ) : (
-        <SidebarMenuAction
-            type="button"
-            showOnHover
-            onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-            }}
-        >
-            <MoreHorizontalIcon />
-        </SidebarMenuAction>
-    );
-
-    return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-            <DropdownMenuContent side="right" align="start" className="w-48">
-                <DropdownMenuGroup>
-                    {isDashboard ? (
-                        <>
-                            <DropdownMenuItem
-                                onSelect={() => {
-                                    void onEditDashboard(entry);
-                                }}
-                            >
-                                <PencilIcon />
-                                {t('nav_menu.edit_dashboard')}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                                variant="destructive"
-                                onSelect={() => {
-                                    void onDeleteDashboard(entry);
-                                }}
-                            >
-                                <Trash2Icon />
-                                {t('nav_menu.delete_dashboard')}
-                            </DropdownMenuItem>
-                        </>
-                    ) : null}
-                    {isTool ? (
-                        <DropdownMenuItem
-                            variant="destructive"
-                            onSelect={() => {
-                                void onUnpinTool(entry);
-                            }}
-                        >
-                            <Trash2Icon />
-                            {t('nav_menu.custom_nav.unpin_from_nav')}
-                        </DropdownMenuItem>
-                    ) : null}
-                </DropdownMenuGroup>
-            </DropdownMenuContent>
-        </DropdownMenu>
-    );
-}
-
-function NavItemContextMenu({
-    children,
-    entry,
-    hasNotifications,
-    showCreateDashboard = false,
-    onMarkAllRead,
-    onCreateDashboard,
-    onEditDashboard,
-    onDeleteDashboard,
-    onUnpinTool,
-    onOpenCustomNav,
-    t
-}) {
-    const isDashboard = isDashboardEntry(entry);
-    const isTool = isToolEntry(entry);
-
-    return (
-        <ContextMenu>
-            <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-            <ContextMenuContent className="w-56">
-                {hasNotifications ? (
-                    <ContextMenuGroup>
-                        <ContextMenuItem
-                            onSelect={() => {
-                                void onMarkAllRead();
-                            }}
-                        >
-                            {t('nav_menu.mark_all_read')}
-                        </ContextMenuItem>
-                    </ContextMenuGroup>
-                ) : null}
-                {hasNotifications ? <ContextMenuSeparator /> : null}
-                {showCreateDashboard ? (
-                    <ContextMenuGroup>
-                        <ContextMenuItem
-                            onSelect={() => {
-                                void onCreateDashboard();
-                            }}
-                        >
-                            {t('dashboard.new_dashboard')}
-                        </ContextMenuItem>
-                    </ContextMenuGroup>
-                ) : null}
-                {isDashboard ? (
-                    <ContextMenuGroup>
-                        <ContextMenuItem
-                            onSelect={() => {
-                                void onEditDashboard(entry);
-                            }}
-                        >
-                            {t('nav_menu.edit_dashboard')}
-                        </ContextMenuItem>
-                        <ContextMenuItem
-                            variant="destructive"
-                            onSelect={() => {
-                                void onDeleteDashboard(entry);
-                            }}
-                        >
-                            {t('nav_menu.delete_dashboard')}
-                        </ContextMenuItem>
-                    </ContextMenuGroup>
-                ) : null}
-                {isDashboard ? <ContextMenuSeparator /> : null}
-                {isTool ? (
-                    <ContextMenuGroup>
-                        <ContextMenuItem
-                            onSelect={() => {
-                                void onUnpinTool(entry);
-                            }}
-                        >
-                            {t('nav_menu.custom_nav.unpin_from_nav')}
-                        </ContextMenuItem>
-                    </ContextMenuGroup>
-                ) : null}
-                {isTool ? <ContextMenuSeparator /> : null}
-                <ContextMenuGroup>
-                    <ContextMenuItem onSelect={onOpenCustomNav}>
-                        {t('nav_menu.custom_nav.header')}
-                    </ContextMenuItem>
-                </ContextMenuGroup>
-            </ContextMenuContent>
-        </ContextMenu>
-    );
-}
-
-function CollapsedFolderDropdownEntry({
-    entry,
-    isNotified,
-    onSelect,
-    onEditDashboard,
-    onDeleteDashboard,
-    onUnpinTool,
-    t
-}) {
-    const isDashboard = isDashboardEntry(entry);
-    const isTool = isToolEntry(entry);
-    if (!isDashboard && !isTool) {
-        return (
-            <DropdownMenuGroup>
-                <DropdownMenuItem
-                    onSelect={() => {
-                        void onSelect(entry);
-                    }}
-                >
-                    <NotifiedNavIcon entry={entry} isNotified={isNotified} />
-                    <span>{labelForEntry(entry, t)}</span>
-                </DropdownMenuItem>
-            </DropdownMenuGroup>
-        );
-    }
-
-    return (
-        <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-                <NotifiedNavIcon entry={entry} isNotified={isNotified} />
-                <span>{labelForEntry(entry, t)}</span>
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent side="right" align="start" className="w-48">
-                <DropdownMenuGroup>
-                    <DropdownMenuItem
-                        onSelect={() => {
-                            void onSelect(entry);
-                        }}
-                    >
-                        <NotifiedNavIcon
-                            entry={entry}
-                            isNotified={isNotified}
-                        />
-                        <span>{labelForEntry(entry, t)}</span>
-                    </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                {isDashboard ? (
-                    <DropdownMenuGroup>
-                        <DropdownMenuItem
-                            onSelect={() => {
-                                void onEditDashboard(entry);
-                            }}
-                        >
-                            <PencilIcon />
-                            {t('nav_menu.edit_dashboard')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                            variant="destructive"
-                            onSelect={() => {
-                                void onDeleteDashboard(entry);
-                            }}
-                        >
-                            <Trash2Icon />
-                            {t('nav_menu.delete_dashboard')}
-                        </DropdownMenuItem>
-                    </DropdownMenuGroup>
-                ) : null}
-                {isTool ? (
-                    <DropdownMenuGroup>
-                        <DropdownMenuItem
-                            variant="destructive"
-                            onSelect={() => {
-                                void onUnpinTool(entry);
-                            }}
-                        >
-                            <Trash2Icon />
-                            {t('nav_menu.custom_nav.unpin_from_nav')}
-                        </DropdownMenuItem>
-                    </DropdownMenuGroup>
-                ) : null}
-            </DropdownMenuSubContent>
-        </DropdownMenuSub>
-    );
-}
-
-function NavMenuFolderItem({
-    item,
-    isCollapsed,
-    activeIndex,
-    pathname,
-    notifiedKeys,
-    hasNotifications,
-    onSelect,
-    onMarkAllRead,
-    onEditDashboard,
-    onDeleteDashboard,
-    onUnpinTool,
-    onOpenCustomNav,
-    t
-}) {
-    const [open, setOpen] = useState(() =>
-        item.children?.some((entry) => isEntryActive(entry, pathname))
-    );
-    const label = labelForEntry(item, t);
-    const isActive = item.children?.some(
-        (entry) => entry.index === activeIndex || isEntryActive(entry, pathname)
-    );
-    const isNotified = isNavItemNotified(item, notifiedKeys);
-
-    useEffect(() => {
-        if (isActive) {
-            setOpen(true);
-        }
-    }, [isActive]);
-
-    if (isCollapsed) {
-        return (
-            <NavItemContextMenu
-                entry={item}
-                hasNotifications={hasNotifications}
-                onMarkAllRead={onMarkAllRead}
-                onEditDashboard={onEditDashboard}
-                onDeleteDashboard={onDeleteDashboard}
-                onUnpinTool={onUnpinTool}
-                onOpenCustomNav={onOpenCustomNav}
-                t={t}
-            >
-                <SidebarMenuItem>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <SidebarMenuButton
-                                isActive={Boolean(isActive)}
-                                tooltip={label}
-                            >
-                                <NotifiedNavIcon
-                                    entry={item}
-                                    isNotified={isNotified}
-                                />
-                                <span>{label}</span>
-                            </SidebarMenuButton>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                            side="right"
-                            align="start"
-                            className="w-56"
-                        >
-                            {item.children.map((entry) => (
-                                <CollapsedFolderDropdownEntry
-                                    key={entry.index}
-                                    entry={entry}
-                                    isNotified={isEntryNotified(
-                                        entry,
-                                        notifiedKeys
-                                    )}
-                                    onSelect={onSelect}
-                                    onEditDashboard={onEditDashboard}
-                                    onDeleteDashboard={onDeleteDashboard}
-                                    onUnpinTool={onUnpinTool}
-                                    t={t}
-                                />
-                            ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </SidebarMenuItem>
-            </NavItemContextMenu>
-        );
-    }
-
-    return (
-        <NavItemContextMenu
-            entry={item}
-            hasNotifications={hasNotifications}
-            onMarkAllRead={onMarkAllRead}
-            onEditDashboard={onEditDashboard}
-            onDeleteDashboard={onDeleteDashboard}
-            onUnpinTool={onUnpinTool}
-            onOpenCustomNav={onOpenCustomNav}
-            t={t}
-        >
-            <SidebarMenuItem>
-                <SidebarMenuButton
-                    type="button"
-                    isActive={Boolean(isActive)}
-                    tooltip={label}
-                    onClick={() => setOpen((current) => !current)}
-                >
-                    <NotifiedNavIcon entry={item} isNotified={isNotified} />
-                    <span>{label}</span>
-                    <ChevronRightIcon
-                        className={cn(
-                            'ml-auto transition-transform',
-                            open && 'rotate-90'
-                        )}
-                    />
-                </SidebarMenuButton>
-                {open ? (
-                    <SidebarMenuSub>
-                        {item.children.map((entry) => (
-                            <NavItemContextMenu
-                                key={entry.index}
-                                entry={entry}
-                                hasNotifications={hasNotifications}
-                                onMarkAllRead={onMarkAllRead}
-                                onEditDashboard={onEditDashboard}
-                                onDeleteDashboard={onDeleteDashboard}
-                                onUnpinTool={onUnpinTool}
-                                onOpenCustomNav={onOpenCustomNav}
-                                t={t}
-                            >
-                                <SidebarMenuSubItem>
-                                    <SidebarMenuSubButton
-                                        type="button"
-                                        className={
-                                            isDashboardEntry(entry) ||
-                                            isToolEntry(entry)
-                                                ? 'pr-8'
-                                                : undefined
-                                        }
-                                        isActive={
-                                            entry.index === activeIndex ||
-                                            isEntryActive(entry, pathname)
-                                        }
-                                        onClick={() => {
-                                            void onSelect(entry);
-                                        }}
-                                    >
-                                        <NotifiedNavIcon
-                                            entry={entry}
-                                            isNotified={isEntryNotified(
-                                                entry,
-                                                notifiedKeys
-                                            )}
-                                            className="size-4"
-                                        />
-                                        <span>{labelForEntry(entry, t)}</span>
-                                    </SidebarMenuSubButton>
-                                    <DashboardEntryAction
-                                        entry={entry}
-                                        onEditDashboard={onEditDashboard}
-                                        onDeleteDashboard={onDeleteDashboard}
-                                        onUnpinTool={onUnpinTool}
-                                        t={t}
-                                        compact
-                                    />
-                                </SidebarMenuSubItem>
-                            </NavItemContextMenu>
-                        ))}
-                    </SidebarMenuSub>
-                ) : null}
-            </SidebarMenuItem>
-        </NavItemContextMenu>
-    );
-}
 
 function resolveActiveIndex(menuItems, pathname) {
     for (const item of menuItems) {
@@ -670,7 +63,7 @@ function resolveActiveIndex(menuItems, pathname) {
 export function AppNavMenu({ isCollapsed }) {
     const navigate = useNavigate();
     const location = useLocation();
-    const { t } = useI18n();
+    const { t } = useTranslation();
     const sidebarOpen = useShellStore((state) => state.sidebarOpen);
     const themeMode = useShellStore((state) => state.themeMode);
     const tableDensity = useShellStore((state) => state.tableDensity);
@@ -716,13 +109,10 @@ export function AppNavMenu({ isCollapsed }) {
     );
     const [isCreatingDashboard, setIsCreatingDashboard] = useState(false);
     const appVersion = formatReleaseDisplayVersion(VERSION || '') || '-';
-    const notifiedKeys = useMemo(() => {
-        const keys = new Set(notifiedMenus);
-        if (vrcUnseenNotificationCount > 0) {
-            keys.add('notification');
-        }
-        return keys;
-    }, [notifiedMenus, vrcUnseenNotificationCount]);
+    const notifiedKeys = new Set(notifiedMenus);
+    if (vrcUnseenNotificationCount > 0) {
+        notifiedKeys.add('notification');
+    }
     const hasNotifications = notifiedKeys.size > 0;
 
     useEffect(() => {
@@ -805,7 +195,7 @@ export function AppNavMenu({ isCollapsed }) {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : appI18n.t('component.app_nav_menu.generated_toast.failed_to_create_dashboard')
+                    : t('component.app_nav_menu.generated_toast.failed_to_create_dashboard')
             );
         } finally {
             setIsCreatingDashboard(false);
@@ -825,7 +215,7 @@ export function AppNavMenu({ isCollapsed }) {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : appI18n.t('component.app_nav_menu.generated_toast.failed_to_mark_notifications_as_seen')
+                    : t('component.app_nav_menu.generated_toast.failed_to_mark_notifications_as_seen')
             );
         }
     }
@@ -889,7 +279,7 @@ export function AppNavMenu({ isCollapsed }) {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : appI18n.t('component.app_nav_menu.generated_toast.failed_to_delete_dashboard')
+                    : t('component.app_nav_menu.generated_toast.failed_to_delete_dashboard')
             );
         }
     }
@@ -919,7 +309,7 @@ export function AppNavMenu({ isCollapsed }) {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : appI18n.t('component.app_nav_menu.generated_toast.failed_to_save_custom_navigation')
+                    : t('component.app_nav_menu.generated_toast.failed_to_save_custom_navigation')
             );
         }
     }
@@ -938,7 +328,7 @@ export function AppNavMenu({ isCollapsed }) {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : appI18n.t('component.app_nav_menu.generated_toast.failed_to_save_dashboard_navigation')
+                    : t('component.app_nav_menu.generated_toast.failed_to_save_dashboard_navigation')
             );
         }
     }
@@ -958,37 +348,45 @@ export function AppNavMenu({ isCollapsed }) {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : appI18n.t('component.app_nav_menu.generated_toast.failed_to_unpin_tool_from_navigation')
+                    : t('component.app_nav_menu.generated_toast.failed_to_unpin_tool_from_navigation')
+            );
+        }
+    }
+
+    async function handleLogout() {
+        try {
+            const didLogout = await logoutFromReactShell();
+            if (didLogout) {
+                navigate('/login', {
+                    replace: true
+                });
+            }
+        } catch (error) {
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : t('component.app_nav_menu.generated_toast.failed_to_sign_out_of_vrcx_0')
             );
         }
     }
 
     return (
         <>
-            {shouldShowCreateDashboard ? (
-                <SidebarHeader className="px-2 py-2">
-                    <SidebarMenu>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton
-                                type="button"
-                                tooltip={t('dashboard.new_dashboard')}
-                                disabled={isCreatingDashboard}
-                                className="border-primary/40 text-primary hover:bg-primary/10 border border-dashed"
-                                onClick={() => {
-                                    void handleCreateDashboard();
-                                }}
-                            >
-                                <PlusIcon />
-                                <span>{t('dashboard.new_dashboard')}</span>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    </SidebarMenu>
-                </SidebarHeader>
-            ) : null}
+            <AppNavCreateDashboardHeader
+                visible={shouldShowCreateDashboard}
+                disabled={isCreatingDashboard}
+                onCreateDashboard={handleCreateDashboard}
+                t={t}
+            />
 
-            <NavItemContextMenu
+            <AppNavMenuContent
+                menuItems={menuItems}
+                isCollapsed={isCollapsed}
+                activeIndex={activeIndex}
+                pathname={location.pathname}
+                notifiedKeys={notifiedKeys}
                 hasNotifications={hasNotifications}
-                showCreateDashboard
+                onSelect={handleSelectEntry}
                 onMarkAllRead={handleMarkAllNotificationsRead}
                 onCreateDashboard={handleCreateDashboard}
                 onEditDashboard={handleEditDashboard}
@@ -996,349 +394,29 @@ export function AppNavMenu({ isCollapsed }) {
                 onUnpinTool={handleUnpinToolEntry}
                 onOpenCustomNav={() => setCustomNavDialogOpen(true)}
                 t={t}
-            >
-                <SidebarContent className="pt-2">
-                    <SidebarGroup>
-                        <SidebarGroupContent>
-                            <SidebarMenu>
-                                {menuItems.map((item) =>
-                                    item.children?.length ? (
-                                        <NavMenuFolderItem
-                                            key={item.index}
-                                            item={item}
-                                            isCollapsed={isCollapsed}
-                                            activeIndex={activeIndex}
-                                            pathname={location.pathname}
-                                            notifiedKeys={notifiedKeys}
-                                            hasNotifications={hasNotifications}
-                                            onSelect={handleSelectEntry}
-                                            onMarkAllRead={
-                                                handleMarkAllNotificationsRead
-                                            }
-                                            onEditDashboard={
-                                                handleEditDashboard
-                                            }
-                                            onDeleteDashboard={
-                                                handleDeleteDashboard
-                                            }
-                                            onUnpinTool={handleUnpinToolEntry}
-                                            onOpenCustomNav={() =>
-                                                setCustomNavDialogOpen(true)
-                                            }
-                                            t={t}
-                                        />
-                                    ) : (
-                                        <NavItemContextMenu
-                                            key={item.index}
-                                            entry={item}
-                                            hasNotifications={hasNotifications}
-                                            onMarkAllRead={
-                                                handleMarkAllNotificationsRead
-                                            }
-                                            onEditDashboard={
-                                                handleEditDashboard
-                                            }
-                                            onDeleteDashboard={
-                                                handleDeleteDashboard
-                                            }
-                                            onUnpinTool={handleUnpinToolEntry}
-                                            onOpenCustomNav={() =>
-                                                setCustomNavDialogOpen(true)
-                                            }
-                                            t={t}
-                                        >
-                                            <SidebarMenuItem>
-                                                <SidebarMenuButton
-                                                    asChild={Boolean(
-                                                        getPathForNavEntry(item)
-                                                    )}
-                                                    isActive={
-                                                        item.index ===
-                                                        activeIndex
-                                                    }
-                                                    tooltip={labelForEntry(
-                                                        item,
-                                                        t
-                                                    )}
-                                                    className={
-                                                        isDashboardEntry(
-                                                            item
-                                                        ) || isToolEntry(item)
-                                                            ? 'pr-8'
-                                                            : undefined
-                                                    }
-                                                    onClick={
-                                                        getPathForNavEntry(item)
-                                                            ? undefined
-                                                            : () => {
-                                                                  void handleSelectEntry(
-                                                                      item
-                                                                  );
-                                                              }
-                                                    }
-                                                >
-                                                    {getPathForNavEntry(
-                                                        item
-                                                    ) ? (
-                                                        <NavLink
-                                                            to={getPathForNavEntry(
-                                                                item
-                                                            )}
-                                                        >
-                                                            <NotifiedNavIcon
-                                                                entry={item}
-                                                                isNotified={isNavItemNotified(
-                                                                    item,
-                                                                    notifiedKeys
-                                                                )}
-                                                            />
-                                                            <span>
-                                                                {labelForEntry(
-                                                                    item,
-                                                                    t
-                                                                )}
-                                                            </span>
-                                                        </NavLink>
-                                                    ) : (
-                                                        <>
-                                                            <NotifiedNavIcon
-                                                                entry={item}
-                                                                isNotified={isNavItemNotified(
-                                                                    item,
-                                                                    notifiedKeys
-                                                                )}
-                                                            />
-                                                            <span>
-                                                                {labelForEntry(
-                                                                    item,
-                                                                    t
-                                                                )}
-                                                            </span>
-                                                        </>
-                                                    )}
-                                                </SidebarMenuButton>
-                                                <DashboardEntryAction
-                                                    entry={item}
-                                                    onEditDashboard={
-                                                        handleEditDashboard
-                                                    }
-                                                    onDeleteDashboard={
-                                                        handleDeleteDashboard
-                                                    }
-                                                    onUnpinTool={
-                                                        handleUnpinToolEntry
-                                                    }
-                                                    t={t}
-                                                />
-                                            </SidebarMenuItem>
-                                        </NavItemContextMenu>
-                                    )
-                                )}
-                            </SidebarMenu>
-                        </SidebarGroupContent>
-                    </SidebarGroup>
-                </SidebarContent>
-            </NavItemContextMenu>
+            />
 
-            <SidebarFooter className="px-2 py-3">
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton
-                            tooltip={t('nav_tooltip.toggle_theme')}
-                            onClick={() => {
-                                void setThemeModePreference(
-                                    themeMode === 'light' ? 'dark' : 'light'
-                                );
-                            }}
-                        >
-                            {themeMode === 'light' ? <MoonIcon /> : <SunIcon />}
-                            <span>{t('nav_tooltip.toggle_theme')}</span>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-
-                    <SidebarMenuItem>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <SidebarMenuButton
-                                    tooltip={t('nav_tooltip.manage')}
-                                >
-                                    <span className="relative inline-flex size-4 items-center justify-center">
-                                        <SettingsIcon />
-                                    </span>
-                                    <span>{t('nav_tooltip.manage')}</span>
-                                </SidebarMenuButton>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                                side="right"
-                                align="start"
-                                className="w-56"
-                            >
-                                <div className="flex items-center gap-2 px-2 py-1.5">
-                                    <img
-                                        className="size-6 cursor-pointer"
-                                        src={vrcxLogo}
-                                        alt={t('view.settings.advanced.advanced.vrcx_settings.header')}
-                                        onClick={() =>
-                                            void openExternalLink(links.github)
-                                        }
-                                    />
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        className="h-auto min-w-0 flex-col items-start gap-0 p-0 text-left font-normal"
-                                        onClick={() =>
-                                            void openExternalLink(links.github)
-                                        }
-                                    >
-                                        <span className="flex items-center gap-1 truncate text-sm font-medium">
-                                            {t('view.settings.advanced.advanced.vrcx_settings.header')}
-                                            <HeartIcon
-                                                data-icon="inline-end"
-                                                className="text-primary fill-current stroke-none"
-                                            />
-                                        </span>
-                                        <span className="text-muted-foreground text-xs">
-                                            {appVersion}
-                                        </span>
-                                    </Button>
-                                </div>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuGroup>
-                                    <DropdownMenuItem
-                                        onSelect={() =>
-                                            navigate(routePathByName.settings)
-                                        }
-                                    >
-                                        {t('nav_tooltip.settings')}
-                                    </DropdownMenuItem>
-                                </DropdownMenuGroup>
-                                <DropdownMenuSub>
-                                    <DropdownMenuSubTrigger>
-                                        {t(
-                                            'view.settings.appearance.appearance.theme_mode'
-                                        )}
-                                    </DropdownMenuSubTrigger>
-                                    <DropdownMenuSubContent
-                                        side="right"
-                                        align="start"
-                                        className="w-48"
-                                    >
-                                        <DropdownMenuGroup>
-                                            {themeModeOptions.map((mode) => (
-                                                <DropdownMenuCheckboxItem
-                                                    key={mode}
-                                                    checked={themeMode === mode}
-                                                    onSelect={() => {
-                                                        void setThemeModePreference(
-                                                            mode
-                                                        );
-                                                    }}
-                                                >
-                                                    {themeModeLabel(mode, t)}
-                                                </DropdownMenuCheckboxItem>
-                                            ))}
-                                        </DropdownMenuGroup>
-                                    </DropdownMenuSubContent>
-                                </DropdownMenuSub>
-                                <DropdownMenuSub>
-                                    <DropdownMenuSubTrigger>
-                                        {t(
-                                            'view.settings.appearance.appearance.table_density'
-                                        )}
-                                    </DropdownMenuSubTrigger>
-                                    <DropdownMenuSubContent
-                                        side="right"
-                                        align="start"
-                                        className="w-48"
-                                    >
-                                        <DropdownMenuGroup>
-                                            {tableDensityOptions.map(
-                                                (option) => (
-                                                    <DropdownMenuCheckboxItem
-                                                        key={option.value}
-                                                        checked={
-                                                            tableDensity ===
-                                                            option.value
-                                                        }
-                                                        onSelect={() => {
-                                                            void setTableDensityPreference(
-                                                                option.value
-                                                            );
-                                                        }}
-                                                    >
-                                                        {t(option.labelKey)}
-                                                    </DropdownMenuCheckboxItem>
-                                                )
-                                            )}
-                                        </DropdownMenuGroup>
-                                    </DropdownMenuSubContent>
-                                </DropdownMenuSub>
-                                <DropdownMenuGroup>
-                                    <DropdownMenuItem
-                                        onSelect={() =>
-                                            setCustomNavDialogOpen(true)
-                                        }
-                                    >
-                                        {t('nav_menu.custom_nav.header')}
-                                    </DropdownMenuItem>
-                                </DropdownMenuGroup>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuGroup>
-                                    <DropdownMenuItem
-                                        variant="destructive"
-                                        disabled={!isLoggedIn}
-                                        onSelect={() => {
-                                            void logoutFromReactShell()
-                                                .then((didLogout) => {
-                                                    if (didLogout) {
-                                                        navigate('/login', {
-                                                            replace: true
-                                                        });
-                                                    }
-                                                })
-                                                .catch((error) => {
-                                                    toast.error(
-                                                        error instanceof Error
-                                                            ? error.message
-                                                            : appI18n.t('component.app_nav_menu.generated_toast.failed_to_sign_out_of_vrcx_0')
-                                                    );
-                                                });
-                                        }}
-                                    >
-                                        <LogOutIcon />
-                                        {t('dialog.user.actions.logout')}
-                                    </DropdownMenuItem>
-                                </DropdownMenuGroup>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </SidebarMenuItem>
-
-                    <SidebarMenuItem>
-                        <SidebarMenuButton
-                            type="button"
-                            tooltip={
-                                sidebarOpen
-                                    ? t('nav_tooltip.collapse_menu')
-                                    : t('nav_tooltip.expand_menu')
-                            }
-                            onClick={() => {
-                                void setSidebarCollapsedPreference(sidebarOpen);
-                            }}
-                        >
-                            {sidebarOpen ? (
-                                <PanelLeftCloseIcon />
-                            ) : (
-                                <PanelLeftOpenIcon />
-                            )}
-                            <span>
-                                {sidebarOpen
-                                    ? t('nav_tooltip.collapse_menu')
-                                    : t('nav_tooltip.expand_menu')}
-                            </span>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            </SidebarFooter>
+            <AppNavFooter
+                appVersion={appVersion}
+                isLoggedIn={isLoggedIn}
+                sidebarOpen={sidebarOpen}
+                tableDensity={tableDensity}
+                themeMode={themeMode}
+                onLogout={handleLogout}
+                onNavigateSettings={() => navigate(routePathByName.settings)}
+                onOpenCustomNav={() => setCustomNavDialogOpen(true)}
+                onSetTableDensity={setTableDensityPreference}
+                onSetThemeMode={setThemeModePreference}
+                onToggleSidebar={() =>
+                    setSidebarCollapsedPreference(sidebarOpen)
+                }
+                onToggleTheme={() =>
+                    setThemeModePreference(
+                        themeMode === 'light' ? 'dark' : 'light'
+                    )
+                }
+                t={t}
+            />
             <CustomNavDialog
                 open={customNavDialogOpen}
                 layout={navLayout}

@@ -1,10 +1,9 @@
 import { PlusIcon, XIcon } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-import { useI18n } from '@/app/hooks/use-i18n.js';
+import { useTranslation } from 'react-i18next';
 import { setTablePageSizesPreference } from '@/services/preferencesService.js';
-import { appI18n } from '@/services/i18nService.js';
 import { usePreferencesStore } from '@/state/preferencesStore.js';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
@@ -49,14 +48,11 @@ export function SettingsTabContent({ value, children }) {
 }
 
 export function TablePageSizesDialog({ open, onOpenChange, onSaved }) {
-    const { t } = useI18n();
+    const { t } = useTranslation();
     const [draft, setDraft] = useState(() => [...TABLE_PAGE_SIZE_DEFAULTS]);
     const [input, setInput] = useState('');
-    const options = useMemo(() => buildTablePageSizeOptions(draft), [draft]);
-    const filteredOptions = useMemo(
-        () => filterTablePageSizeOptions(options, input),
-        [input, options]
-    );
+    const options = buildTablePageSizeOptions(draft);
+    const filteredOptions = filterTablePageSizeOptions(options, input);
 
     useEffect(() => {
         if (!open) {
@@ -90,7 +86,7 @@ export function TablePageSizesDialog({ open, onOpenChange, onSaved }) {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : appI18n.t('view.settings.generated_toast.failed_to_save_setting')
+                    : t('view.settings.generated_toast.failed_to_save_setting')
             );
             return false;
         }

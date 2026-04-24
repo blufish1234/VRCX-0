@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
+import { useTranslation } from 'react-i18next';
 import {
     computeAspectCrop,
     cropImageFileToAspect,
@@ -17,7 +18,6 @@ import {
 import { Field, FieldGroup, FieldLabel } from '@/ui/shadcn/field';
 import { Slider } from '@/ui/shadcn/slider';
 import { Spinner } from '@/ui/shadcn/spinner';
-import { appI18n } from '@/services/i18nService.js';
 
 export function ImageCropDialog({
     open,
@@ -28,6 +28,8 @@ export function ImageCropDialog({
     onOpenChange,
     onConfirm
 }) {
+    const { t } = useTranslation();
+
     const canvasRef = useRef(null);
     const [imageBitmap, setImageBitmap] = useState(null);
     const [zoom, setZoom] = useState(1);
@@ -108,13 +110,6 @@ export function ImageCropDialog({
         );
     }, [aspectRatio, imageBitmap, offsetX, offsetY, zoom]);
 
-    const frameStyle = useMemo(
-        () => ({
-            aspectRatio: String(aspectRatio || 1)
-        }),
-        [aspectRatio]
-    );
-
     async function confirmCrop() {
         if (!file || !validateImageUploadFile(file).ok) {
             return;
@@ -143,7 +138,7 @@ export function ImageCropDialog({
                 <div className="flex flex-col gap-4">
                     <div
                         className="bg-muted relative max-h-[60vh] overflow-hidden rounded-lg border"
-                        style={frameStyle}
+                        style={{ aspectRatio: String(aspectRatio || 1) }}
                     >
                         {imageBitmap ? (
                             <canvas
@@ -157,7 +152,7 @@ export function ImageCropDialog({
                     <FieldGroup className="grid gap-4 md:grid-cols-3">
                         <Field>
                             <FieldLabel htmlFor="image-crop-zoom">
-                                {appI18n.t('message.image.generated.zoom')}
+                                {t('message.image.generated.zoom')}
                             </FieldLabel>
                             <Slider
                                 id="image-crop-zoom"
@@ -172,7 +167,7 @@ export function ImageCropDialog({
                         </Field>
                         <Field>
                             <FieldLabel htmlFor="image-crop-offset-x">
-                                {appI18n.t('message.image.generated.horizontal')}
+                                {t('message.image.generated.horizontal')}
                             </FieldLabel>
                             <Slider
                                 id="image-crop-offset-x"
@@ -187,7 +182,7 @@ export function ImageCropDialog({
                         </Field>
                         <Field>
                             <FieldLabel htmlFor="image-crop-offset-y">
-                                {appI18n.t('message.image.generated.vertical')}
+                                {t('message.image.generated.vertical')}
                             </FieldLabel>
                             <Slider
                                 id="image-crop-offset-y"
@@ -208,7 +203,7 @@ export function ImageCropDialog({
                         disabled={isConfirming}
                         onClick={() => onOpenChange?.(false)}
                     >
-                        {appI18n.t('common.actions.cancel')}
+                        {t('common.actions.cancel')}
                     </Button>
                     <Button
                         disabled={isConfirming || !file}
@@ -217,7 +212,7 @@ export function ImageCropDialog({
                         {isConfirming ? (
                             <Spinner data-icon="inline-start" />
                         ) : null}
-                        {appI18n.t('message.image.generated.upload')}
+                        {t('message.image.generated.upload')}
                     </Button>
                 </DialogFooter>
             </DialogContent>

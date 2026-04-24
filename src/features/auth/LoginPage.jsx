@@ -1,17 +1,10 @@
-import { NetworkIcon, Trash2Icon } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import { useI18n } from '@/app/hooks/use-i18n.js';
-import { openExternalLink, userImage } from '@/lib/entityMedia.js';
+import { openExternalLink } from '@/lib/entityMedia.js';
 import { cn } from '@/lib/utils.js';
-import { getLanguageName, languageCodes } from '@/localization/index.js';
-import {
-    DEFAULT_ENDPOINT_DOMAIN,
-    DEFAULT_WEBSOCKET_DOMAIN
-} from '@/repositories/vrchatAuthRepository.js';
-import { executeReactAutoLogin } from '@/services/authAutoLoginService.js';
 import {
     executeManualLogin,
     executeSavedCredentialLogin
@@ -29,58 +22,24 @@ import {
 import { usePreferencesStore } from '@/state/preferencesStore.js';
 import { useSessionStore } from '@/state/sessionStore.js';
 import { useShellStore } from '@/state/shellStore.js';
-import { Alert, AlertDescription } from '@/ui/shadcn/alert';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle
-} from '@/ui/shadcn/alert-dialog';
-import { Avatar, AvatarFallback, AvatarImage } from '@/ui/shadcn/avatar';
-import { Badge } from '@/ui/shadcn/badge';
-import { Button } from '@/ui/shadcn/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/shadcn/card';
-import { Checkbox } from '@/ui/shadcn/checkbox';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle
-} from '@/ui/shadcn/dialog';
-import { Field, FieldError, FieldGroup, FieldLabel } from '@/ui/shadcn/field';
-import { Input } from '@/ui/shadcn/input';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from '@/ui/shadcn/select';
-import { Spinner } from '@/ui/shadcn/spinner';
 
+import { DeleteSavedAccountDialog } from './components/DeleteSavedAccountDialog.jsx';
+import { LoginAutoLoginAlert } from './components/LoginAutoLoginAlert.jsx';
+import { LoginFormCard } from './components/LoginFormCard.jsx';
+import { LoginPageFooter } from './components/LoginPageFooter.jsx';
+import { LoginPageHeader } from './components/LoginPageHeader.jsx';
+import { LoginProxySettingsDialog } from './components/LoginProxySettingsDialog.jsx';
+import { SavedAccountsCard } from './components/SavedAccountsCard.jsx';
 import {
-    getAutoLoginStateLabel,
     getLoginErrorMessage as getErrorMessage,
     getLoginUserDisplayName as getUserDisplayName
 } from './loginDisplay.js';
 import { getSnapshotLoginParams } from './loginSession.js';
-import { appI18n } from '@/services/i18nService.js';
-
-function getSavedAccountFallback(user) {
-    const label = getUserDisplayName(user) || user?.username || user?.id || '?';
-    return String(label).trim().slice(0, 2).toUpperCase() || '?';
-}
+import { useLoginAutoLogin } from './useLoginAutoLogin.js';
 
 export function LoginPage() {
     const navigate = useNavigate();
-    const { t } = useI18n();
+    const { t } = useTranslation();
     const locale = useShellStore((state) => state.locale);
     const proxyServer = usePreferencesStore((state) => state.proxyServer);
     const preferencesHydrated = usePreferencesStore(
@@ -99,12 +58,6 @@ export function LoginPage() {
     const [isUpdatingEndpointSetting, setIsUpdatingEndpointSetting] =
         useState(false);
     const [activeSavedUserId, setActiveSavedUserId] = useState('');
-    const [autoLoginState, setAutoLoginState] = useState({
-        status: 'idle',
-        remainingSeconds: 0,
-        detail: '',
-        userId: ''
-    });
     const [loginForm, setLoginForm] = useState({
         username: '',
         password: '',
@@ -117,26 +70,10 @@ export function LoginPage() {
         username: '',
         password: ''
     });
-    const autoLoginSuppressedKeyRef = useRef('');
-    const autoLoginAbortRef = useRef(null);
 
     useEffect(() => {
         setProxyInput(proxyServer || '');
     }, [proxyServer]);
-
-    const isDatabaseBlocked = !databaseReady;
-    const isAutoLoginActive =
-        autoLoginState.status === 'scheduled' ||
-        autoLoginState.status === 'running';
-    const isAutoLoginStartBlocked =
-        isDatabaseBlocked || isSubmitting || Boolean(activeSavedUserId);
-    const isAuthBusy =
-        isDatabaseBlocked ||
-        isSubmitting ||
-        Boolean(activeSavedUserId) ||
-        isAutoLoginActive ||
-        sessionPhase === 'authenticating' ||
-        sessionPhase === 'bootstrapping';
 
     function applySnapshot(nextSnapshot) {
         const loginParams = getSnapshotLoginParams(nextSnapshot);
@@ -153,63 +90,30 @@ export function LoginPage() {
         }));
         return nextSnapshot;
     }
-
-    function getAutoLoginSnapshotKey(nextSnapshot = snapshot) {
-        const userId = nextSnapshot?.lastUserLoggedIn || '';
-        const savedCredential = userId
-            ? nextSnapshot?.savedCredentials?.[userId]
-            : null;
-        if (!userId) {
-            return '';
-        }
-
-        return JSON.stringify({
-            userId,
-            endpoint: savedCredential?.loginParams?.endpoint || '',
-            username: savedCredential?.loginParams?.username || '',
-            hasCookies: Boolean(savedCredential?.cookies),
-            hasSavedCredential: Boolean(savedCredential),
-            autoLoginStatus: nextSnapshot.autoLoginStatus,
-            autoLoginDelayEnabled: Boolean(nextSnapshot.autoLoginDelayEnabled),
-            autoLoginDelaySeconds: nextSnapshot.autoLoginDelaySeconds || 0
-        });
-    }
-
-    function cancelPendingAutoLogin(
-        detail = t('view.auth.auto_login.skipped')
-    ) {
-        const controller = autoLoginAbortRef.current;
-        if (controller) {
-            controller.abort();
-            autoLoginAbortRef.current = null;
-        }
-
-        setAutoLoginState((current) => {
-            if (
-                current.status !== 'scheduled' &&
-                current.status !== 'running'
-            ) {
-                return current;
-            }
-
-            return {
-                ...current,
-                status: 'cancelled',
-                remainingSeconds: 0,
-                detail
-            };
-        });
-    }
-
-    function retryAutoLogin() {
-        autoLoginSuppressedKeyRef.current = '';
-        setAutoLoginState({
-            status: 'idle',
-            remainingSeconds: 0,
-            detail: '',
-            userId: ''
-        });
-    }
+    const {
+        autoLoginAlertVariant,
+        autoLoginState,
+        autoLoginTarget,
+        cancelPendingAutoLogin,
+        isAutoLoginActive,
+        retryAutoLogin,
+        shouldShowAutoLogin
+    } = useLoginAutoLogin({
+        activeSavedUserId,
+        applySnapshot,
+        databaseReady,
+        isLoading,
+        isSubmitting,
+        snapshot
+    });
+    const isDatabaseBlocked = !databaseReady;
+    const isAuthBusy =
+        isDatabaseBlocked ||
+        isSubmitting ||
+        Boolean(activeSavedUserId) ||
+        isAutoLoginActive ||
+        sessionPhase === 'authenticating' ||
+        sessionPhase === 'bootstrapping';
 
     useEffect(() => {
         let active = true;
@@ -224,7 +128,9 @@ export function LoginPage() {
                 toast.error(
                     error instanceof Error
                         ? error.message
-                        : appI18n.t('view.auth.generated_toast.failed_to_load_saved_auth_snapshot')
+                        : t(
+                              'view.auth.generated_toast.failed_to_load_saved_auth_snapshot'
+                          )
                 );
             })
             .finally(() => {
@@ -239,197 +145,6 @@ export function LoginPage() {
     }, []);
 
     useEffect(() => {
-        const shouldAttemptCookieRestore = Boolean(snapshot?.lastUserLoggedIn);
-        const shouldAttemptSavedCredentialFallback =
-            snapshot?.autoLoginStatus === 'available';
-
-        if (
-            isLoading ||
-            isAutoLoginStartBlocked ||
-            !databaseReady ||
-            (!shouldAttemptCookieRestore &&
-                !shouldAttemptSavedCredentialFallback)
-        ) {
-            return undefined;
-        }
-
-        const userId = snapshot?.lastUserLoggedIn;
-        const savedCredential = userId
-            ? snapshot?.savedCredentials?.[userId]
-            : null;
-        const autoLoginDisplayName = savedCredential
-            ? getUserDisplayName(savedCredential.user)
-            : userId;
-        const autoLoginSnapshotKey = getAutoLoginSnapshotKey(snapshot);
-        if (
-            !userId ||
-            !autoLoginSnapshotKey ||
-            autoLoginSuppressedKeyRef.current === autoLoginSnapshotKey
-        ) {
-            return undefined;
-        }
-
-        autoLoginSuppressedKeyRef.current = autoLoginSnapshotKey;
-        const controller = new AbortController();
-        autoLoginAbortRef.current = controller;
-        let active = true;
-
-        setAutoLoginState({
-            status:
-                snapshot.autoLoginDelayEnabled &&
-                snapshot.autoLoginDelaySeconds > 0
-                    ? 'scheduled'
-                    : 'running',
-            remainingSeconds:
-                snapshot.autoLoginDelayEnabled &&
-                snapshot.autoLoginDelaySeconds > 0
-                    ? snapshot.autoLoginDelaySeconds
-                    : 0,
-            detail: savedCredential
-                ? t('view.auth.auto_login.preparing_login_for', {
-                      name: autoLoginDisplayName
-                  })
-                : t('view.auth.auto_login.preparing_restore_for', {
-                      userId
-                  }),
-            userId
-        });
-
-        executeReactAutoLogin(snapshot, {
-            signal: controller.signal,
-            onCountdown(remainingSeconds) {
-                if (!active) {
-                    return;
-                }
-
-                setAutoLoginState((current) => ({
-                    ...current,
-                    status: remainingSeconds > 0 ? 'scheduled' : 'running',
-                    remainingSeconds,
-                    detail:
-                        remainingSeconds > 0
-                            ? t('view.auth.auto_login.starts_in', {
-                                  seconds: remainingSeconds
-                              })
-                            : savedCredential
-                              ? t('view.auth.auto_login.authenticating', {
-                                    name: autoLoginDisplayName
-                                })
-                              : t('view.auth.auto_login.restoring_session_for', {
-                                    name: autoLoginDisplayName
-                                })
-                }));
-            }
-        })
-            .then((result) => {
-                if (!active) {
-                    return;
-                }
-
-                autoLoginAbortRef.current = null;
-                if (result.snapshot) {
-                    applySnapshot(result.snapshot);
-                }
-
-                switch (result.status) {
-                    case 'success':
-                        setAutoLoginState({
-                            status: 'success',
-                            remainingSeconds: 0,
-                            detail: savedCredential
-                                ? t('view.auth.auto_login.logged_in_as', {
-                                      name: autoLoginDisplayName
-                                  })
-                                : t('view.auth.auto_login.restored_session_for', {
-                                      name: autoLoginDisplayName
-                                  }),
-                            userId
-                        });
-                        break;
-                    case 'cancelled':
-                        setAutoLoginState({
-                            status: 'cancelled',
-                            remainingSeconds: 0,
-                            detail: t(
-                                'view.auth.auto_login.skipped_before_request'
-                            ),
-                            userId
-                        });
-                        break;
-                    case 'throttled':
-                        setAutoLoginState({
-                            status: 'throttled',
-                            remainingSeconds: 0,
-                            detail: t('view.auth.auto_login.throttled'),
-                            userId
-                        });
-                        break;
-                    case 'expired':
-                        setAutoLoginState({
-                            status: 'expired',
-                            remainingSeconds: 0,
-                            detail: t('view.auth.auto_login.expired'),
-                            userId
-                        });
-                        break;
-                    case 'failed':
-                        setAutoLoginState({
-                            status: 'failed',
-                            remainingSeconds: 0,
-                            detail: t('view.auth.auto_login.failed_manual'),
-                            userId
-                        });
-                        break;
-                    default:
-                        setAutoLoginState({
-                            status: 'idle',
-                            remainingSeconds: 0,
-                            detail: '',
-                            userId: ''
-                        });
-                        break;
-                }
-            })
-            .catch((error) => {
-                if (!active) {
-                    return;
-                }
-
-                autoLoginAbortRef.current = null;
-                setAutoLoginState({
-                    status: 'failed',
-                    remainingSeconds: 0,
-                    detail: getErrorMessage(
-                        error,
-                        t('view.auth.auto_login.failed_unexpectedly')
-                    ),
-                    userId
-                });
-                toast.error(
-                    getErrorMessage(
-                        error,
-                        appI18n.t('view.auth.generated_toast.automatic_login_failed_unexpectedly')
-                    )
-                );
-            });
-
-        return () => {
-            active = false;
-            controller.abort();
-            if (autoLoginAbortRef.current === controller) {
-                autoLoginAbortRef.current = null;
-            }
-        };
-    }, [databaseReady, isAutoLoginStartBlocked, isLoading, snapshot, t]);
-
-    useEffect(
-        () => () => {
-            autoLoginAbortRef.current?.abort();
-        },
-        []
-    );
-
-    useEffect(() => {
         if (sessionPhase === 'ready') {
             navigate('/feed', { replace: true });
         }
@@ -442,7 +157,7 @@ export function LoginPage() {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : appI18n.t('view.auth.generated_toast.failed_to_change_language')
+                    : t('view.auth.generated_toast.failed_to_change_language')
             );
         }
     }
@@ -455,7 +170,9 @@ export function LoginPage() {
                 toast.error(
                     error instanceof Error
                         ? error.message
-                        : appI18n.t('view.auth.generated_toast.failed_to_load_proxy_settings')
+                        : t(
+                              'view.auth.generated_toast.failed_to_load_proxy_settings'
+                          )
                 );
             }
         }
@@ -479,7 +196,9 @@ export function LoginPage() {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : appI18n.t('view.auth.generated_toast.failed_to_save_proxy_settings')
+                    : t(
+                          'view.auth.generated_toast.failed_to_save_proxy_settings'
+                      )
             );
         } finally {
             setIsSavingProxySettings(false);
@@ -487,9 +206,7 @@ export function LoginPage() {
     }
 
     async function handleCustomEndpointToggle(checked) {
-        cancelPendingAutoLogin(
-            t('view.auth.auto_login.skipped_form_changed')
-        );
+        cancelPendingAutoLogin(t('view.auth.auto_login.skipped_form_changed'));
         const previousValue = Boolean(snapshot?.enableCustomEndpoint);
         const nextValue = checked === true;
 
@@ -513,7 +230,12 @@ export function LoginPage() {
                 websocket: previousValue ? current.websocket : ''
             }));
             toast.error(
-                getErrorMessage(error, appI18n.t('view.auth.generated_toast.failed_to_update_endpoint_preference'))
+                getErrorMessage(
+                    error,
+                    t(
+                        'view.auth.generated_toast.failed_to_update_endpoint_preference'
+                    )
+                )
             );
         } finally {
             setIsUpdatingEndpointSetting(false);
@@ -536,7 +258,9 @@ export function LoginPage() {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : appI18n.t('view.auth.generated_toast.failed_to_remove_saved_account')
+                    : t(
+                          'view.auth.generated_toast.failed_to_remove_saved_account'
+                      )
             );
         } finally {
             setIsDeleting(false);
@@ -562,7 +286,11 @@ export function LoginPage() {
         event.preventDefault();
 
         if (!databaseReady) {
-            toast.error(t('common.generated.generated.database_initialization_is_still_pending'));
+            toast.error(
+                t(
+                    'common.generated.generated.database_initialization_is_still_pending'
+                )
+            );
             return;
         }
 
@@ -587,12 +315,21 @@ export function LoginPage() {
                 saveCredentials: loginForm.saveCredentials
             });
             applySnapshot(nextSnapshot);
-            toast.success(t('common.generated.generated.authenticated_and_prepared_the_session'));
+            toast.success(
+                t(
+                    'common.generated.generated.authenticated_and_prepared_the_session'
+                )
+            );
         } catch (error) {
             if (error?.authSnapshot) {
                 applySnapshot(error.authSnapshot);
             }
-            toast.error(getErrorMessage(error, appI18n.t('view.auth.generated_toast.failed_to_authenticate')));
+            toast.error(
+                getErrorMessage(
+                    error,
+                    t('view.auth.generated_toast.failed_to_authenticate')
+                )
+            );
         } finally {
             setIsSubmitting(false);
         }
@@ -605,7 +342,11 @@ export function LoginPage() {
         }
 
         if (!databaseReady) {
-            toast.error(t('common.generated.generated.database_initialization_is_still_pending'));
+            toast.error(
+                t(
+                    'common.generated.generated.database_initialization_is_still_pending'
+                )
+            );
             return;
         }
 
@@ -617,14 +358,22 @@ export function LoginPage() {
             const nextSnapshot = await executeSavedCredentialLogin(entry);
             applySnapshot(nextSnapshot);
             toast.success(
-                appI18n.t('view.auth.generated_dynamic.authenticated_and_prepared_the_session_for_value', { value: getUserDisplayName(entry.user) })
+                t(
+                    'view.auth.generated_dynamic.authenticated_and_prepared_the_session_for_value',
+                    { value: getUserDisplayName(entry.user) }
+                )
             );
         } catch (error) {
             if (error?.authSnapshot) {
                 applySnapshot(error.authSnapshot);
             }
             toast.error(
-                getErrorMessage(error, appI18n.t('view.auth.generated_toast.failed_to_restore_the_saved_account'))
+                getErrorMessage(
+                    error,
+                    t(
+                        'view.auth.generated_toast.failed_to_restore_the_saved_account'
+                    )
+                )
             );
         } finally {
             setActiveSavedUserId('');
@@ -633,71 +382,19 @@ export function LoginPage() {
 
     const savedAccounts = snapshot?.savedCredentialsList || [];
     const hasSavedAccounts = !isLoading && savedAccounts.length > 0;
-    const shouldShowAutoLogin =
-        !isLoading &&
-        (Boolean(snapshot?.lastUserLoggedIn) ||
-            snapshot?.autoLoginStatus === 'available' ||
-            autoLoginState.status !== 'idle');
-    const autoLoginTarget = snapshot?.savedCredentials?.[
-        snapshot?.lastUserLoggedIn
-    ]?.user
-        ? getUserDisplayName(
-              snapshot.savedCredentials[snapshot.lastUserLoggedIn].user
-          )
-        : snapshot?.lastUserLoggedIn || 'last session';
-    const autoLoginAlertVariant =
-        autoLoginState.status === 'failed' ||
-        autoLoginState.status === 'expired'
-            ? 'destructive'
-            : 'default';
-    const deleteTargetName = deleteTarget?.user
-        ? getUserDisplayName(deleteTarget.user)
-        : '';
 
     return (
         <div className="bg-background relative flex min-h-full w-full flex-col overflow-y-auto p-6">
             <div className="flex flex-1 items-center justify-center">
                 <div className="flex w-full max-w-4xl flex-col gap-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex min-w-0 items-center gap-3">
-                            <div className="min-w-0">
-                                <div className="truncate text-lg font-semibold">
-                                    VRCX-0
-                                </div>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Select
-                                value={locale}
-                                disabled={isAuthBusy}
-                                onValueChange={(value) =>
-                                    void handleLanguageChange(value)
-                                }
-                            >
-                                <SelectTrigger size="sm" className="w-36">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectGroup>
-                                        {languageCodes.map((code) => (
-                                            <SelectItem key={code} value={code}>
-                                                {getLanguageName(code)}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectGroup>
-                                </SelectContent>
-                            </Select>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => void openProxyDialog()}
-                            >
-                                <NetworkIcon data-icon="inline-start" />
-                                {t('view.login.proxy_settings')}
-                            </Button>
-                        </div>
-                    </div>
+                    <LoginPageHeader
+                        locale={locale}
+                        disabled={isAuthBusy}
+                        onLanguageChange={(value) =>
+                            void handleLanguageChange(value)
+                        }
+                        onOpenProxyDialog={() => void openProxyDialog()}
+                    />
                     <div
                         className={cn(
                             'grid min-h-95 items-stretch gap-2',
@@ -705,603 +402,90 @@ export function LoginPage() {
                         )}
                     >
                         <div className="flex h-full flex-col gap-3">
-                            {shouldShowAutoLogin ? (
-                                <Alert variant={autoLoginAlertVariant}>
-                                    <AlertDescription className="flex flex-wrap items-center gap-3 text-sm">
-                                        <Badge variant="secondary">
-                                            {t('common.generated.generated.auto_login')}
-                                        </Badge>
-                                        <span className="font-medium">
-                                            {autoLoginTarget}
-                                        </span>
-                                        {autoLoginState.status !==
-                                            'scheduled' &&
-                                        autoLoginState.status !== 'idle' ? (
-                                            <span className="text-muted-foreground">
-                                                {getAutoLoginStateLabel(
-                                                    autoLoginState.status
-                                                )}
-                                            </span>
-                                        ) : null}
-                                        {autoLoginState.remainingSeconds > 0 ? (
-                                            <span className="text-muted-foreground">
-                                                {
-                                                    autoLoginState.remainingSeconds
-                                                }
-                                                {t('common.time_units.s')}
-                                            </span>
-                                        ) : null}
-                                        {autoLoginState.status ===
-                                        'scheduled' ? (
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() =>
-                                                    cancelPendingAutoLogin(
-                                                        t(
-                                                            'view.auth.auto_login.skipped_countdown_finished'
-                                                        )
-                                                    )
-                                                }
-                                            >
-                                                {t('message.database.migration_skip')}
-                                            </Button>
-                                        ) : null}
-                                        {autoLoginState.status ===
-                                            'cancelled' ||
-                                        autoLoginState.status === 'failed' ||
-                                        autoLoginState.status === 'expired' ? (
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={retryAutoLogin}
-                                            >
-                                                {t('common.generated.generated.retry')}
-                                            </Button>
-                                        ) : null}
-                                    </AlertDescription>
-                                </Alert>
-                            ) : null}
-
-                            <Card className="flex flex-1 flex-col">
-                                <CardHeader>
-                                    <CardTitle className="text-center">
-                                        {t('view.login.login')}
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="flex flex-1 flex-col gap-4">
-                                    <form
-                                        className="flex flex-1 flex-col gap-4"
-                                        onSubmit={handleManualLoginSubmit}
-                                    >
-                                        <FieldGroup className="gap-3">
-                                            <Field
-                                                data-invalid={Boolean(
-                                                    loginErrors.username
-                                                )}
-                                            >
-                                                <FieldLabel htmlFor="react-login-username">
-                                                    {t(
-                                                        'view.login.field.username'
-                                                    )}
-                                                </FieldLabel>
-                                                <Input
-                                                    id="react-login-username"
-                                                    aria-invalid={
-                                                        Boolean(
-                                                            loginErrors.username
-                                                        ) || undefined
-                                                    }
-                                                    autoComplete="username"
-                                                    disabled={isAuthBusy}
-                                                    placeholder={t(
-                                                        'view.login.placeholder.account'
-                                                    )}
-                                                    value={loginForm.username}
-                                                    onChange={(event) => {
-                                                        cancelPendingAutoLogin(
-                                                            t(
-                                                                'view.auth.auto_login.skipped_form_changed'
-                                                            )
-                                                        );
-                                                        setLoginForm(
-                                                            (current) => ({
-                                                                ...current,
-                                                                username:
-                                                                    event.target
-                                                                        .value
-                                                            })
-                                                        );
-                                                        if (
-                                                            loginErrors.username
-                                                        ) {
-                                                            setLoginErrors(
-                                                                (current) => ({
-                                                                    ...current,
-                                                                    username: ''
-                                                                })
-                                                            );
-                                                        }
-                                                    }}
-                                                />
-                                                <FieldError>
-                                                    {loginErrors.username}
-                                                </FieldError>
-                                            </Field>
-                                            <Field
-                                                data-invalid={Boolean(
-                                                    loginErrors.password
-                                                )}
-                                            >
-                                                <FieldLabel htmlFor="react-login-password">
-                                                    {t(
-                                                        'view.login.field.password'
-                                                    )}
-                                                </FieldLabel>
-                                                <Input
-                                                    id="react-login-password"
-                                                    aria-invalid={
-                                                        Boolean(
-                                                            loginErrors.password
-                                                        ) || undefined
-                                                    }
-                                                    type="password"
-                                                    autoComplete="current-password"
-                                                    disabled={isAuthBusy}
-                                                    placeholder={t(
-                                                        'view.login.placeholder.password'
-                                                    )}
-                                                    value={loginForm.password}
-                                                    onChange={(event) => {
-                                                        cancelPendingAutoLogin(
-                                                            t(
-                                                                'view.auth.auto_login.skipped_form_changed'
-                                                            )
-                                                        );
-                                                        setLoginForm(
-                                                            (current) => ({
-                                                                ...current,
-                                                                password:
-                                                                    event.target
-                                                                        .value
-                                                            })
-                                                        );
-                                                        if (
-                                                            loginErrors.password
-                                                        ) {
-                                                            setLoginErrors(
-                                                                (current) => ({
-                                                                    ...current,
-                                                                    password: ''
-                                                                })
-                                                            );
-                                                        }
-                                                    }}
-                                                />
-                                                <FieldError>
-                                                    {loginErrors.password}
-                                                </FieldError>
-                                            </Field>
-                                        </FieldGroup>
-
-                                        <div className="flex flex-wrap items-center justify-end gap-4">
-                                            <Field
-                                                orientation="horizontal"
-                                                className="w-auto"
-                                            >
-                                                <Checkbox
-                                                    id="react-login-save-credentials"
-                                                    checked={
-                                                        loginForm.saveCredentials
-                                                    }
-                                                    disabled={isAuthBusy}
-                                                    onCheckedChange={(
-                                                        checked
-                                                    ) => {
-                                                        cancelPendingAutoLogin(
-                                                            t(
-                                                                'view.auth.auto_login.skipped_form_changed'
-                                                            )
-                                                        );
-                                                        setLoginForm(
-                                                            (current) => ({
-                                                                ...current,
-                                                                saveCredentials:
-                                                                    checked ===
-                                                                    true
-                                                            })
-                                                        );
-                                                    }}
-                                                />
-                                                <FieldLabel htmlFor="react-login-save-credentials">
-                                                    {t(
-                                                        'view.login.field.saveCredentials'
-                                                    )}
-                                                </FieldLabel>
-                                            </Field>
-                                        </div>
-
-                                        <Button
-                                            type="submit"
-                                            size="lg"
-                                            className="mt-auto w-full"
-                                            disabled={isAuthBusy}
-                                        >
-                                            {isSubmitting ? (
-                                                <>
-                                                    <Spinner data-icon="inline-start" />
-                                                    {t('view.login.signingIn')}
-                                                </>
-                                            ) : (
-                                                t('view.login.login')
-                                            )}
-                                        </Button>
-                                    </form>
-                                    <Button
-                                        type="button"
-                                        variant="secondary"
-                                        size="lg"
-                                        className="w-full"
-                                        onClick={() =>
-                                            void openExternalLink(
-                                                'https://vrchat.com/register'
-                                            )
-                                        }
-                                    >
-                                        {t('view.login.register')}
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        variant="link"
-                                        className="text-muted-foreground h-auto p-0 text-xs"
-                                        onClick={() =>
-                                            void openExternalLink(
-                                                'https://vrchat.com/home/password'
-                                            )
-                                        }
-                                    >
-                                        {t('view.login.forgotPassword')}
-                                    </Button>
-                                </CardContent>
-                            </Card>
+                            <LoginAutoLoginAlert
+                                visible={shouldShowAutoLogin}
+                                variant={autoLoginAlertVariant}
+                                target={autoLoginTarget}
+                                state={autoLoginState}
+                                onCancel={() =>
+                                    cancelPendingAutoLogin(
+                                        t(
+                                            'view.auth.auto_login.skipped_countdown_finished'
+                                        )
+                                    )
+                                }
+                                onRetry={retryAutoLogin}
+                            />
+                            <LoginFormCard
+                                busy={isAuthBusy}
+                                submitting={isSubmitting}
+                                loginForm={loginForm}
+                                loginErrors={loginErrors}
+                                setLoginForm={setLoginForm}
+                                setLoginErrors={setLoginErrors}
+                                onSubmit={handleManualLoginSubmit}
+                                onCancelAutoLogin={cancelPendingAutoLogin}
+                                onOpenRegister={() =>
+                                    void openExternalLink(
+                                        'https://vrchat.com/register'
+                                    )
+                                }
+                                onOpenForgotPassword={() =>
+                                    void openExternalLink(
+                                        'https://vrchat.com/home/password'
+                                    )
+                                }
+                            />
                         </div>
-
-                        {hasSavedAccounts ? (
-                            <>
-                                <div className="bg-border hidden w-px md:block" />
-                                <Card className="flex h-full min-h-0 flex-col">
-                                    <CardHeader>
-                                        <CardTitle className="text-center">
-                                            {t('view.login.savedAccounts')}
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="min-h-0 flex-1 overflow-y-auto">
-                                        <div className="flex flex-col gap-2">
-                                            {savedAccounts.map((entry) => {
-                                                const hasStoredCredentials =
-                                                    Boolean(
-                                                        entry.loginParams
-                                                            ?.username &&
-                                                        entry.loginParams
-                                                            ?.password
-                                                    );
-                                                const isRelogging =
-                                                    activeSavedUserId ===
-                                                    entry.user.id;
-                                                const avatarUrl = userImage(
-                                                    entry.user,
-                                                    true,
-                                                    '64'
-                                                );
-
-                                                return (
-                                                    <div
-                                                        key={entry.user.id}
-                                                        className="flex items-center gap-2"
-                                                    >
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            className="h-auto min-w-0 flex-1 justify-start gap-3 p-2 text-left font-normal"
-                                                            disabled={
-                                                                !hasStoredCredentials ||
-                                                                isAuthBusy
-                                                            }
-                                                            onClick={() =>
-                                                                void handleSavedCredentialLogin(
-                                                                    entry
-                                                                )
-                                                            }
-                                                        >
-                                                            <Avatar size="lg">
-                                                                {avatarUrl ? (
-                                                                    <AvatarImage
-                                                                        src={
-                                                                            avatarUrl
-                                                                        }
-                                                                        alt=""
-                                                                    />
-                                                                ) : null}
-                                                                <AvatarFallback>
-                                                                    {getSavedAccountFallback(
-                                                                        entry.user
-                                                                    )}
-                                                                </AvatarFallback>
-                                                            </Avatar>
-                                                            <div className="min-w-0 flex-1">
-                                                                <div className="truncate text-sm font-medium">
-                                                                    {getUserDisplayName(
-                                                                        entry.user
-                                                                    )}
-                                                                </div>
-                                                                <div className="text-muted-foreground truncate text-xs">
-                                                                    {entry.user
-                                                                        .username ||
-                                                                        entry
-                                                                            .user
-                                                                            .id}
-                                                                </div>
-                                                                {entry
-                                                                    .loginParams
-                                                                    .endpoint ? (
-                                                                    <div className="text-muted-foreground truncate text-xs">
-                                                                        {
-                                                                            entry
-                                                                                .loginParams
-                                                                                .endpoint
-                                                                        }
-                                                                    </div>
-                                                                ) : null}
-                                                            </div>
-                                                            {isRelogging ? (
-                                                                <Spinner
-                                                                    data-icon="inline-end"
-                                                                    className="text-muted-foreground shrink-0"
-                                                                />
-                                                            ) : null}
-                                                        </Button>
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="icon-sm"
-                                                            aria-label={`Remove saved account for ${getUserDisplayName(entry.user)}`}
-                                                            disabled={
-                                                                isDeleting ||
-                                                                isAuthBusy
-                                                            }
-                                                            onClick={(
-                                                                event
-                                                            ) => {
-                                                                event.stopPropagation();
-                                                                cancelPendingAutoLogin(
-                                                                    t(
-                                                                        'view.auth.auto_login.skipped_saved_account_edited'
-                                                                    )
-                                                                );
-                                                                setDeleteTarget(
-                                                                    entry
-                                                                );
-                                                            }}
-                                                        >
-                                                            <Trash2Icon data-icon="inline-start" />
-                                                        </Button>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </>
-                        ) : null}
+                        <SavedAccountsCard
+                            visible={hasSavedAccounts}
+                            accounts={savedAccounts}
+                            activeSavedUserId={activeSavedUserId}
+                            isDeleting={isDeleting}
+                            isAuthBusy={isAuthBusy}
+                            onLogin={handleSavedCredentialLogin}
+                            onDeleteStart={setDeleteTarget}
+                            onCancelAutoLogin={cancelPendingAutoLogin}
+                        />
                     </div>
                 </div>
             </div>
-            <div className="text-muted-foreground/65 mt-4 grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-x-2 gap-y-1 text-center text-[0.7rem]">
-                <div className="flex justify-end">
-                    <Button
-                        type="button"
-                        variant="link"
-                        className="text-muted-foreground/75 h-auto p-0 text-[0.7rem]"
-                        onClick={() =>
-                            void openExternalLink(
-                                'https://github.com/Map1en/VRCX-0'
-                            )
-                        }
-                    >
-                        {t('view.login.footer.github')}
-                    </Button>
-                </div>
-                <span aria-hidden="true">|</span>
-                <div className="flex justify-start">
-                    <Button
-                        type="button"
-                        variant="link"
-                        className="text-muted-foreground/75 h-auto p-0 text-[0.7rem]"
-                        onClick={() =>
-                            void openExternalLink('https://discord.gg/bnEVqwSp')
-                        }
-                    >
-                        {t('view.login.footer.discord')}
-                    </Button>
-                </div>
-                <span className="justify-self-end">
-                    {t('view.login.footer.builtForPlayers')}
-                </span>
-                <span aria-hidden="true">|</span>
-                <span className="justify-self-start">
-                    {t('view.login.footer.deviceStorage')}
-                </span>
-            </div>
-
-            <Dialog
-                open={isProxyDialogOpen}
-                onOpenChange={setIsProxyDialogOpen}
-            >
-                <DialogContent className="sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>
-                            {t('view.login.proxy_settings')}
-                        </DialogTitle>
-                        <DialogDescription>
-                            {t('view.login.proxy_description')}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <form
-                        className="flex flex-col gap-4"
-                        onSubmit={saveProxySettings}
-                    >
-                        <FieldGroup>
-                            <Field>
-                                <FieldLabel htmlFor="react-login-proxy">
-                                    <NetworkIcon className="size-4" />
-                                    {t('status_bar.proxy')}
-                                </FieldLabel>
-                                <Input
-                                    id="react-login-proxy"
-                                    disabled={isSavingProxySettings}
-                                    placeholder="127.0.0.1:7890"
-                                    value={proxyInput}
-                                    onChange={(event) =>
-                                        setProxyInput(event.target.value)
-                                    }
-                                />
-                            </Field>
-                            <Field orientation="horizontal" className="w-auto">
-                                <Checkbox
-                                    id="react-login-dev-endpoint"
-                                    checked={loginForm.enableCustomEndpoint}
-                                    disabled={
-                                        isSavingProxySettings ||
-                                        isUpdatingEndpointSetting ||
-                                        isAuthBusy
-                                    }
-                                    onCheckedChange={(checked) =>
-                                        void handleCustomEndpointToggle(checked)
-                                    }
-                                />
-                                <FieldLabel htmlFor="react-login-dev-endpoint">
-                                    {t('view.login.field.devEndpoint')}
-                                </FieldLabel>
-                            </Field>
-                            {loginForm.enableCustomEndpoint ? (
-                                <FieldGroup className="grid gap-4 md:grid-cols-2">
-                                    <Field>
-                                        <FieldLabel htmlFor="react-login-endpoint">
-                                            {t('view.login.field.endpoint')}
-                                        </FieldLabel>
-                                        <Input
-                                            id="react-login-endpoint"
-                                            disabled={
-                                                isSavingProxySettings ||
-                                                isAuthBusy
-                                            }
-                                            placeholder={
-                                                DEFAULT_ENDPOINT_DOMAIN
-                                            }
-                                            value={loginForm.endpoint}
-                                            onChange={(event) => {
-                                                cancelPendingAutoLogin(
-                                                    t(
-                                                        'view.auth.auto_login.skipped_form_changed'
-                                                    )
-                                                );
-                                                setLoginForm((current) => ({
-                                                    ...current,
-                                                    endpoint: event.target.value
-                                                }));
-                                            }}
-                                        />
-                                    </Field>
-                                    <Field>
-                                        <FieldLabel htmlFor="react-login-websocket">
-                                            {t('view.login.field.websocket')}
-                                        </FieldLabel>
-                                        <Input
-                                            id="react-login-websocket"
-                                            disabled={
-                                                isSavingProxySettings ||
-                                                isAuthBusy
-                                            }
-                                            placeholder={
-                                                DEFAULT_WEBSOCKET_DOMAIN
-                                            }
-                                            value={loginForm.websocket}
-                                            onChange={(event) => {
-                                                cancelPendingAutoLogin(
-                                                    t(
-                                                        'view.auth.auto_login.skipped_form_changed'
-                                                    )
-                                                );
-                                                setLoginForm((current) => ({
-                                                    ...current,
-                                                    websocket:
-                                                        event.target.value
-                                                }));
-                                            }}
-                                        />
-                                    </Field>
-                                </FieldGroup>
-                            ) : null}
-                        </FieldGroup>
-                        <DialogFooter>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                disabled={isSavingProxySettings}
-                                onClick={() => setIsProxyDialogOpen(false)}
-                            >
-                                {t('prompt.proxy_settings.close')}
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={isSavingProxySettings}
-                            >
-                                {isSavingProxySettings ? (
-                                    <>
-                                        <Spinner data-icon="inline-start" />
-                                        {t('common.actions.save')}
-                                    </>
-                                ) : (
-                                    t('common.actions.save')
-                                )}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-
-            <AlertDialog
-                open={Boolean(deleteTarget)}
-                onOpenChange={(open) => !open && setDeleteTarget(null)}
-            >
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>
-                            {t('view.login.saved_account_remove.title')}
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {t('view.login.saved_account_remove.description', {
-                                name: deleteTargetName
-                            })}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel disabled={isDeleting}>
-                            {t('confirm.cancel_button')}
-                        </AlertDialogCancel>
-                        <AlertDialogAction
-                            disabled={isDeleting}
-                            onClick={() => void handleDeleteSavedAccount()}
-                        >
-                            {isDeleting
-                                ? t('view.login.saved_account_remove.removing')
-                                : t('view.login.saved_account_remove.confirm')}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <LoginPageFooter
+                onOpenGithub={() =>
+                    void openExternalLink('https://github.com/Map1en/VRCX-0')
+                }
+                onOpenDiscord={() =>
+                    void openExternalLink('https://discord.gg/bnEVqwSp')
+                }
+            />
+            <LoginProxySettingsDialog
+                state={{
+                    open: isProxyDialogOpen,
+                    setOpen: setIsProxyDialogOpen,
+                    proxyInput,
+                    setProxyInput
+                }}
+                loginForm={loginForm}
+                setLoginForm={setLoginForm}
+                flags={{
+                    isSavingProxySettings,
+                    isUpdatingEndpointSetting,
+                    isAuthBusy
+                }}
+                onSubmit={saveProxySettings}
+                onCustomEndpointToggle={handleCustomEndpointToggle}
+                onCancelAutoLogin={cancelPendingAutoLogin}
+            />
+            <DeleteSavedAccountDialog
+                deleteTarget={deleteTarget}
+                isDeleting={isDeleting}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setDeleteTarget(null);
+                    }
+                }}
+                onConfirm={handleDeleteSavedAccount}
+            />
         </div>
     );
 }
