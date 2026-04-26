@@ -2,16 +2,27 @@ import { createElement, StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import '@/styles/globals.css';
-import '@/lib/dayjs.js';
-import '@/services/i18nService.js';
-import { App } from './app/App.jsx';
+import { installErrorLogging } from '@/services/errorLogService.js';
 
-const rootElement = document.getElementById('root');
+installErrorLogging();
 
-if (!rootElement) {
-    throw new Error('Missing #root mount node');
+async function bootstrap() {
+    await import('@/lib/dayjs.js');
+    await import('@/services/i18nService.js');
+
+    const { App } = await import('./app/App.jsx');
+
+    const rootElement = document.getElementById('root');
+
+    if (!rootElement) {
+        throw new Error('Missing #root mount node');
+    }
+
+    createRoot(rootElement).render(
+        createElement(StrictMode, null, createElement(App))
+    );
 }
 
-createRoot(rootElement).render(
-    createElement(StrictMode, null, createElement(App))
-);
+void bootstrap().catch((error) => {
+    console.error(error);
+});

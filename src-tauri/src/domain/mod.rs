@@ -1,6 +1,7 @@
 pub mod auto_launch;
 pub mod database;
 pub mod discord_rpc;
+pub mod error_log;
 pub mod image_cache;
 pub mod ipc;
 pub mod legacy_vrcx;

@@ -14,6 +14,10 @@ use tauri::Manager;
 use tauri::WindowEvent;
 #[cfg(target_os = "windows")]
 use tauri_plugin_autostart::ManagerExt as _;
+use tracing_subscriber::filter::LevelFilter;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::Layer;
 
 use api::app::host_capabilities::{
     current_host_capabilities, is_host_capability_available, HostCapability,
@@ -43,6 +47,41 @@ fn db_config_bool(state: &AppState, key: &str) -> Option<bool> {
         .and_then(|rows| rows.into_iter().next())
         .and_then(|row| row.into_iter().next())
         .and_then(|value| value.as_str().map(|s| s == "true"))
+}
+
+fn init_error_logging() {
+    let Some(app_data) = crate::domain::error_log::default_app_data_dir() else {
+        return;
+    };
+
+    let default_panic_hook = std::panic::take_hook();
+    let panic_app_data = app_data.clone();
+    std::panic::set_hook(Box::new(move |panic_info| {
+        crate::domain::error_log::append_error_log(
+            &panic_app_data,
+            "rust:panic",
+            &panic_info.to_string(),
+        );
+        default_panic_hook(panic_info);
+    }));
+
+    let tracing_app_data = app_data;
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::fmt::layer().with_filter(
+                tracing_subscriber::EnvFilter::try_from_default_env()
+                    .unwrap_or_else(|_| "vrcx_0=info".into()),
+            ),
+        )
+        .with(
+            tracing_subscriber::fmt::layer()
+                .with_ansi(false)
+                .with_writer(move || {
+                    crate::domain::error_log::ErrorLogWriter::new(tracing_app_data.clone())
+                })
+                .with_filter(LevelFilter::ERROR),
+        )
+        .init();
 }
 
 fn screenshot_protocol_response(request: Request<Vec<u8>>) -> Response<Cow<'static, [u8]>> {
@@ -83,12 +122,7 @@ fn screenshot_protocol_response(request: Request<Vec<u8>>) -> Response<Cow<'stat
 }
 
 pub fn run() {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "vrcx_0=info".into()),
-        )
-        .init();
+    init_error_logging();
 
     #[cfg(target_os = "linux")]
     {
@@ -286,6 +320,7 @@ pub fn run() {
             api::web::web__get_cookies,
             api::web::web__set_cookies,
             api::web::web__execute,
+            api::app::error_log::app__append_error_log,
             api::asset_bundle::asset_bundle__get_vrchat_cache_full_location,
             api::asset_bundle::asset_bundle__check_vrchat_cache,
             api::asset_bundle::asset_bundle__delete_cache,

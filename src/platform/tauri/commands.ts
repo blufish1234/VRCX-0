@@ -1,3 +1,4 @@
+import { recordErrorLog } from '../../services/errorLogService.js';
 import { PlatformUnavailableError, normalizePlatformError } from './errors.js';
 
 type InvokeArgs = Record<string, unknown> | number[] | ArrayBuffer | Uint8Array;
@@ -53,6 +54,7 @@ const commandArgs: Record<string, string[]> = {
     app__read_config_file: [],
     app__read_config_file_safe: [],
     app__write_config_file: ['json'],
+    app__append_error_log: ['entry'],
     app__get_ugc_photo_location: ['path'],
     app__open_ugc_photos_folder: ['ugcPath'],
     app__open_folder_and_select_item: ['path', 'isFolder'],
@@ -234,10 +236,19 @@ export async function callBackendCommand<TReturn = unknown>(
             toNamedArgs(commandName, args)
         );
     } catch (error) {
-        throw normalizePlatformError(
+        const normalizedError = normalizePlatformError(
             error,
             `Backend command failed: ${commandName}`
         );
+
+        if (commandName !== 'app__append_error_log') {
+            void recordErrorLog('rust:command', [
+                `command: ${commandName}`,
+                normalizedError
+            ]);
+        }
+
+        throw normalizedError;
     }
 }
 
