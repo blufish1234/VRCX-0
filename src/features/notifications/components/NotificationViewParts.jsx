@@ -310,7 +310,7 @@ export function BoopReplyDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="flex max-h-[90vh] max-w-[min(92vw,46rem)] flex-col">
+            <DialogContent className="flex max-h-[90vh] sm:max-w-[min(92vw,46rem)] flex-col">
                 <DialogHeader>
                     <DialogTitle>
                         {t('view.notification.generated.send_boop')}

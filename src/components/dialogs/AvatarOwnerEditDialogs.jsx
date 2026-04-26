@@ -336,7 +336,7 @@ export function AvatarContentTagsDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-[min(92vw,49rem)]">
+            <DialogContent className="sm:max-w-[min(92vw,49rem)]">
                 <DialogHeader>
                     <DialogTitle>
                         {t('dialog.avatar.actions.change_content_tags')}

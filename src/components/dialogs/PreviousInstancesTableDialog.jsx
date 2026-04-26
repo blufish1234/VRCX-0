@@ -205,7 +205,7 @@ function PreviousInstancesTableDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="flex max-h-[90vh] max-w-[min(92vw,72rem)] flex-col overflow-hidden">
+            <DialogContent className="flex max-h-[90vh] sm:max-w-[min(92vw,72rem)] flex-col overflow-hidden">
                 <DialogHeader>
                     <DialogTitle>{dialogTitle}</DialogTitle>
                     <DialogDescription>{dialogDescription}</DialogDescription>

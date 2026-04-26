@@ -164,7 +164,7 @@ export function FavoriteImportHost() {
             open={open}
             onOpenChange={(nextOpen) => !nextOpen && closeDialog()}
         >
-            <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+            <DialogContent className="max-h-[90vh] sm:max-w-4xl overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{label} {t('dialog.favorite_import.generated.import')}</DialogTitle>
                     <DialogDescription>

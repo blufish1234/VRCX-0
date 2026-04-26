@@ -9,7 +9,7 @@ import {
 export function GalleryPreviewDialog({ t, preview, onClose }) {
     return (
         <Dialog open={Boolean(preview)} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="max-w-5xl">
+            <DialogContent className="sm:max-w-5xl">
                 <DialogHeader>
                     <DialogTitle>
                         {preview?.title ||

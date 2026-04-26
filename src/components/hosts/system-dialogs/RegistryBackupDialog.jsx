@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { useTranslation } from 'react-i18next';
+import { formatDateFilter } from '@/lib/dateTime.js';
 import { userFacingErrorMessage } from '@/lib/errorDisplay.js';
 import { configRepository } from '@/repositories/index.js';
 import {
@@ -17,7 +18,6 @@ import { Button } from '@/ui/shadcn/button';
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle
@@ -33,13 +33,16 @@ import {
 } from '@/ui/shadcn/select';
 import { Switch } from '@/ui/shadcn/switch';
 
-function formatBackupLabel(backup) {
-    const date = backup.date ? new Date(backup.date) : null;
-    const dateLabel =
-        date && !Number.isNaN(date.getTime())
-            ? date.toLocaleString()
-            : 'Unknown date';
-    return `${backup.name || 'Backup'} - ${dateLabel}`;
+function formatBackupLabel(backup, t) {
+    const dateLabel = backup.date
+        ? formatDateFilter(backup.date, 'long')
+        : t('common.no_data');
+    return `${backup.name || t('dialog.registry_backup.backup')} - ${dateLabel}`;
+}
+
+function registryRestoreError(error, t) {
+    const message = userFacingErrorMessage(error, '');
+    return t('message.registry.restore_failed', { error: message });
 }
 
 export function RegistryBackupDialog({ open, onOpenChange }) {
@@ -80,17 +83,14 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
                     : nextBackups[0]?.key || ''
             );
             if (nextBackups.length === 0) {
-                setDetail('No VRChat registry backups are saved.');
+                setDetail(t('common.no_data'));
             }
         } catch (error) {
             if (requestId !== refreshRequestRef.current) {
                 return;
             }
             setDetail(
-                userFacingErrorMessage(
-                    error,
-                    'Failed to load VRChat registry backups.'
-                )
+                registryRestoreError(error, t)
             );
         } finally {
             if (requestId === refreshRequestRef.current) {
@@ -107,10 +107,7 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
         } catch (error) {
             setAutoBackup(!nextValue);
             setDetail(
-                userFacingErrorMessage(
-                    error,
-                    'Failed to update VRChat registry backup settings.'
-                )
+                registryRestoreError(error, t)
             );
         }
     }
@@ -123,10 +120,7 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
         } catch (error) {
             setAskRestore(!nextValue);
             setDetail(
-                userFacingErrorMessage(
-                    error,
-                    'Failed to update VRChat registry backup settings.'
-                )
+                registryRestoreError(error, t)
             );
         }
     }
@@ -155,19 +149,14 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
             return;
         }
         setLoading(true);
-        setDetail('Creating VRChat registry backup.');
+        setDetail(t('dialog.registry_backup.backup'));
         try {
             const nextBackups = await backupVrcRegistry(backupName);
             setBackups(nextBackups);
             setSelectedKey(nextBackups[nextBackups.length - 1]?.key || '');
-            setDetail('Registry backup saved.');
+            setDetail(t('common.actions.save'));
         } catch (error) {
-            setDetail(
-                userFacingErrorMessage(
-                    error,
-                    'Failed to create VRChat registry backup.'
-                )
-            );
+            setDetail(registryRestoreError(error, t));
         } finally {
             setLoading(false);
         }
@@ -180,20 +169,13 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
 
         setLoading(true);
         setDetail(
-            t('host.system_dialogs.generated_dynamic.restoring_value', {
-                value: selectedBackup.name
-            })
+            `${t('dialog.registry_backup.restore')}: ${selectedBackup.name}`
         );
         try {
             await restoreVrcRegistryBackup(selectedBackup.key);
-            setDetail('Registry backup restored.');
+            setDetail(t('message.registry.restored'));
         } catch (error) {
-            setDetail(
-                userFacingErrorMessage(
-                    error,
-                    'Failed to restore VRChat registry backup.'
-                )
-            );
+            setDetail(registryRestoreError(error, t));
         } finally {
             setLoading(false);
         }
@@ -206,9 +188,7 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
 
         setLoading(true);
         setDetail(
-            t('host.system_dialogs.generated_dynamic.deleting_value', {
-                value: selectedBackup.name
-            })
+            `${t('dialog.registry_backup.delete')}: ${selectedBackup.name}`
         );
         try {
             const nextBackups = await deleteVrcRegistryBackup(
@@ -216,14 +196,9 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
             );
             setBackups(nextBackups);
             setSelectedKey(nextBackups[0]?.key || '');
-            setDetail('Registry backup deleted.');
+            setDetail(t('dialog.registry_backup.delete'));
         } catch (error) {
-            setDetail(
-                userFacingErrorMessage(
-                    error,
-                    'Failed to delete VRChat registry backup.'
-                )
-            );
+            setDetail(registryRestoreError(error, t));
         } finally {
             setLoading(false);
         }
@@ -236,9 +211,7 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
 
         setLoading(true);
         setDetail(
-            t('host.system_dialogs.generated_dynamic.saving_value', {
-                value: selectedBackup.name
-            })
+            `${t('dialog.registry_backup.save_to_file')}: ${selectedBackup.name}`
         );
         try {
             const filePath = await saveVrcRegistryBackupToFile(
@@ -246,16 +219,11 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
             );
             setDetail(
                 filePath
-                    ? `Registry backup saved to ${filePath}.`
-                    : 'Save cancelled.'
+                    ? `${t('dialog.registry_backup.save_to_file')}: ${filePath}`
+                    : t('common.actions.cancel')
             );
         } catch (error) {
-            setDetail(
-                userFacingErrorMessage(
-                    error,
-                    'Failed to save VRChat registry backup.'
-                )
-            );
+            setDetail(registryRestoreError(error, t));
         } finally {
             setLoading(false);
         }
@@ -263,21 +231,16 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
 
     async function handleRestoreFromFile() {
         setLoading(true);
-        setDetail('Restoring registry backup from file.');
+        setDetail(t('dialog.registry_backup.restore_from_file'));
         try {
             const restored = await restoreVrcRegistryBackupFromFile();
             setDetail(
                 restored
-                    ? 'Registry backup restored from file.'
-                    : 'Restore cancelled.'
+                    ? t('message.registry.restored')
+                    : t('common.actions.cancel')
             );
         } catch (error) {
-            setDetail(
-                userFacingErrorMessage(
-                    error,
-                    'Failed to restore VRChat registry backup.'
-                )
-            );
+            setDetail(registryRestoreError(error, t));
         } finally {
             setLoading(false);
         }
@@ -285,12 +248,8 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
 
     async function handleDeleteRegistryFolder() {
         const result = await confirm({
-            title: t(
-                'host.system_dialogs.generated_modal.delete_vrchat_registry'
-            ),
-            description: t(
-                'host.system_dialogs.generated_modal.delete_the_vrchat_registry_folder_this_matches_t'
-            ),
+            title: t('confirm.title'),
+            description: t('confirm.delete_vrc_registry'),
             confirmText: t('common.actions.delete'),
             cancelText: t('common.actions.cancel'),
             destructive: true
@@ -300,17 +259,12 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
         }
 
         setLoading(true);
-        setDetail('Deleting VRChat registry folder.');
+        setDetail(t('dialog.registry_backup.reset'));
         try {
             await deleteVrcRegistryFolder();
-            setDetail('VRChat registry folder deleted.');
+            setDetail(t('message.registry.deleted'));
         } catch (error) {
-            setDetail(
-                userFacingErrorMessage(
-                    error,
-                    'Failed to delete VRChat registry folder.'
-                )
-            );
+            setDetail(registryRestoreError(error, t));
         } finally {
             setLoading(false);
         }
@@ -318,27 +272,16 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
+            <DialogContent className="sm:max-w-3xl">
                 <DialogHeader>
-                    <DialogTitle>
-                        {t(
-                            'dialog.system.generated.vrchat_registry_backup'
-                        )}
-                    </DialogTitle>
-                    <DialogDescription>
-                        {t(
-                            'dialog.system.generated.create_restore_or_remove_saved_vrchat_registry_backups'
-                        )}
-                    </DialogDescription>
+                    <DialogTitle>{t('dialog.registry_backup.header')}</DialogTitle>
                 </DialogHeader>
                 <FieldGroup>
                     <FieldGroup className="gap-3 rounded-md border p-3">
                         <Field orientation="horizontal" data-disabled={loading}>
                             <FieldContent>
                                 <FieldLabel htmlFor="registry-auto-backup">
-                                    {t(
-                                        'dialog.system.generated.auto_backup'
-                                    )}
+                                    {t('dialog.registry_backup.auto_backup')}
                                 </FieldLabel>
                             </FieldContent>
                             <Switch
@@ -353,9 +296,7 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
                         <Field orientation="horizontal" data-disabled={loading}>
                             <FieldContent>
                                 <FieldLabel htmlFor="registry-ask-restore">
-                                    {t(
-                                        'dialog.system.generated.ask_to_restore'
-                                    )}
+                                    {t('dialog.registry_backup.ask_to_restore')}
                                 </FieldLabel>
                             </FieldContent>
                             <Switch
@@ -377,8 +318,8 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
                             <SelectValue
                                 placeholder={
                                     loading
-                                        ? 'Loading backups'
-                                        : 'Select backup'
+                                        ? t('common.loading')
+                                        : t('common.actions.select')
                                 }
                             />
                         </SelectTrigger>
@@ -389,7 +330,7 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
                                         key={backup.key}
                                         value={backup.key}
                                     >
-                                        {formatBackupLabel(backup)}
+                                        {formatBackupLabel(backup, t)}
                                     </SelectItem>
                                 ))}
                             </SelectGroup>
@@ -398,12 +339,17 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
                     {selectedBackup ? (
                         <div className="bg-muted/30 rounded-md border p-3 text-sm">
                             <div>
-                                {t('dialog.system.generated.name')}{' '}
+                                {t('dialog.registry_backup.name')}{' '}
                                 {selectedBackup.name}
                             </div>
                             <div>
-                                {t('dialog.system.generated.date')}{' '}
-                                {selectedBackup.date || 'Unknown'}
+                                {t('dialog.registry_backup.date')}{' '}
+                                {selectedBackup.date
+                                    ? formatDateFilter(
+                                          selectedBackup.date,
+                                          'long'
+                                      )
+                                    : t('common.no_data')}
                             </div>
                         </div>
                     ) : null}
@@ -411,12 +357,14 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
                         <div className="text-muted-foreground text-sm">
                             {userFacingErrorMessage(
                                 detail,
-                                'Failed to update VRChat registry backups.'
+                                t('message.registry.restore_failed', {
+                                    error: ''
+                                })
                             )}
                         </div>
                     ) : null}
                 </FieldGroup>
-                <DialogFooter>
+                <DialogFooter className="sm:flex-wrap">
                     <Button
                         type="button"
                         variant="outline"
@@ -431,7 +379,7 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
                         disabled={loading}
                         onClick={() => void handleCreateBackup()}
                     >
-                        {t('dialog.system.generated.create_backup')}
+                        {t('dialog.registry_backup.backup')}
                     </Button>
                     <Button
                         type="button"
@@ -439,7 +387,7 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
                         disabled={loading || !selectedBackup}
                         onClick={() => void handleDeleteBackup()}
                     >
-                        {t('common.actions.delete')}
+                        {t('dialog.registry_backup.delete')}
                     </Button>
                     <Button
                         type="button"
@@ -447,7 +395,7 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
                         disabled={loading || !selectedBackup}
                         onClick={() => void handleSaveBackupToFile()}
                     >
-                        {t('dialog.system.generated.save_to_file')}
+                        {t('dialog.registry_backup.save_to_file')}
                     </Button>
                     <Button
                         type="button"
@@ -455,7 +403,7 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
                         disabled={loading}
                         onClick={() => void handleRestoreFromFile()}
                     >
-                        {t('dialog.system.generated.restore_from_file')}
+                        {t('dialog.registry_backup.restore_from_file')}
                     </Button>
                     <Button
                         type="button"
@@ -463,7 +411,7 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
                         disabled={loading}
                         onClick={() => void handleDeleteRegistryFolder()}
                     >
-                        {t('common.actions.reset')}
+                        {t('dialog.registry_backup.reset')}
                     </Button>
                     <Button
                         type="button"

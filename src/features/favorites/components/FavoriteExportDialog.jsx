@@ -95,7 +95,7 @@ function FavoriteExportDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+            <DialogContent className="max-h-[90vh] sm:max-w-3xl overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{t('view.favorite.generated.export_favorite')} {kind}{t('common.time_units.s')}</DialogTitle>
                     <DialogDescription>

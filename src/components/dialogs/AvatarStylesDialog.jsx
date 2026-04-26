@@ -176,7 +176,7 @@ export function AvatarStylesDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-[min(92vw,25rem)]">
+            <DialogContent className="sm:max-w-[min(92vw,25rem)]">
                 <DialogHeader>
                     <DialogTitle>
                         {t('dialog.avatar.actions.change_styles_author_tags')}

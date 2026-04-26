@@ -28,6 +28,7 @@ import { Textarea } from '@/ui/shadcn/textarea';
 import {
     dialogDescription,
     dialogTitle,
+    getInviteCooldownLabel,
     isInviteMessageOnCooldown,
     normalizeInviteMessageRows,
     primaryActionLabel,

@@ -57,7 +57,7 @@ function InviteMessageDialog({
                 }
             }}
         >
-            <DialogContent className="flex max-h-[90vh] max-w-[min(92vw,56rem)] flex-col">
+            <DialogContent className="flex max-h-[90vh] sm:max-w-[min(92vw,56rem)] flex-col">
                 <DialogHeader>
                     <DialogTitle>
                         {title ||
@@ -114,7 +114,7 @@ function InviteMessageTemplatesDialog({
 
     return (
         <Dialog open={Boolean(open)} onOpenChange={onOpenChange}>
-            <DialogContent className="flex max-h-[90vh] max-w-[min(92vw,64rem)] flex-col">
+            <DialogContent className="flex max-h-[90vh] sm:max-w-[min(92vw,64rem)] flex-col">
                 <DialogHeader>
                     <DialogTitle>
                         {t('dialog.edit_invite_messages.header')}

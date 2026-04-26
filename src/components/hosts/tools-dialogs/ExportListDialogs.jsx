@@ -52,7 +52,7 @@ export function ExportDiscordNamesDialog({ open, onOpenChange }) {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
+            <DialogContent className="sm:max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>
                         {t('dialog.discord_names.header')}
@@ -117,7 +117,7 @@ export function ExportFriendsListDialog({ open, onOpenChange }) {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
+            <DialogContent className="sm:max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>
                         {t('dialog.export_friends_list.header')}
@@ -192,7 +192,7 @@ export function ExportAvatarsListDialog({ open, onOpenChange }) {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
+            <DialogContent className="sm:max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>
                         {t('dialog.export_own_avatars.header')}
