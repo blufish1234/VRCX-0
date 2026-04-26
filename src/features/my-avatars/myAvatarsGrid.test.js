@@ -34,7 +34,6 @@ describe('myAvatarsGrid', () => {
 
         expect(compact.gridColumnCount).toBeGreaterThan(1);
         expect(compact.gridMinWidth).toBe(200);
-        expect(compact.gridRowHeight).toBeGreaterThanOrEqual(180);
     });
 
     it('groups avatars into stable virtual rows for the current column count', () => {

@@ -43,18 +43,30 @@ jobs:
                 include:
                     - label: Linux AppImage
                       os: ubuntu-24.04
+                      rust_target: ''
                       build_command: npm run tauri:build -- --config src-tauri/tauri.linux.conf.json --bundles appimage
                       artifact_name: linux-appimage
                       artifact_path: src-tauri/target/release/bundle/appimage/*.AppImage
-                    - label: macOS DMG
-                      os: macos-latest
-                      build_command: npm run tauri:build -- --bundles dmg
-                      artifact_name: macos-dmg
-                      artifact_path: src-tauri/target/release/bundle/dmg/*.dmg
+                    - label: macOS DMG (Apple Silicon)
+                      os: macos-15
+                      rust_target: aarch64-apple-darwin
+                      build_command: npm run tauri:build -- --target aarch64-apple-darwin --bundles dmg
+                      artifact_name: macos-aarch64-dmg
+                      artifact_path: src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+                    - label: macOS DMG (Intel)
+                      os: macos-15-intel
+                      rust_target: x86_64-apple-darwin
+                      build_command: npm run tauri:build -- --target x86_64-apple-darwin --bundles dmg
+                      artifact_name: macos-x86_64-dmg
+                      artifact_path: src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
         steps:
             - uses: actions/checkout@v6
 
             - uses: dtolnay/rust-toolchain@stable
+
+            - name: Install Rust target
+              if: matrix.rust_target != ''
+              run: rustup target add "${{ matrix.rust_target }}"
 
             - uses: actions/setup-node@v6
               with:
