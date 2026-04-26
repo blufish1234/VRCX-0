@@ -251,7 +251,7 @@ function compareReleaseVersions(left, right) {
     );
 }
 
-module.exports = {
+export {
     compareReleaseVersions,
     createReleaseVersionMeta,
     formatReleaseDisplayVersion,

@@ -2,13 +2,19 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-
-const { createReleaseVersionMeta } = require('../src/shared/utils/releaseVersionCore.cjs');
+const { pathToFileURL } = require('node:url');
 
 const rootDir = path.join(__dirname, '..');
 const tauriConfigPath = path.join(rootDir, 'src-tauri', 'tauri.conf.json');
 const cargoTomlPath = path.join(rootDir, 'src-tauri', 'Cargo.toml');
 const cargoLockPath = path.join(rootDir, 'src-tauri', 'Cargo.lock');
+const releaseVersionCorePath = path.join(
+    rootDir,
+    'src',
+    'shared',
+    'utils',
+    'releaseVersionCore.mjs'
+);
 
 function readArg(argName, fallback = '') {
     const prefix = `--${argName}=`;
@@ -30,8 +36,11 @@ function readBaseVersion() {
     return String(tauriConfig.version || '').trim();
 }
 
-function buildReleaseMeta() {
+async function buildReleaseMeta() {
     const channel = readArg('channel', 'stable');
+    const { createReleaseVersionMeta } = await import(
+        pathToFileURL(releaseVersionCorePath).href
+    );
 
     return createReleaseVersionMeta({
         baseVersion: readBaseVersion(),
@@ -86,6 +95,12 @@ function writeOutputs(meta) {
     }
 }
 
-const meta = buildReleaseMeta();
-syncVersionToManifests(meta.build_version);
-writeOutputs(meta);
+buildReleaseMeta()
+    .then((meta) => {
+        syncVersionToManifests(meta.build_version);
+        writeOutputs(meta);
+    })
+    .catch((error) => {
+        console.error(error);
+        process.exitCode = 1;
+    });
