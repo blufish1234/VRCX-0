@@ -2150,6 +2150,10 @@
             },
             "info": {
                 "header": "Info",
+                "current_status": "Current Status",
+                "profile_details": "Profile Details",
+                "notes_memo": "Notes & Memo",
+                "activity_summary": "Activity Summary",
                 "launch_invite_tooltip": "Launch/Invite",
                 "self_invite_tooltip": "Invite Yourself",
                 "open_in_vrchat_tooltip": "Open in VRChat",
@@ -2171,6 +2175,9 @@
                 "unknown_avatar": "Unknown Avatar",
                 "represented_group": "Represented Group",
                 "bio": "Bio",
+                "translate_bio": "Translate Bio",
+                "show_original_bio": "Show Original",
+                "open_bio_link": "Open {link}",
                 "last_seen": "Last Seen",
                 "join_count": "Join Count",
                 "time_together": "Time Together",
@@ -2320,6 +2327,7 @@
                 "confirm": "Confirm"
             },
             "generated": {
+                "open_user_icon": "Open User Icon",
                 "loading_activity": "Loading activity...",
                 "please_choose_a_valid_social_status": "Please choose a valid social status",
                 "status_preset_already_exists": "Status preset already exists",

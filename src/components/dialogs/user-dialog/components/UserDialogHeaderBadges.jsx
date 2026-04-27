@@ -14,7 +14,6 @@ export function UserDialogHeaderBadges({
     profile,
     moderationState,
     friendNumber,
-    mutualFriendCount,
     platform,
     PlatformIcon,
     onOpenDiscordProfile,
@@ -60,11 +59,6 @@ export function UserDialogHeaderBadges({
                 <Badge variant="outline">
                     {t('dialog.user.generated.friend')}
                     {friendNumber}
-                </Badge>
-            ) : null}
-            {mutualFriendCount ? (
-                <Badge variant="outline">
-                    {mutualFriendCount} {t('dialog.user.tags.mutual_friends')}
                 </Badge>
             ) : null}
             {moderationState.block ? (

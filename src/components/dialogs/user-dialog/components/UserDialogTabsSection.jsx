@@ -21,7 +21,6 @@ export function UserDialogTabsSection({
     changeTab,
     changeWorldOrder,
     changeWorldSort,
-    copyUserText,
     currentAvatarDialogArgs,
     currentAvatarDisplayName,
     currentAvatarTarget,
@@ -55,6 +54,7 @@ export function UserDialogTabsSection({
     mutualSort,
     onEditMemo,
     onOpenCurrentAvatar,
+    onOpenInstanceHistory,
     onPreviousInstancesChange,
     onRefreshLocation,
     openAvatarDialog,
@@ -79,6 +79,7 @@ export function UserDialogTabsSection({
     setGroupSort,
     setMutualSort,
     setSearch,
+    tabCounts = {},
     tabs,
     t,
     userGroupSections,
@@ -92,8 +93,31 @@ export function UserDialogTabsSection({
     worldSort,
     groupActions
 }) {
+    const tabsWithCounts = tabs
+        .filter((tab) => !tab.hidden)
+        .map((tab) => {
+            const count = Number(tabCounts[tab.value] ?? 0);
+            return count > 0
+                ? {
+                      ...tab,
+                      label: (
+                          <span className="inline-flex items-baseline gap-1.5">
+                              <span>{tab.label}</span>
+                              <span className="text-muted-foreground text-[11px] leading-none font-medium tabular-nums">
+                                  {count}
+                              </span>
+                          </span>
+                      )
+                  }
+                : tab;
+        });
+
     return (
-        <EntityDialogTabs value={activeTab} onValueChange={changeTab} tabs={tabs}>
+        <EntityDialogTabs
+            value={activeTab}
+            onValueChange={changeTab}
+            tabs={tabsWithCounts}
+        >
             <UserDialogInfoTab
                 presence={{
                     visiblePresenceLocation,
@@ -109,9 +133,9 @@ export function UserDialogTabsSection({
                 }}
                 presenceActions={{
                     onRefreshLocation,
-                    onShowInstanceHistory: () => changeTab('instance-history')
+                    onShowInstanceHistory: onOpenInstanceHistory
                 }}
-                changeTab={changeTab}
+                onOpenInstanceHistory={onOpenInstanceHistory}
                 profile={profile}
                 hideUserNotes={hideUserNotes}
                 onEditMemo={onEditMemo}
@@ -130,7 +154,6 @@ export function UserDialogTabsSection({
                 userTimeSpent={userTimeSpent}
                 userJoinCount={userJoinCount}
                 visibleHomeLocationTarget={visibleHomeLocationTarget}
-                copyUserText={copyUserText}
                 t={t}
             />
             <UserDialogMutualTab
@@ -226,8 +249,10 @@ export function UserDialogTabsSection({
             />
             <UserDialogInstanceHistoryTab
                 title={t('dialog.previous_instances.header')}
+                backLabel={t('dialog.user.info.header')}
                 previousInstances={previousInstances}
                 profile={profile}
+                onBack={!isCurrentUser ? () => changeTab('info') : null}
                 onPreviousInstancesChange={onPreviousInstancesChange}
             />
             <UserDialogActivityTab

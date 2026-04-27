@@ -61,6 +61,10 @@ function emptyDataPatchForTab(tab) {
     };
 }
 
+function visibleTabs(tabs) {
+    return tabs.filter((tab) => !tab.hidden);
+}
+
 export function useUserDialogTabData({
     profile,
     reloadToken,
@@ -146,7 +150,10 @@ export function useUserDialogTabData({
         setRemoteStatus(emptyUserDialogStatus);
         setRemoteErrors(emptyUserDialogStatus);
         setSearch(emptyUserDialogSearch);
-        const nextTab = resolveTabValue(viewData.tabs, lastUserDialogTab);
+        const nextTab = resolveTabValue(
+            visibleTabs(viewData.tabs),
+            lastUserDialogTab
+        );
         lastUserDialogTab = nextTab;
         setActiveTab(nextTab);
     }, [
@@ -240,9 +247,14 @@ export function useUserDialogTabData({
         }
     }
 
-    function changeTab(tab) {
-        lastUserDialogTab = resolveTabValue(viewData.tabs, tab);
-        setActiveTab(lastUserDialogTab);
+    function changeTab(tab, { allowHidden = false } = {}) {
+        const nextTab = allowHidden
+            ? tab
+            : resolveTabValue(visibleTabs(viewData.tabs), tab);
+        lastUserDialogTab = allowHidden
+            ? 'info'
+            : resolveTabValue(visibleTabs(viewData.tabs), tab);
+        setActiveTab(nextTab);
     }
 
     function changeWorldSort(value) {

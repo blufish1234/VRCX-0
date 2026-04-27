@@ -1,4 +1,4 @@
-import { UserIcon } from 'lucide-react';
+import { ChevronLeftIcon, UserIcon } from 'lucide-react';
 
 import { UserActivityPanel } from '@/components/dialogs/UserActivityPanel.jsx';
 import { Button } from '@/ui/shadcn/button';
@@ -349,8 +349,10 @@ export function UserDialogAvatarsTab({
 
 export function UserDialogInstanceHistoryTab({
     title,
+    backLabel = 'Info',
     previousInstances,
     profile,
+    onBack,
     onPreviousInstancesChange
 }) {
     return (
@@ -358,6 +360,19 @@ export function UserDialogInstanceHistoryTab({
             value="instance-history"
             className="flex min-h-0 flex-col"
         >
+            {onBack ? (
+                <div className="pb-2">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={onBack}
+                    >
+                        <ChevronLeftIcon data-icon="inline-start" />
+                        {backLabel}
+                    </Button>
+                </div>
+            ) : null}
             <PreviousInstancesPanel
                 title={title}
                 instances={previousInstances}

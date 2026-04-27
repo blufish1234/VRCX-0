@@ -4,6 +4,7 @@ import { AvatarDialogContent } from '@/components/dialogs/AvatarDialogContent.js
 import { GroupDialogContent } from '@/components/dialogs/GroupDialogContent.jsx';
 import { UserDialogContent } from '@/components/dialogs/UserDialogContent.jsx';
 import { WorldDialogContent } from '@/components/dialogs/WorldDialogContent.jsx';
+import { cn } from '@/lib/utils.js';
 import { useDialogStore } from '@/state/dialogStore.js';
 import {
     Breadcrumb,
@@ -59,7 +60,12 @@ export function DialogHost() {
         >
             <DialogContent
                 showCloseButton={false}
-                className="flex max-h-[90vh] w-[calc(100vw-2rem)] !max-w-[calc(100vw-2rem)] flex-col overflow-hidden sm:w-[65rem] sm:!max-w-[65rem]"
+                className={cn(
+                    'flex max-h-[90vh] w-[calc(100vw-2rem)] !max-w-[calc(100vw-2rem)] flex-col overflow-hidden',
+                    isUserDialog
+                        ? 'sm:w-[min(96vw,72rem)] sm:!max-w-[min(96vw,72rem)]'
+                        : 'sm:w-[65rem] sm:!max-w-[65rem]'
+                )}
             >
                 <DialogHeader className="sr-only">
                     <DialogTitle>

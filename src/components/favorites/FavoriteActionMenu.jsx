@@ -102,7 +102,8 @@ export function FavoriteActionMenu({
     kind,
     entityId,
     entity = null,
-    label = 'Favorite'
+    label = 'Favorite',
+    iconOnly = false
 }) {
     const { t } = useTranslation();
 
@@ -284,14 +285,24 @@ export function FavoriteActionMenu({
         return null;
     }
 
+    const triggerLabel = remoteFavorite ? 'Favorited' : label;
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button
                     type="button"
-                    size="sm"
-                    variant={remoteFavorite ? 'default' : 'outline'}
+                    size={iconOnly ? 'icon-lg' : 'sm'}
+                    variant={
+                        iconOnly
+                            ? 'outline'
+                            : remoteFavorite
+                              ? 'default'
+                              : 'outline'
+                    }
                     disabled={actionStatus !== 'idle'}
+                    aria-label={triggerLabel}
+                    title={triggerLabel}
                 >
                     {actionStatus !== 'idle' ? (
                         <Spinner data-icon="inline-start" />
@@ -301,7 +312,7 @@ export function FavoriteActionMenu({
                             className={remoteFavorite ? 'fill-current' : ''}
                         />
                     )}
-                    {remoteFavorite ? 'Favorited' : label}
+                    {iconOnly ? null : triggerLabel}
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-64">

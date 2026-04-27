@@ -19,8 +19,6 @@ import {
 } from 'lucide-react';
 
 import { FavoriteActionMenu } from '@/components/favorites/FavoriteActionMenu.jsx';
-import { userImage } from '@/lib/entityMedia.js';
-import { Button } from '@/ui/shadcn/button';
 
 import {
     EntityActionDropdown,
@@ -46,7 +44,6 @@ export function UserDialogHeaderActions({
     previousInstances,
     userUrl,
     recentDialogShortcut,
-    onOpenUserIcon,
     onRefresh,
     onCopyUserUrl,
     onOpenUserUrl,
@@ -84,25 +81,12 @@ export function UserDialogHeaderActions({
 
     return (
         <>
-            {profile.userIcon ? (
-                <Button
-                    type="button"
-                    variant="ghost"
-                    className="bg-muted size-[120px] shrink-0 overflow-hidden rounded-md border p-0"
-                    onClick={onOpenUserIcon}
-                >
-                    <img
-                        src={userImage(profile, true, '256', true)}
-                        alt=""
-                        className="size-full object-cover"
-                    />
-                </Button>
-            ) : null}
             {!isCurrentUser ? (
                 <FavoriteActionMenu
                     kind="friend"
                     entityId={profile.id}
                     entity={profile}
+                    iconOnly
                 />
             ) : null}
             <EntityActionDropdown

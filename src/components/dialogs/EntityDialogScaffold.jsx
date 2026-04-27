@@ -176,13 +176,13 @@ function EntityDialogTabs({ value, onValueChange, tabs, children }) {
         >
             <TabsList
                 variant="line"
-                className="relative flex h-10 w-full justify-start overflow-x-auto rounded-none border-b bg-transparent p-0"
+                className="relative flex h-11 min-h-11 w-full justify-start overflow-x-auto overflow-y-hidden rounded-none border-b bg-transparent p-0"
             >
                 {tabs.map((tab) => (
                     <TabsTrigger
                         key={tab.value}
                         value={tab.value}
-                        className="text-muted-foreground after:bg-primary hover:text-foreground data-[state=active]:text-primary h-10 flex-none rounded-none border-0 bg-transparent px-3 shadow-none after:bottom-0 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                        className="text-muted-foreground after:bg-primary hover:text-foreground data-[state=active]:text-primary h-11 flex-none rounded-none border-0 bg-transparent px-3 shadow-none after:bottom-0 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
                     >
                         {tab.label}
                     </TabsTrigger>
