@@ -69,7 +69,7 @@ const commandArgs: Record<string, string[]> = {
     app__start_game: ['arguments'],
     app__start_game_from_path: ['path', 'arguments'],
     app__change_theme: ['value'],
-    app__restart_application: ['isUpgrade'],
+    app__restart_application: [],
     app__set_tray_icon_notification: ['notify'],
     app__copy_image_to_clipboard: ['path'],
     app__set_startup: ['enabled'],
@@ -98,7 +98,7 @@ const commandArgs: Record<string, string[]> = {
     app__save_image_file: ['defaultName', 'base64Data'],
     app__focus_window: [],
     app__flash_window: [],
-    app__check_for_update_exe: [],
+    app__check_for_tauri_update: [],
     app__check_legacy_vrcx_available: [],
     app__get_legacy_vrcx_migration_status: [],
     app__request_legacy_migration: [],
@@ -133,7 +133,8 @@ const commandArgs: Record<string, string[]> = {
         'monthFolder',
         'fileName'
     ],
-    app__download_update: ['fileUrl', 'hashString', 'downloadSize'],
+    app__download_tauri_update: ['manifestUrl', 'target'],
+    app__install_tauri_update: [],
     app__cancel_update: [],
     app__check_update_progress: [],
     asset_bundle__get_vrchat_cache_full_location: [

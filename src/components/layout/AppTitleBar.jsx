@@ -20,6 +20,10 @@ import { QuickSearchDialog } from '@/components/sidebar/QuickSearchDialog.jsx';
 import { cn } from '@/lib/utils.js';
 import { backend } from '@/platform/index.js';
 import { setSidebarCollapsedPreference } from '@/services/preferencesService.js';
+import {
+    canInstallUpdatesOnPlatform,
+    checkPendingInstallUpdate
+} from '@/services/updateService.js';
 import { usePreferencesStore } from '@/state/preferencesStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
 import { useSessionStore } from '@/state/sessionStore.js';
@@ -159,7 +163,7 @@ export function AppTitleBar() {
     }, [isSessionReady, openDirectAccessFromClipboard]);
 
     useEffect(() => {
-        if (!isSessionReady || hostPlatform !== 'windows') {
+        if (!isSessionReady || !canInstallUpdatesOnPlatform(hostPlatform)) {
             setHasPendingUpdate(false);
             return undefined;
         }
@@ -182,8 +186,7 @@ export function AppTitleBar() {
             }
 
             checking = true;
-            backend.app
-                .CheckForUpdateExe()
+            checkPendingInstallUpdate(hostPlatform)
                 .then((value) => {
                     lastPendingUpdateCheckAt = Date.now();
                     lastPendingUpdateFailureAt = 0;

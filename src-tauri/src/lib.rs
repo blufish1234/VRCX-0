@@ -83,6 +83,13 @@ fn init_error_logging() {
         .init();
 }
 
+fn updater_public_key() -> String {
+    match option_env!("TAURI_UPDATER_PUBLIC_KEY") {
+        Some(value) if !value.trim().is_empty() => value.to_string(),
+        _ => "TAURI_UPDATER_PUBLIC_KEY_NOT_CONFIGURED".to_string(),
+    }
+}
+
 fn screenshot_protocol_response(request: Request<Vec<u8>>) -> Response<Cow<'static, [u8]>> {
     let path = match percent_encoding::percent_decode_str(&request.uri().path()[1..]).decode_utf8()
     {
@@ -142,6 +149,11 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(
+            tauri_plugin_updater::Builder::new()
+                .pubkey(updater_public_key())
+                .build(),
+        )
+        .plugin(
             tauri_plugin_window_state::Builder::new()
                 .with_state_flags(
                     tauri_plugin_window_state::StateFlags::SIZE
@@ -195,7 +207,6 @@ pub fn run() {
         })
         .setup(|app| {
             let app_state = AppState::new().expect("failed to initialize app state");
-            app_state.update_manager.check_and_install_update();
             app.manage(app_state);
 
             #[cfg(target_os = "windows")]
@@ -386,7 +397,7 @@ pub fn run() {
             api::app::window::app__do_funny,
             api::app::window::app__set_tray_icon_notification,
             api::app::window::app__restart_application,
-            api::app::updates::app__check_for_update_exe,
+            api::app::updates::app__check_for_tauri_update,
             api::app::updates::app__check_legacy_vrcx_available,
             api::app::updates::app__get_legacy_vrcx_migration_status,
             api::app::updates::app__request_legacy_migration,
@@ -427,7 +438,8 @@ pub fn run() {
             api::app::media::app__save_print_to_file,
             api::app::media::app__save_sticker_to_file,
             api::app::media::app__save_emoji_to_file,
-            api::app::updates::app__download_update,
+            api::app::updates::app__download_tauri_update,
+            api::app::updates::app__install_tauri_update,
             api::app::updates::app__cancel_update,
             api::app::updates::app__check_update_progress,
         ])

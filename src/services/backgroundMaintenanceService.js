@@ -9,6 +9,8 @@ import {
     vrchatModerationRepository
 } from '@/repositories/index.js';
 import {
+    canInstallUpdatesOnPlatform,
+    checkPendingInstallUpdate,
     defaultBranchForVersion,
     downloadUpdateAndWait,
     fetchLatestBranchRelease,
@@ -803,7 +805,7 @@ async function checkAutoBackupRestoreVrcRegistry() {
 
 async function checkForAppUpdate({ includeRegistryBackup = true } = {}) {
     const hostPlatform = useRuntimeStore.getState().hostCapabilities.platform;
-    const canInstallUpdates = hostPlatform === 'windows';
+    const canInstallUpdates = canInstallUpdatesOnPlatform(hostPlatform);
     let autoUpdateMode = await configRepository.getString(
         'autoUpdateVRCX',
         'Auto Download'
@@ -814,9 +816,7 @@ async function checkForAppUpdate({ includeRegistryBackup = true } = {}) {
     }
 
     if (autoUpdateMode !== 'Off') {
-        const available = canInstallUpdates
-            ? await backend.app.CheckForUpdateExe().catch(() => false)
-            : false;
+        const available = await checkPendingInstallUpdate(hostPlatform);
         if (available) {
             useNotificationStore.getState().pushNotification({
                 level: 'info',
@@ -847,6 +847,7 @@ async function checkForAppUpdate({ includeRegistryBackup = true } = {}) {
                 }
 
                 const latestRelease = await fetchLatestBranchRelease(branch, {
+                    hostPlatform,
                     requireInstallerAsset: canInstallUpdates
                 });
                 if (

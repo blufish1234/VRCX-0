@@ -239,7 +239,7 @@ export function useSettingsMaintenanceActions({
             );
             setPurgeDialogOpen(false);
             await new Promise((resolve) => window.setTimeout(resolve, 1500));
-            await backend.app.RestartApplication(false);
+            await backend.app.RestartApplication();
         } catch (error) {
             toast.dismiss(toastId);
             toast.error(

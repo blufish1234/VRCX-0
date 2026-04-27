@@ -5,6 +5,8 @@ import { openExternalLink } from '@/lib/entityMedia.js';
 import { userFacingErrorMessage } from '@/lib/errorDisplay.js';
 import { backend } from '@/platform/index.js';
 import {
+    canInstallUpdatesOnPlatform,
+    checkPendingInstallUpdate,
     defaultBranchForVersion,
     downloadUpdateAndWait,
     fetchBranchReleases,
@@ -38,7 +40,7 @@ export function UpdaterDialog({ open, onOpenChange }) {
     const hostPlatform = useRuntimeStore(
         (state) => state.hostCapabilities.platform
     );
-    const canInstallUpdates = hostPlatform === 'windows';
+    const canInstallUpdates = canInstallUpdatesOnPlatform(hostPlatform);
 
     const cancelTokenRef = useRef(null);
     const [branch, setBranch] = useState(() =>
@@ -46,7 +48,7 @@ export function UpdaterDialog({ open, onOpenChange }) {
     );
     const [releases, setReleases] = useState([]);
     const [releaseVersion, setReleaseVersion] = useState('');
-    const [pendingInstall, setPendingInstall] = useState(false);
+    const [pendingInstallType, setPendingInstallType] = useState('');
     const [loading, setLoading] = useState(false);
     const [downloading, setDownloading] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -64,20 +66,20 @@ export function UpdaterDialog({ open, onOpenChange }) {
         setLoading(true);
         setDetail('Checking update state.');
 
-        if (canInstallUpdates) {
-            backend.app
-                .CheckForUpdateExe()
-                .then((hasPendingInstall) => {
-                    if (active) {
-                        setPendingInstall(Boolean(hasPendingInstall));
-                    }
-                })
-                .catch(() => {});
-        } else {
-            setPendingInstall(false);
-        }
+        checkPendingInstallUpdate(hostPlatform)
+            .then((pendingType) => {
+                if (active) {
+                    setPendingInstallType(pendingType);
+                }
+            })
+            .catch(() => {
+                if (active) {
+                    setPendingInstallType('');
+                }
+            });
 
         fetchBranchReleases(branch, {
+            hostPlatform,
             requireInstallerAsset: canInstallUpdates
         })
             .then((nextReleases) => {
@@ -120,7 +122,7 @@ export function UpdaterDialog({ open, onOpenChange }) {
         return () => {
             active = false;
         };
-    }, [branch, canInstallUpdates, open]);
+    }, [branch, canInstallUpdates, hostPlatform, open]);
 
     async function handleDownload() {
         if (!canInstallUpdates || !selectedRelease || downloading) {
@@ -141,7 +143,7 @@ export function UpdaterDialog({ open, onOpenChange }) {
                 onProgress: setProgress,
                 isCancelled: () => cancelToken.cancelled
             });
-            setPendingInstall(true);
+            setPendingInstallType(selectedRelease.updaterType);
             setDetail(
                 t(
                     'host.system_dialogs.generated_dynamic.value_is_ready_to_install',
@@ -170,8 +172,15 @@ export function UpdaterDialog({ open, onOpenChange }) {
         setProgress(0);
     }
 
-    function handleInstall() {
-        void backend.app.RestartApplication(true);
+    async function handleInstall() {
+        try {
+            await backend.app.InstallTauriUpdate();
+            await backend.app.RestartApplication();
+        } catch (error) {
+            setDetail(
+                userFacingErrorMessage(error, 'Failed to install update.')
+            );
+        }
     }
 
     async function handleOpenReleasePage() {
@@ -251,7 +260,7 @@ export function UpdaterDialog({ open, onOpenChange }) {
                             </div>
                         </div>
                     ) : null}
-                    {canInstallUpdates && pendingInstall ? (
+                    {canInstallUpdates && pendingInstallType ? (
                         <div className="bg-muted/30 rounded-md border p-3 text-sm">
                             {t(
                                 'dialog.system.generated.an_update_is_downloaded_and_ready_to_install'
@@ -290,8 +299,8 @@ export function UpdaterDialog({ open, onOpenChange }) {
                             </Button>
                             <Button
                                 type="button"
-                                disabled={downloading || !pendingInstall}
-                                onClick={handleInstall}
+                                disabled={downloading || !pendingInstallType}
+                                onClick={() => void handleInstall()}
                             >
                                 {t('dialog.system.generated.install_and_restart')}
                             </Button>

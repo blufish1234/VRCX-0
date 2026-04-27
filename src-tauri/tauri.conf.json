@@ -68,5 +68,16 @@
                 "installMode": "currentUser"
             }
         }
+    },
+    "plugins": {
+        "updater": {
+            "pubkey": "TAURI_UPDATER_PUBLIC_KEY_NOT_CONFIGURED",
+            "endpoints": [
+                "https://github.com/Map1en/VRCX-0/releases/latest/download/vrcx-0-updater-{{target}}.json"
+            ],
+            "windows": {
+                "installMode": "passive"
+            }
+        }
     }
 }

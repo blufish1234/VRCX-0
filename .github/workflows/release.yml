@@ -46,7 +46,10 @@ jobs:
                       rust_target: ''
                       build_command: npm run tauri:build -- --config src-tauri/tauri.linux.conf.json --bundles appimage
                       artifact_name: linux-appimage
-                      artifact_path: src-tauri/target/release/bundle/appimage/*.AppImage
+                      artifact_path: |
+                          src-tauri/target/release/bundle/appimage/*.AppImage
+                          src-tauri/target/release/bundle/appimage/*.AppImage.sig
+                          src-tauri/target/release/bundle/appimage/vrcx-0-updater-linux-x86_64-*.json
                     - label: macOS DMG (Apple Silicon)
                       os: macos-15
                       rust_target: aarch64-apple-darwin
@@ -103,8 +106,49 @@ jobs:
                       --beta-number "${{ inputs.beta_number }}" \
                       --alpha-number "${{ inputs.alpha_number }}"
 
-            - name: Build package
+            - name: Inject Linux updater public key
+              if: runner.os == 'Linux'
+              env:
+                  TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
+              run: |
+                  if [[ -z "$TAURI_UPDATER_PUBLIC_KEY" ]]; then
+                      echo "TAURI_UPDATER_PUBLIC_KEY repository variable is required for Linux updater artifacts" >&2
+                      exit 1
+                  fi
+                  node -e "const fs = require('node:fs'); const path = 'src-tauri/tauri.conf.json'; const config = JSON.parse(fs.readFileSync(path, 'utf8')); config.plugins ??= {}; config.plugins.updater ??= {}; config.plugins.updater.pubkey = process.env.TAURI_UPDATER_PUBLIC_KEY; fs.writeFileSync(path, JSON.stringify(config, null, 4) + '\n');"
+
+            - name: Build Linux package
+              if: runner.os == 'Linux'
+              env:
+                  TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_UPDATER_PRIVATE_KEY }}
+                  TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_UPDATER_PRIVATE_KEY_PASSWORD }}
+                  TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
               run: ${{ matrix.build_command }}
+
+            - name: Build package
+              if: runner.os != 'Linux'
+              run: ${{ matrix.build_command }}
+
+            - name: Create Linux updater manifest
+              if: runner.os == 'Linux'
+              run: |
+                  appimage_path="$(find src-tauri/target/release/bundle/appimage -maxdepth 1 -name '*.AppImage' | sort | head -n 1)"
+                  if [[ -z "$appimage_path" ]]; then
+                      echo "No AppImage artifact found" >&2
+                      exit 1
+                  fi
+                  signature_path="${appimage_path}.sig"
+                  if [[ ! -f "$signature_path" ]]; then
+                      echo "No AppImage signature found at $signature_path" >&2
+                      exit 1
+                  fi
+                  node build-scripts/create-tauri-updater-manifest.js \
+                      --version "${{ steps.version.outputs.build_version }}" \
+                      --tag "${{ steps.version.outputs.tag }}" \
+                      --target "linux-x86_64-${{ inputs.channel }}" \
+                      --asset-name "$(basename "$appimage_path")" \
+                      --signature-file "$signature_path" \
+                      --out "src-tauri/target/release/bundle/appimage/vrcx-0-updater-linux-x86_64-${{ inputs.channel }}.json"
 
             - uses: actions/upload-artifact@v7
               with:

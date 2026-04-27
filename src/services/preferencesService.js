@@ -763,7 +763,7 @@ export async function setProxyServerPreference(value, { restart = true } = {}) {
     patchPreferences({ proxyServer: nextProxyServer });
     publishPreferenceChanged('VRCX_ProxyServer', nextProxyServer);
     if (restart) {
-        await backend.app.RestartApplication(false);
+        await backend.app.RestartApplication();
     }
     return nextProxyServer;
 }

@@ -8,21 +8,6 @@ use crate::error::AppError;
 const TRAY_ICON_DEFAULT: &[u8] = include_bytes!("../../../icons/icon.png");
 const TRAY_ICON_NOTIFY: &[u8] = include_bytes!("../../../icons/icon_notify.png");
 
-#[cfg(not(debug_assertions))]
-fn spawn_current_exe(args: &[&str]) -> Result<(), AppError> {
-    let exe = std::env::current_exe().map_err(|e| AppError::Custom(format!("current exe: {e}")))?;
-    let mut cmd = std::process::Command::new(&exe);
-    if let Some(dir) = exe.parent() {
-        cmd.current_dir(dir);
-    }
-    for arg in args {
-        cmd.arg(arg);
-    }
-    cmd.spawn()
-        .map_err(|e| AppError::Custom(format!("restart: {e}")))?;
-    Ok(())
-}
-
 #[tauri::command]
 pub fn app__set_user_agent() {}
 
@@ -83,28 +68,17 @@ pub fn app__set_tray_icon_notification(app_handle: AppHandle, notify: Option<boo
 }
 
 #[tauri::command]
-pub fn app__restart_application(
-    app_handle: AppHandle,
-    is_upgrade: Option<bool>,
-) -> Result<(), AppError> {
+pub fn app__restart_application(app_handle: AppHandle) -> Result<(), AppError> {
     #[cfg(debug_assertions)]
     {
-        tracing::warn!(
-            is_upgrade = is_upgrade.unwrap_or(false),
-            "app__restart_application ignored in dev build; restart VRCX manually"
-        );
+        tracing::warn!("app__restart_application ignored in dev build; restart VRCX manually");
         let _ = app_handle;
         Ok(())
     }
 
     #[cfg(not(debug_assertions))]
     {
-        if is_upgrade.unwrap_or(false) {
-            spawn_current_exe(&["--upgrade"])?;
-            app_handle.exit(0);
-        } else {
-            app_handle.request_restart();
-        }
+        app_handle.request_restart();
         Ok(())
     }
 }

@@ -1,4 +1,9 @@
 fn main() {
+    println!("cargo:rerun-if-env-changed=TAURI_UPDATER_PUBLIC_KEY");
+    if let Ok(public_key) = std::env::var("TAURI_UPDATER_PUBLIC_KEY") {
+        println!("cargo:rustc-env=TAURI_UPDATER_PUBLIC_KEY={public_key}");
+    }
+
     let notice_path = std::path::Path::new("resources/licenses/THIRD_PARTY_NOTICES.txt");
     if let Some(parent) = notice_path.parent() {
         std::fs::create_dir_all(parent).expect("failed to create license resource directory");
