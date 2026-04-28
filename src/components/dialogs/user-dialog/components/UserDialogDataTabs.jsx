@@ -1,4 +1,4 @@
-import { ChevronLeftIcon, UserIcon } from 'lucide-react';
+import { ChevronLeftIcon } from 'lucide-react';
 
 import { UserActivityPanel } from '@/components/dialogs/UserActivityPanel.jsx';
 import { Button } from '@/ui/shadcn/button';
@@ -211,9 +211,6 @@ export function UserDialogFavoriteWorldsTab({
 }
 
 export function UserDialogAvatarsTab({
-    currentAvatarTarget,
-    currentAvatarDisplayName,
-    onOpenCurrentAvatar,
     visibleProfileAvatars,
     profileAvatars,
     remoteStatus,
@@ -231,18 +228,6 @@ export function UserDialogAvatarsTab({
 }) {
     return (
         <EntityDialogTabContent value="avatars" className="flex flex-col gap-2">
-            {currentAvatarTarget ? (
-                <Button
-                    type="button"
-                    variant="ghost"
-                    className="hover:text-primary h-auto justify-start p-0 text-left"
-                    onClick={onOpenCurrentAvatar}
-                >
-                    <UserIcon data-icon="inline-start" />
-                    {t('dialog.user.generated.current_avatar')}{' '}
-                    {currentAvatarDisplayName || 'Avatar'}
-                </Button>
-            ) : null}
             <UserDialogSearchHeader
                 searchKey="avatars"
                 tab="avatars"

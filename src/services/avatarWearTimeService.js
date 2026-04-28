@@ -224,8 +224,30 @@ function getCurrentAvatarLiveWearTime(avatarId, baseTimeSpent = 0) {
     return (Number(baseTimeSpent) || 0) + Math.max(0, Date.now() - startedAt);
 }
 
+function flushCurrentAvatarWearTimer({ now = Date.now() } = {}) {
+    const runtimeState = useRuntimeStore.getState();
+    const snapshot = runtimeState.auth.currentUserSnapshot;
+    if (!snapshot || runtimeState.gameState.isGameRunning !== true) {
+        return;
+    }
+
+    const avatarId = normalizeAvatarId(snapshot.currentAvatar);
+    const startedAt = normalizeTimestamp(snapshot.$previousAvatarSwapTime);
+    if (!avatarId || !startedAt) {
+        return;
+    }
+
+    persistAvatarWearTransition({
+        userId: runtimeState.auth.currentUserId,
+        previousAvatarId: avatarId,
+        startedAt,
+        endedAt: now
+    });
+}
+
 export {
     buildAvatarWearSnapshotUpdate,
+    flushCurrentAvatarWearTimer,
     getCurrentAvatarLiveWearTime,
     persistAvatarWearTransition,
     startCurrentAvatarWearTimer,

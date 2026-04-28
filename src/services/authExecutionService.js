@@ -24,6 +24,7 @@ import {
 import { clearEntityQueryCache } from '@/lib/entityQueryCache.js';
 import {
     buildAvatarWearSnapshotUpdate,
+    flushCurrentAvatarWearTimer,
     persistAvatarWearTransition
 } from './avatarWearTimeService.js';
 import i18n from './i18nService.js';
@@ -119,6 +120,7 @@ function setAuthenticatingSessionState() {
 }
 
 export function resetCurrentUserRuntimeAuth() {
+    flushCurrentAvatarWearTimer();
     stopRealtimeTransport();
     void clearEntityQueryCache();
     avatarProfileRepository.clearAvatarNameCache();

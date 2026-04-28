@@ -3,9 +3,9 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { onPreferenceChanged } from '@/lib/preferenceEvents.js';
 import {
     AVATAR_SEARCH_PROVIDER_PREFERENCE_KEYS,
-    avatarProfileRepository,
     avatarSearchProviderRepository,
     groupProfileRepository,
+    myAvatarRepository,
     userProfileRepository,
     vrchatAuthRepository,
     vrchatFavoriteRepository,
@@ -22,9 +22,9 @@ import {
 import { buildUserDialogListViewData } from './userDialogViewData.js';
 
 const userDialogTabServiceRepositories = Object.freeze({
-    avatarProfileRepository,
     avatarSearchProviderRepository,
     groupProfileRepository,
+    myAvatarRepository,
     userProfileRepository,
     vrchatFavoriteRepository,
     worldProfileRepository
@@ -72,6 +72,8 @@ export function useUserDialogTabData({
     isCurrentUser,
     currentEndpoint,
     currentUserId,
+    currentAvatarId = '',
+    previousAvatarSwapTime = 0,
     currentUserHasSharedConnectionsOptOut,
     friendsById,
     inGameGroupOrder,
@@ -106,6 +108,8 @@ export function useUserDialogTabData({
         endpoint: currentEndpoint,
         userId: profile.id,
         currentUserId,
+        currentAvatarId,
+        previousAvatarSwapTime,
         avatarReleaseStatus: effectiveAvatarReleaseStatus,
         reloadToken
     });
@@ -115,6 +119,8 @@ export function useUserDialogTabData({
         endpoint: currentEndpoint,
         userId: profile.id,
         currentUserId,
+        currentAvatarId,
+        previousAvatarSwapTime,
         avatarReleaseStatus: effectiveAvatarReleaseStatus,
         reloadToken
     };
@@ -199,6 +205,8 @@ export function useUserDialogTabData({
                     context.worldOrder === worldOrder)) &&
             (context.tab !== 'avatars' ||
                 (context.avatarSort === avatarSort &&
+                    context.currentAvatarId === currentAvatarId &&
+                    context.previousAvatarSwapTime === previousAvatarSwapTime &&
                     context.avatarReleaseStatus ===
                         effectiveAvatarReleaseStatus))
         );
@@ -209,6 +217,10 @@ export function useUserDialogTabData({
             countContextRef.current.endpoint === context.endpoint &&
             countContextRef.current.userId === context.userId &&
             countContextRef.current.currentUserId === context.currentUserId &&
+            countContextRef.current.currentAvatarId ===
+                context.currentAvatarId &&
+            countContextRef.current.previousAvatarSwapTime ===
+                context.previousAvatarSwapTime &&
             countContextRef.current.avatarReleaseStatus ===
                 context.avatarReleaseStatus &&
             countContextRef.current.reloadToken === context.reloadToken
@@ -224,6 +236,8 @@ export function useUserDialogTabData({
             endpoint: currentEndpoint,
             userId: profile.id,
             currentUserId,
+            currentAvatarId,
+            previousAvatarSwapTime,
             avatarReleaseStatus: effectiveAvatarReleaseStatus,
             reloadToken
         };
@@ -232,6 +246,8 @@ export function useUserDialogTabData({
                 userId: profile.id,
                 endpoint: currentEndpoint,
                 currentUserId,
+                currentAvatarId,
+                previousAvatarSwapTime,
                 effectiveAvatarReleaseStatus,
                 repositories: userDialogTabServiceRepositories,
                 force
@@ -268,6 +284,8 @@ export function useUserDialogTabData({
             worldSort,
             worldOrder,
             avatarSort,
+            currentAvatarId,
+            previousAvatarSwapTime,
             avatarReleaseStatus: effectiveAvatarReleaseStatus
         };
         setRemoteStatus((current) => ({ ...current, [tab]: 'running' }));
@@ -278,10 +296,10 @@ export function useUserDialogTabData({
                 userId: profile.id,
                 endpoint: currentEndpoint,
                 currentUserId,
+                currentAvatarId,
+                previousAvatarSwapTime,
                 worldSort,
                 worldOrder,
-                avatarSort,
-                effectiveAvatarReleaseStatus,
                 repositories: userDialogTabServiceRepositories
             });
 
@@ -376,7 +394,15 @@ export function useUserDialogTabData({
             handledReloadTokenRef.current = reloadToken;
         }
         void loadTab(activeTab, { force: shouldForceReload });
-    }, [activeTab, currentEndpoint, currentUserId, profile.id, reloadToken]);
+    }, [
+        activeTab,
+        currentAvatarId,
+        currentEndpoint,
+        currentUserId,
+        previousAvatarSwapTime,
+        profile.id,
+        reloadToken
+    ]);
 
     useEffect(() => {
         const shouldForceReload =
@@ -388,8 +414,10 @@ export function useUserDialogTabData({
         void loadTabCounts({ force: shouldForceReload });
     }, [
         currentEndpoint,
+        currentAvatarId,
         currentUserId,
         effectiveAvatarReleaseStatus,
+        previousAvatarSwapTime,
         profile.id,
         reloadToken
     ]);
@@ -423,7 +451,12 @@ export function useUserDialogTabData({
         if (activeTab === 'avatars' && profile.id === currentUserId) {
             void loadTab('avatars', { force: true });
         }
-    }, [avatarReleaseStatus, avatarSort]);
+    }, [
+        avatarReleaseStatus,
+        avatarSort,
+        currentAvatarId,
+        previousAvatarSwapTime
+    ]);
 
     useEffect(
         () =>

@@ -16,6 +16,9 @@ function repositories(overrides = {}) {
             getConfig: async () => ({ enabled: false, selectedProvider: '' }),
             search: async () => ({ avatars: [] })
         },
+        myAvatarRepository: {
+            getMyAvatars: async () => []
+        },
         groupProfileRepository: {
             getUserGroups: async () => []
         },
@@ -126,11 +129,11 @@ describe('userDialogTabService', () => {
         ]);
     });
 
-    it('loads current-user avatars with the selected sort and release status', async () => {
+    it('loads current-user avatars through the My Avatars repository', async () => {
         let request = null;
         const fakeRepositories = repositories({
-            avatarProfileRepository: {
-                getAllAvatarsByUser: async (params) => {
+            myAvatarRepository: {
+                getMyAvatars: async (params) => {
                     request = params;
                     return [{ id: 'avtr_private' }];
                 }
@@ -142,6 +145,8 @@ describe('userDialogTabService', () => {
                 tab: 'avatars',
                 userId: 'usr_self',
                 currentUserId: 'usr_self',
+                currentAvatarId: 'avtr_current',
+                previousAvatarSwapTime: 1234,
                 endpoint: 'https://api.example.test',
                 avatarSort: 'update',
                 effectiveAvatarReleaseStatus: 'private',
@@ -153,12 +158,10 @@ describe('userDialogTabService', () => {
         });
 
         expect(request).toEqual({
-            userId: 'usr_self',
-            user: 'me',
             endpoint: 'https://api.example.test',
-            sort: 'updated',
-            order: 'descending',
-            releaseStatus: 'private'
+            currentUserId: 'usr_self',
+            currentAvatarId: 'avtr_current',
+            previousAvatarSwapTime: 1234
         });
         expect(userDialogAvatarSortRequest('createdAt')).toEqual({
             sort: 'createdAt',

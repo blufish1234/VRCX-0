@@ -63,11 +63,7 @@ export function EntityList({
                         ? userRowSubtitle(row, nowMs)
                         : kind === 'world'
                           ? worldOccupantSubtitle(row)
-                          : row?.authorName ||
-                            row?.description ||
-                            row?.shortCode ||
-                            row?.username ||
-                            '';
+                          : row?.description || '';
                 const imageRoundedClassName =
                     kind === 'user' ? 'rounded-full' : 'rounded-md';
                 const travelingTimestamp =

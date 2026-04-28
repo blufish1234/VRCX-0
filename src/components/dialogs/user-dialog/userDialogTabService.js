@@ -70,21 +70,27 @@ async function loadAvatarCount({
     endpoint,
     userId,
     currentUserId,
+    currentAvatarId,
+    previousAvatarSwapTime,
     effectiveAvatarReleaseStatus,
     providerConfig = null,
     repositories
 }) {
     if (userId === currentUserId) {
-        const rows =
-            await repositories.avatarProfileRepository.getAllAvatarsByUser({
-                userId,
-                user: 'me',
-                endpoint,
-                sort: 'name',
-                order: 'ascending',
-                releaseStatus: effectiveAvatarReleaseStatus
-            });
-        return countRows(rows);
+        const rows = await repositories.myAvatarRepository.getMyAvatars({
+            endpoint,
+            currentUserId,
+            currentAvatarId,
+            previousAvatarSwapTime
+        });
+        return countRows(
+            effectiveAvatarReleaseStatus === 'all'
+                ? rows
+                : rows.filter(
+                      (avatar) =>
+                          avatar?.releaseStatus === effectiveAvatarReleaseStatus
+                  )
+        );
     }
 
     const resolvedProviderConfig =
@@ -110,6 +116,8 @@ export async function loadUserDialogTabCounts({
     userId,
     endpoint,
     currentUserId,
+    currentAvatarId = '',
+    previousAvatarSwapTime = 0,
     effectiveAvatarReleaseStatus,
     repositories,
     force = false
@@ -166,6 +174,8 @@ export async function loadUserDialogTabCounts({
                         endpoint,
                         userId,
                         currentUserId,
+                        currentAvatarId,
+                        previousAvatarSwapTime,
                         effectiveAvatarReleaseStatus,
                         providerConfig: avatarProviderConfig,
                         repositories
@@ -193,10 +203,10 @@ export async function loadUserDialogTabData({
     userId,
     endpoint,
     currentUserId,
+    currentAvatarId = '',
+    previousAvatarSwapTime = 0,
     worldSort,
     worldOrder,
-    avatarSort,
-    effectiveAvatarReleaseStatus,
     repositories
 }) {
     if (!isUserDialogDataTab(tab)) {
@@ -234,16 +244,12 @@ export async function loadUserDialogTabData({
 
     if (tab === 'avatars') {
         if (userId === currentUserId) {
-            const { sort, order } = userDialogAvatarSortRequest(avatarSort);
-            const rows =
-                await repositories.avatarProfileRepository.getAllAvatarsByUser({
-                    userId,
-                    user: 'me',
-                    endpoint,
-                    sort,
-                    order,
-                    releaseStatus: effectiveAvatarReleaseStatus
-                });
+            const rows = await repositories.myAvatarRepository.getMyAvatars({
+                endpoint,
+                currentUserId,
+                currentAvatarId,
+                previousAvatarSwapTime
+            });
             return { rows, favoriteWorldGroups: [] };
         }
 

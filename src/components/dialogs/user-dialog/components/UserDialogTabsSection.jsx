@@ -51,7 +51,6 @@ export function UserDialogTabsSection({
     mutualFriends,
     mutualSort,
     onEditMemo,
-    onOpenCurrentAvatar,
     onOpenInstanceHistory,
     onPreviousInstancesChange,
     onRefreshLocation,
@@ -205,9 +204,6 @@ export function UserDialogTabsSection({
                 t={t}
             />
             <UserDialogAvatarsTab
-                currentAvatarTarget={currentAvatarTarget}
-                currentAvatarDisplayName={currentAvatarDisplayName}
-                onOpenCurrentAvatar={onOpenCurrentAvatar}
                 visibleProfileAvatars={visibleProfileAvatars}
                 profileAvatars={profileAvatars}
                 remoteStatus={remoteStatus}

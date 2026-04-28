@@ -63,13 +63,10 @@ export function buildUserDialogTabs({
                   {
                       value: 'favorite-worlds',
                       label: translate('dialog.user.favorite_worlds.header')
-                  },
-                  {
-                      value: 'avatars',
-                      label: translate('dialog.user.avatars.header')
                   }
               ]
             : []),
+        { value: 'avatars', label: translate('dialog.user.avatars.header') },
         { value: 'activity', label: translate('dialog.user.activity.header') },
         { value: 'json', label: translate('dialog.user.json.header') }
     ];
