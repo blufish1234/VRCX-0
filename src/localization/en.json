@@ -1476,7 +1476,7 @@
                 },
                 "theme_color": {
                     "header": "Theme Color",
-                    "default": "Zinc",
+                    "default": "Neutral",
                     "blue": "Blue",
                     "green": "Green",
                     "orange": "Orange",

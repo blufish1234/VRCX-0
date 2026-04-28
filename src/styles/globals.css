@@ -99,6 +99,18 @@
     --chart-5: oklch(0.269 0 0);
 }
 
+:root[data-theme-color]:not([data-theme-color='default']) {
+    --primary: var(--vrcx-theme-primary);
+    --primary-foreground: var(--vrcx-theme-primary-foreground);
+    --ring: var(--vrcx-theme-ring);
+}
+
+:root.dark[data-theme-color]:not([data-theme-color='default']) {
+    --primary: var(--vrcx-theme-primary-dark);
+    --primary-foreground: var(--vrcx-theme-primary-foreground-dark);
+    --ring: var(--vrcx-theme-ring-dark);
+}
+
 @theme inline {
     --color-background: var(--background);
     --color-foreground: var(--foreground);

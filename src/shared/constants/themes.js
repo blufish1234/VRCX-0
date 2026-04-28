@@ -13,53 +13,120 @@ export const THEME_CONFIG = {
     }
 };
 
-export const THEME_COLORS = [
-    {
+export const DEFAULT_THEME_COLOR_KEY = 'default';
+
+const neutralForeground = 'var(--color-neutral-50)';
+const darkForeground = 'var(--color-neutral-950)';
+
+export const THEME_COLOR_CONFIG = {
+    default: {
         key: 'default',
-        label: 'Zinc',
-        swatch: 'oklch(0.27 0 0)',
-        file: null
+        label: 'Neutral',
+        swatch: 'var(--color-neutral-700)'
     },
-    {
+    blue: {
         key: 'blue',
         label: 'Blue',
-        swatch: 'oklch(0.488 0.243 264.376)',
-        file: 'blue.css'
+        swatch: 'var(--color-blue-600)',
+        primary: 'var(--color-blue-600)',
+        primaryDark: 'var(--color-blue-500)',
+        foreground: 'var(--color-blue-50)',
+        foregroundDark: 'var(--color-blue-50)',
+        ring: 'var(--color-blue-500)',
+        ringDark: 'var(--color-blue-400)'
     },
-    {
+    green: {
         key: 'green',
         label: 'Green',
-        swatch: 'oklch(0.648 0.2 131.684)',
-        file: 'green.css'
+        swatch: 'var(--color-lime-600)',
+        primary: 'var(--color-lime-600)',
+        primaryDark: 'var(--color-lime-500)',
+        foreground: 'var(--color-lime-50)',
+        foregroundDark: 'var(--color-lime-50)',
+        ring: 'var(--color-lime-500)',
+        ringDark: 'var(--color-lime-400)'
     },
-    {
+    orange: {
         key: 'orange',
         label: 'Orange',
-        swatch: 'oklch(0.646 0.222 41.116)',
-        file: 'orange.css'
+        swatch: 'var(--color-orange-600)',
+        primary: 'var(--color-orange-600)',
+        primaryDark: 'var(--color-orange-500)',
+        foreground: 'var(--color-orange-50)',
+        foregroundDark: 'var(--color-orange-50)',
+        ring: 'var(--color-orange-500)',
+        ringDark: 'var(--color-orange-400)'
     },
-    {
+    red: {
         key: 'red',
         label: 'Red',
-        swatch: 'oklch(0.577 0.245 27.325)',
-        file: 'red.css'
+        swatch: 'var(--color-red-600)',
+        primary: 'var(--color-red-600)',
+        primaryDark: 'var(--color-red-500)',
+        foreground: 'var(--color-red-50)',
+        foregroundDark: 'var(--color-red-50)',
+        ring: 'var(--color-red-500)',
+        ringDark: 'var(--color-red-400)'
     },
-    {
+    rose: {
         key: 'rose',
         label: 'Rose',
-        swatch: 'oklch(0.586 0.253 17.585)',
-        file: 'rose.css'
+        swatch: 'var(--color-rose-600)',
+        primary: 'var(--color-rose-600)',
+        primaryDark: 'var(--color-rose-500)',
+        foreground: 'var(--color-rose-50)',
+        foregroundDark: 'var(--color-rose-50)',
+        ring: 'var(--color-rose-500)',
+        ringDark: 'var(--color-rose-400)'
     },
-    {
+    violet: {
         key: 'violet',
         label: 'Violet',
-        swatch: 'oklch(0.541 0.281 293.009)',
-        file: 'violet.css'
+        swatch: 'var(--color-violet-600)',
+        primary: 'var(--color-violet-600)',
+        primaryDark: 'var(--color-violet-500)',
+        foreground: 'var(--color-violet-50)',
+        foregroundDark: 'var(--color-violet-50)',
+        ring: 'var(--color-violet-500)',
+        ringDark: 'var(--color-violet-400)'
     },
-    {
+    yellow: {
         key: 'yellow',
         label: 'Yellow',
-        swatch: 'oklch(0.852 0.199 91.936)',
-        file: 'yellow.css'
+        swatch: 'var(--color-yellow-400)',
+        primary: 'var(--color-yellow-400)',
+        primaryDark: 'var(--color-yellow-300)',
+        foreground: darkForeground,
+        foregroundDark: darkForeground,
+        ring: 'var(--color-yellow-500)',
+        ringDark: 'var(--color-yellow-400)'
     }
-];
+};
+
+export const THEME_COLORS = Object.freeze(
+    Object.values(THEME_COLOR_CONFIG).map(({ key, label, swatch }) => ({
+        key,
+        label,
+        swatch
+    }))
+);
+
+export const THEME_COLOR_STYLE_PROPERTIES = Object.freeze({
+    primary: '--vrcx-theme-primary',
+    primaryDark: '--vrcx-theme-primary-dark',
+    foreground: '--vrcx-theme-primary-foreground',
+    foregroundDark: '--vrcx-theme-primary-foreground-dark',
+    ring: '--vrcx-theme-ring',
+    ringDark: '--vrcx-theme-ring-dark'
+});
+
+for (const theme of Object.values(THEME_COLOR_CONFIG)) {
+    if (theme.key === DEFAULT_THEME_COLOR_KEY) {
+        continue;
+    }
+    theme.foreground ??= neutralForeground;
+    theme.foregroundDark ??= theme.foreground;
+    theme.primaryDark ??= theme.primary;
+    theme.ring ??= theme.primary;
+    theme.ringDark ??= theme.ring;
+}

@@ -8,8 +8,10 @@ import {
     SunIcon
 } from 'lucide-react';
 
+import { cn } from '@/lib/utils';
 import { openExternalLink } from '@/lib/entityMedia.js';
 import { links } from '@/shared/constants/link.js';
+import { THEME_COLORS } from '@/shared/constants/themes.js';
 import { Button } from '@/ui/shadcn/button';
 import {
     DropdownMenu,
@@ -17,6 +19,8 @@ import {
     DropdownMenuContent,
     DropdownMenuGroup,
     DropdownMenuItem,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
     DropdownMenuSeparator,
     DropdownMenuSub,
     DropdownMenuSubContent,
@@ -33,6 +37,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem
 } from '@/ui/shadcn/sidebar';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import {
     NavItemContextMenu,
@@ -53,6 +58,64 @@ const tableDensityOptions = [
     }
 ];
 const vrcxLogo = new URL('../../../images/VRCX-0.png', import.meta.url).href;
+
+function themeColorLabel(themeColor, t) {
+    return t(`view.settings.appearance.theme_color.${themeColor.key}`);
+}
+
+function ThemeColorSwatchItem({ themeColor, selected, t }) {
+    const label = themeColorLabel(themeColor, t);
+
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <DropdownMenuRadioItem
+                    value={themeColor.key}
+                    aria-label={label}
+                    className={cn(
+                        'group/theme-color size-6 !gap-0 !p-0 !pr-0 !pl-0 justify-center rounded-sm bg-transparent hover:bg-transparent focus:bg-transparent focus:text-current data-highlighted:bg-transparent data-highlighted:text-current [&_[data-slot=dropdown-menu-radio-item-indicator]]:hidden'
+                    )}
+                    onSelect={(event) => {
+                        event.preventDefault();
+                    }}
+                >
+                    <span
+                        aria-hidden="true"
+                        className={cn(
+                            'size-3.5 rounded-sm border border-foreground/10 transition-transform group-hover/theme-color:scale-125 group-data-[highlighted]/theme-color:scale-125',
+                            selected &&
+                                'border-ring ring-1 ring-ring ring-offset-1 ring-offset-background'
+                        )}
+                        data-theme-color-swatch
+                        style={{ backgroundColor: themeColor.swatch }}
+                    />
+                </DropdownMenuRadioItem>
+            </TooltipTrigger>
+            <TooltipContent side="top">{label}</TooltipContent>
+        </Tooltip>
+    );
+}
+
+function ThemeColorSwatchGroup({ themeColor, onSetThemeColor, t }) {
+    return (
+        <DropdownMenuRadioGroup
+            value={themeColor}
+            className="grid grid-cols-8 gap-1 px-2 py-2"
+            onValueChange={(value) => {
+                void onSetThemeColor(value);
+            }}
+        >
+            {THEME_COLORS.map((color) => (
+                <ThemeColorSwatchItem
+                    key={color.key}
+                    themeColor={color}
+                    selected={themeColor === color.key}
+                    t={t}
+                />
+            ))}
+        </DropdownMenuRadioGroup>
+    );
+}
 
 function AppNavCreateDashboardHeader({
     visible,
@@ -166,11 +229,13 @@ function AppNavFooter({
     isLoggedIn,
     sidebarOpen,
     tableDensity,
+    themeColor,
     themeMode,
     onLogout,
     onNavigateSettings,
     onOpenCustomNav,
     onSetTableDensity,
+    onSetThemeColor,
     onSetThemeMode,
     onToggleSidebar,
     onToggleTheme,
@@ -265,6 +330,12 @@ function AppNavFooter({
                                             </DropdownMenuCheckboxItem>
                                         ))}
                                     </DropdownMenuGroup>
+                                    <DropdownMenuSeparator />
+                                    <ThemeColorSwatchGroup
+                                        themeColor={themeColor}
+                                        onSetThemeColor={onSetThemeColor}
+                                        t={t}
+                                    />
                                 </DropdownMenuSubContent>
                             </DropdownMenuSub>
                             <DropdownMenuSub>

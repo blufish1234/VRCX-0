@@ -1,7 +1,13 @@
 import { backend } from '@/platform/index.js';
+import {
+    DEFAULT_THEME_COLOR_KEY,
+    THEME_COLOR_CONFIG,
+    THEME_COLOR_STYLE_PROPERTIES
+} from '@/shared/constants/themes.js';
 import { useShellStore } from '@/state/shellStore.js';
 
 const VALID_THEME_MODES = new Set(['light', 'dark', 'system']);
+const VALID_THEME_COLORS = new Set(Object.keys(THEME_COLOR_CONFIG));
 const DEFAULT_ZOOM_LEVEL = 100;
 const MIN_ZOOM_LEVEL = 30;
 const MAX_ZOOM_LEVEL = 300;
@@ -89,6 +95,15 @@ export const APP_CJK_FONT_PACKS = Object.freeze(
     Object.keys(APP_CJK_FONT_PACK_CONFIG)
 );
 
+export function resolveThemeColor(value) {
+    const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
+    return VALID_THEME_COLORS.has(normalized)
+        ? normalized
+        : DEFAULT_THEME_COLOR_KEY;
+}
+
 export function resolveThemeMode(value) {
     if (value === 'midnight') {
         return 'dark';
@@ -126,6 +141,38 @@ export function normalizeZoomLevel(value, fallback = DEFAULT_ZOOM_LEVEL) {
 
 export function formatZoomPercentage(value) {
     return `${normalizeZoomLevel(value)}%`;
+}
+
+function clearThemeColorProperties(root) {
+    Object.values(THEME_COLOR_STYLE_PROPERTIES).forEach((propertyName) => {
+        root.style.removeProperty(propertyName);
+    });
+}
+
+export function applyThemeColor(themeColor) {
+    const normalized = resolveThemeColor(themeColor);
+    const theme = THEME_COLOR_CONFIG[normalized];
+
+    if (typeof document === 'undefined') {
+        useShellStore.getState().setThemeColor(normalized);
+        return normalized;
+    }
+
+    const root = document.documentElement;
+
+    root.setAttribute('data-theme-color', normalized);
+    clearThemeColorProperties(root);
+
+    if (normalized !== DEFAULT_THEME_COLOR_KEY) {
+        Object.entries(THEME_COLOR_STYLE_PROPERTIES).forEach(
+            ([tokenName, propertyName]) => {
+                root.style.setProperty(propertyName, theme[tokenName]);
+            }
+        );
+    }
+
+    useShellStore.getState().setThemeColor(normalized);
+    return normalized;
 }
 
 function ensureDynamicStyle(attrName, styleKey, cssText) {

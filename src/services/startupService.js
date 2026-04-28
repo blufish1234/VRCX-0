@@ -21,8 +21,10 @@ import {
     APP_CJK_FONT_PACK_DEFAULT_KEY,
     APP_FONT_DEFAULT_KEY,
     applyAppFontPreferences,
+    applyThemeColor,
     applyThemeMode,
     applyZoomLevel,
+    resolveThemeColor,
     resolveThemeMode
 } from './themeService.js';
 
@@ -53,6 +55,7 @@ export async function initializeReactRuntime() {
             locale,
             themeMode,
             zoomLevel,
+            themeColor,
             fontFamily,
             customFontFamily,
             cjkFontPack
@@ -60,6 +63,7 @@ export async function initializeReactRuntime() {
             configRepository.getString('appLanguage', 'en'),
             configRepository.getString('themeMode', 'system'),
             configRepository.getString('VRCX_ZoomLevel', null),
+            configRepository.getString('VRCX_themeColor', 'default'),
             configRepository.getString('VRCX_fontFamily', APP_FONT_DEFAULT_KEY),
             configRepository.getString('customFontFamily', ''),
             configRepository.getString(
@@ -74,6 +78,7 @@ export async function initializeReactRuntime() {
             'theme',
             applyThemeMode(resolvedThemeMode)
         );
+        applyThemeColor(resolveThemeColor(themeColor));
         applyAppFontPreferences({ fontFamily, customFontFamily, cjkFontPack });
         await runNonCriticalStartupSync('zoom', applyZoomLevel(zoomLevel));
         await databaseMaintenanceRepository.initGlobalTables();

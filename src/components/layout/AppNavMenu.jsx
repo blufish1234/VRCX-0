@@ -7,6 +7,7 @@ import { logoutFromReactShell } from '@/services/authExecutionService.js';
 import {
     setSidebarCollapsedPreference,
     setTableDensityPreference,
+    setThemeColorPreference,
     setThemeModePreference
 } from '@/services/preferencesService.js';
 import { triggerToolByKey } from '@/services/toolActionService.js';
@@ -66,6 +67,7 @@ export function AppNavMenu({ isCollapsed }) {
     const { t } = useTranslation();
     const sidebarOpen = useShellStore((state) => state.sidebarOpen);
     const themeMode = useShellStore((state) => state.themeMode);
+    const themeColor = useShellStore((state) => state.themeColor);
     const tableDensity = useShellStore((state) => state.tableDensity);
     const notifiedMenus = useShellStore((state) => state.notifiedMenus);
     const removeNavNotification = useShellStore((state) => state.removeNotify);
@@ -401,11 +403,13 @@ export function AppNavMenu({ isCollapsed }) {
                 isLoggedIn={isLoggedIn}
                 sidebarOpen={sidebarOpen}
                 tableDensity={tableDensity}
+                themeColor={themeColor}
                 themeMode={themeMode}
                 onLogout={handleLogout}
                 onNavigateSettings={() => navigate(routePathByName.settings)}
                 onOpenCustomNav={() => setCustomNavDialogOpen(true)}
                 onSetTableDensity={setTableDensityPreference}
+                onSetThemeColor={setThemeColorPreference}
                 onSetThemeMode={setThemeModePreference}
                 onToggleSidebar={() =>
                     setSidebarCollapsedPreference(sidebarOpen)

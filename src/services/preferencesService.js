@@ -33,9 +33,11 @@ import {
     readRecentActionCooldown
 } from './recentActionService.js';
 import {
+    applyThemeColor,
     applyThemeMode,
     applyZoomLevel,
     normalizeZoomLevel,
+    resolveThemeColor,
     resolveThemeMode
 } from './themeService.js';
 
@@ -454,6 +456,13 @@ export async function setThemeModePreference(themeMode) {
         await configRepository.setString('lastDarkTheme', nextThemeMode);
     }
     await applyThemeMode(nextThemeMode);
+}
+
+export async function setThemeColorPreference(themeColor) {
+    const nextThemeColor = resolveThemeColor(themeColor);
+    await configRepository.setString('VRCX_themeColor', nextThemeColor);
+    applyThemeColor(nextThemeColor);
+    return nextThemeColor;
 }
 
 export async function setZoomLevelPreference(value) {

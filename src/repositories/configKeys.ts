@@ -59,6 +59,7 @@ export const ConfigKeys = {
 
     // ── Settings - Appearance ────────────────────────
     ThemeMode: { type: 'string', default: null },
+    themeColor: { type: 'string', default: 'default' },
     lastDarkTheme: { type: 'string', default: null },
     fontFamily: { type: 'string', default: 'geist' },
     customFontFamily: { type: 'string', default: '' },

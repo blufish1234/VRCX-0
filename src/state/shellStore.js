@@ -1,6 +1,10 @@
 import { create } from 'zustand';
 
 import { backend } from '@/platform/index.js';
+import {
+    DEFAULT_THEME_COLOR_KEY,
+    THEME_COLOR_CONFIG
+} from '@/shared/constants/themes.js';
 
 const DEFAULT_TIME_UNIT_LABELS = Object.freeze({
     y: 'y',
@@ -19,6 +23,7 @@ const initialState = {
     navWidth: 240,
     locale: 'en',
     themeMode: 'system',
+    themeColor: DEFAULT_THEME_COLOR_KEY,
     tableDensity: 'standard',
     notificationLayout: 'notification-center',
     notificationIconDot: true,
@@ -35,6 +40,7 @@ const initialState = {
 };
 
 const themeModeValues = new Set(['system', 'light', 'dark']);
+const themeColorValues = new Set(Object.keys(THEME_COLOR_CONFIG));
 const tableDensityValues = new Set(['standard', 'compact']);
 
 function normalizeThemeMode(value) {
@@ -42,6 +48,15 @@ function normalizeThemeMode(value) {
         return 'dark';
     }
     return themeModeValues.has(value) ? value : 'system';
+}
+
+function normalizeThemeColor(value) {
+    const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
+    return themeColorValues.has(normalized)
+        ? normalized
+        : DEFAULT_THEME_COLOR_KEY;
 }
 
 export function normalizeTableDensity(value) {
@@ -119,6 +134,9 @@ export const useShellStore = create((set, get) => ({
     },
     setThemeMode(themeMode) {
         set({ themeMode: normalizeThemeMode(themeMode) });
+    },
+    setThemeColor(themeColor) {
+        set({ themeColor: normalizeThemeColor(themeColor) });
     },
     setTableDensity(tableDensity) {
         set({ tableDensity: normalizeTableDensity(tableDensity) });
