@@ -88,7 +88,7 @@ pub fn app__set_startup(app_handle: AppHandle, _enabled: bool) -> Result<(), App
     if !(cfg!(target_os = "windows") || cfg!(target_os = "linux")) {
         return Err(AppError::Custom(format!(
             "Autostart is not supported on {}",
-            crate::api::app::host_capabilities::current_platform()
+            crate::domain::host_capabilities::current_platform()
         )));
     }
 

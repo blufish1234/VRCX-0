@@ -1,17 +1,25 @@
+#[cfg(target_os = "linux")]
 use std::collections::HashSet;
 use std::fs;
-use std::path::{Path, PathBuf};
+#[cfg(target_os = "linux")]
+use std::path::Path;
+use std::path::PathBuf;
 use std::time::SystemTime;
 
+#[cfg(target_os = "linux")]
 const VRCHAT_APP_ID: &str = "438100";
+#[cfg(target_os = "linux")]
 const OUTPUT_LOG_PREFIX: &str = "output_log_";
+#[cfg(target_os = "linux")]
 const OUTPUT_LOG_SUFFIX: &str = ".txt";
 
+#[cfg(target_os = "linux")]
 #[derive(Clone, Debug)]
 pub struct LinuxSteamLibraries {
     pub libraries: Vec<PathBuf>,
 }
 
+#[cfg(target_os = "linux")]
 #[derive(Clone, Debug)]
 pub struct LinuxVrchatPaths {
     pub proton_prefix: PathBuf,
@@ -19,6 +27,209 @@ pub struct LinuxVrchatPaths {
     pub latest_log: Option<PathBuf>,
 }
 
+pub fn vrchat_config_path() -> PathBuf {
+    vrchat_app_data().join("config.json")
+}
+
+pub fn vrchat_app_data() -> PathBuf {
+    #[cfg(target_os = "linux")]
+    {
+        return discover_linux_vrchat_paths()
+            .map(|paths| paths.app_data)
+            .unwrap_or_default();
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        let local_app_data = std::env::var("LOCALAPPDATA").unwrap_or_default();
+        PathBuf::from(local_app_data).join("..\\LocalLow\\VRChat\\VRChat")
+    }
+}
+
+pub fn vrchat_photos_location() -> String {
+    if let Ok(content) = fs::read_to_string(vrchat_config_path()) {
+        if let Ok(v) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(folder) = v.get("picture_output_folder").and_then(|v| v.as_str()) {
+                if !folder.is_empty() {
+                    return folder.to_string();
+                }
+            }
+        }
+    }
+
+    default_vrchat_photos_location()
+        .to_string_lossy()
+        .into_owned()
+}
+
+pub fn ugc_photo_location(path: Option<String>) -> String {
+    match path {
+        Some(p) if !p.is_empty() => p,
+        _ => vrchat_photos_location(),
+    }
+}
+
+pub fn vrchat_cache_location() -> String {
+    if let Ok(content) = fs::read_to_string(vrchat_config_path()) {
+        if let Ok(v) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(folder) = v.get("cache_directory").and_then(|v| v.as_str()) {
+                if !folder.is_empty() {
+                    let base = PathBuf::from(folder);
+                    if base.is_dir() {
+                        return base
+                            .join("Cache-WindowsPlayer")
+                            .to_string_lossy()
+                            .into_owned();
+                    }
+                }
+            }
+        }
+    }
+
+    vrchat_app_data()
+        .join("Cache-WindowsPlayer")
+        .to_string_lossy()
+        .into_owned()
+}
+
+pub fn vrchat_screenshots_location() -> String {
+    #[cfg(target_os = "linux")]
+    {
+        linux_vrchat_screenshots_location()
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        let steam_path = steam_path();
+        if steam_path.is_empty() {
+            return String::new();
+        }
+        let userdata = PathBuf::from(&steam_path).join("userdata");
+        if !userdata.exists() {
+            return String::new();
+        }
+
+        let mut best_path = String::new();
+        let mut best_time = SystemTime::UNIX_EPOCH;
+
+        if let Ok(entries) = fs::read_dir(&userdata) {
+            for entry in entries.flatten() {
+                let screenshots_dir = entry.path().join("760\\remote\\438100\\screenshots");
+                if screenshots_dir.exists() {
+                    if let Ok(meta) = fs::metadata(&screenshots_dir) {
+                        if let Ok(modified) = meta.modified() {
+                            if modified > best_time {
+                                best_time = modified;
+                                best_path = screenshots_dir.to_string_lossy().into_owned();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        best_path
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn linux_vrchat_screenshots_location() -> String {
+    let mut best_path = String::new();
+    let mut best_time = SystemTime::UNIX_EPOCH;
+
+    for steam_root in discover_linux_steam_roots().unwrap_or_default() {
+        let userdata = steam_root.join("userdata");
+        if !userdata.is_dir() {
+            continue;
+        }
+
+        let Ok(entries) = fs::read_dir(&userdata) else {
+            continue;
+        };
+
+        for entry in entries.flatten() {
+            let screenshots_dir = entry
+                .path()
+                .join("760")
+                .join("remote")
+                .join("438100")
+                .join("screenshots");
+            if !screenshots_dir.is_dir() {
+                continue;
+            }
+
+            let modified = fs::metadata(&screenshots_dir)
+                .and_then(|meta| meta.modified())
+                .unwrap_or(SystemTime::UNIX_EPOCH);
+            if modified > best_time {
+                best_time = modified;
+                best_path = screenshots_dir.to_string_lossy().into_owned();
+            }
+        }
+    }
+
+    best_path
+}
+
+pub fn steam_path() -> String {
+    #[cfg(target_os = "windows")]
+    {
+        use winreg::enums::*;
+        use winreg::RegKey;
+
+        let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+        if let Ok(key) = hklm.open_subkey("SOFTWARE\\WOW6432Node\\Valve\\Steam") {
+            if let Ok(val) = key.get_value::<String, _>("InstallPath") {
+                return val;
+            }
+        }
+        return String::new();
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        String::new()
+    }
+}
+
+pub fn vrchat_crashes_location() -> PathBuf {
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(paths) = discover_linux_vrchat_paths() {
+            return paths
+                .proton_prefix
+                .join("drive_c")
+                .join("users")
+                .join("steamuser")
+                .join("AppData")
+                .join("Local")
+                .join("Temp")
+                .join("VRChat")
+                .join("VRChat")
+                .join("Crashes");
+        }
+    }
+
+    std::env::temp_dir().join("VRChat\\VRChat\\Crashes")
+}
+
+fn default_vrchat_photos_location() -> PathBuf {
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(paths) = discover_linux_vrchat_paths() {
+            return paths
+                .proton_prefix
+                .join("drive_c")
+                .join("users")
+                .join("steamuser")
+                .join("Pictures")
+                .join("VRChat");
+        }
+    }
+
+    dirs::picture_dir().unwrap_or_default().join("VRChat")
+}
+
+#[cfg(target_os = "linux")]
 pub fn discover_linux_steam_roots() -> Result<Vec<PathBuf>, String> {
     let home = dirs::home_dir().ok_or_else(|| "Linux home directory not found".to_string())?;
     let mut roots = Vec::new();
@@ -43,6 +254,7 @@ pub fn discover_linux_steam_roots() -> Result<Vec<PathBuf>, String> {
     Ok(roots)
 }
 
+#[cfg(target_os = "linux")]
 pub fn discover_linux_steam_libraries() -> Result<LinuxSteamLibraries, String> {
     let home = dirs::home_dir().ok_or_else(|| "Linux home directory not found".to_string())?;
     let mut libraries = Vec::new();
@@ -78,6 +290,7 @@ pub fn discover_linux_steam_libraries() -> Result<LinuxSteamLibraries, String> {
     Ok(LinuxSteamLibraries { libraries })
 }
 
+#[cfg(target_os = "linux")]
 pub fn discover_linux_vrchat_paths() -> Result<LinuxVrchatPaths, String> {
     let steam_libraries = discover_linux_steam_libraries()?;
     let mut saw_prefix = false;
@@ -145,6 +358,7 @@ pub fn discover_linux_vrchat_paths() -> Result<LinuxVrchatPaths, String> {
     Err("VRChat Proton prefix not found".into())
 }
 
+#[cfg(target_os = "linux")]
 pub fn discover_linux_vrchat_log_paths() -> Result<LinuxVrchatPaths, String> {
     let paths = discover_linux_vrchat_paths()?;
     if paths.latest_log.is_some() {
@@ -154,6 +368,7 @@ pub fn discover_linux_vrchat_log_paths() -> Result<LinuxVrchatPaths, String> {
     }
 }
 
+#[cfg(target_os = "linux")]
 pub fn discover_linux_game_launch() -> Result<(), String> {
     if linux_command_in_path("steam") {
         return Ok(());
@@ -166,6 +381,7 @@ pub fn discover_linux_game_launch() -> Result<(), String> {
     Err("Steam launcher not found".into())
 }
 
+#[cfg(target_os = "linux")]
 pub fn discover_linux_screenshot_cache() -> Result<(), String> {
     discover_linux_vrchat_paths()
         .map_err(|reason| format!("VRChat photos path discovery failed: {reason}"))?;
@@ -179,6 +395,7 @@ pub fn discover_linux_screenshot_cache() -> Result<(), String> {
     Err("Steam userdata path not found".into())
 }
 
+#[cfg(target_os = "linux")]
 pub fn linux_command_in_path(command: &str) -> bool {
     let Some(path_var) = std::env::var_os("PATH") else {
         return false;
@@ -187,6 +404,7 @@ pub fn linux_command_in_path(command: &str) -> bool {
     std::env::split_paths(&path_var).any(|dir| dir.join(command).is_file())
 }
 
+#[cfg(target_os = "linux")]
 pub fn linux_steam_sh_candidates() -> Vec<PathBuf> {
     discover_linux_steam_roots()
         .unwrap_or_default()
@@ -196,6 +414,7 @@ pub fn linux_steam_sh_candidates() -> Vec<PathBuf> {
         .collect()
 }
 
+#[cfg(target_os = "linux")]
 fn steam_root_candidates(home: &Path) -> Vec<PathBuf> {
     vec![
         home.join(".local").join("share").join("Steam"),
@@ -209,12 +428,14 @@ fn steam_root_candidates(home: &Path) -> Vec<PathBuf> {
     ]
 }
 
+#[cfg(target_os = "linux")]
 #[derive(Default)]
 struct ParsedSteamLibraries {
     app_libraries: Vec<PathBuf>,
     all_libraries: Vec<PathBuf>,
 }
 
+#[cfg(target_os = "linux")]
 fn read_steam_libraries_from_vdf(path: &Path) -> ParsedSteamLibraries {
     let Ok(content) = fs::read_to_string(path) else {
         return ParsedSteamLibraries::default();
@@ -242,6 +463,7 @@ fn read_steam_libraries_from_vdf(path: &Path) -> ParsedSteamLibraries {
     parsed
 }
 
+#[cfg(target_os = "linux")]
 fn quoted_tokens(line: &str) -> Vec<String> {
     let mut tokens = Vec::new();
     let mut current = String::new();
@@ -277,6 +499,7 @@ fn quoted_tokens(line: &str) -> Vec<String> {
     tokens
 }
 
+#[cfg(target_os = "linux")]
 fn newest_output_log(log_dir: &Path) -> Option<(SystemTime, PathBuf)> {
     let entries = fs::read_dir(log_dir).ok()?;
     let mut newest: Option<(SystemTime, PathBuf)> = None;
@@ -309,6 +532,7 @@ fn newest_output_log(log_dir: &Path) -> Option<(SystemTime, PathBuf)> {
     newest
 }
 
+#[cfg(target_os = "linux")]
 fn push_unique_path(paths: &mut Vec<PathBuf>, seen: &mut HashSet<PathBuf>, path: PathBuf) {
     if seen.insert(path.clone()) {
         paths.push(path);

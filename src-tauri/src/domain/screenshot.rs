@@ -2,6 +2,8 @@ use std::path::Path;
 use std::sync::Mutex;
 
 use crate::domain::png;
+use crate::domain::vrchat_paths;
+use crate::error::AppError;
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -404,6 +406,141 @@ pub fn get_screenshot_metadata(path: &str) -> Option<ScreenshotMetadata> {
     }
 
     Some(result)
+}
+
+pub fn extra_screenshot_data(path: &str, carousel_cache: bool) -> Result<String, AppError> {
+    let p = Path::new(path);
+    let mut result = serde_json::Map::new();
+
+    result.insert("filePath".into(), serde_json::json!(path));
+
+    if let Ok(meta) = std::fs::metadata(p) {
+        if let Ok(created) = meta.created() {
+            let dt: chrono::DateTime<chrono::Utc> = created.into();
+            result.insert("creationDate".into(), serde_json::json!(dt.to_rfc3339()));
+        }
+        result.insert("fileSizeBytes".into(), serde_json::json!(meta.len()));
+    }
+    if is_png_file(path) {
+        let mut png = png::PngFile::open_read(path);
+        if let Ok(ref mut png) = png {
+            let res = png::read_resolution(png);
+            if !res.is_empty() {
+                result.insert("resolution".into(), serde_json::json!(res));
+            }
+        }
+    }
+    let file_name = p
+        .file_name()
+        .map(|f| f.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    result.insert("fileName".into(), serde_json::json!(file_name));
+
+    if carousel_cache {
+        if let Some(parent) = p.parent() {
+            if let Ok(entries) = std::fs::read_dir(parent) {
+                let mut pngs: Vec<String> = entries
+                    .filter_map(|e| e.ok())
+                    .filter(|e| {
+                        e.path()
+                            .extension()
+                            .is_some_and(|ext| ext.eq_ignore_ascii_case("png"))
+                    })
+                    .map(|e| e.path().to_string_lossy().into_owned())
+                    .collect();
+                pngs.sort();
+                if let Some(idx) = pngs.iter().position(|f| f == path) {
+                    if idx > 0 {
+                        result.insert("previousFilePath".into(), serde_json::json!(pngs[idx - 1]));
+                    }
+                    if idx + 1 < pngs.len() {
+                        result.insert("nextFilePath".into(), serde_json::json!(pngs[idx + 1]));
+                    }
+                }
+            }
+        }
+    }
+
+    serde_json::to_string(&result).map_err(|e| AppError::Custom(format!("serialize: {e}")))
+}
+
+pub fn screenshot_metadata_json(path: &str) -> Result<String, AppError> {
+    match get_screenshot_metadata(path) {
+        Some(meta) => {
+            serde_json::to_string(&meta).map_err(|e| AppError::Custom(format!("serialize: {e}")))
+        }
+        None => Ok(String::new()),
+    }
+}
+
+pub fn find_screenshots_json(
+    search_query: &str,
+    search_type: Option<i32>,
+    cache: &MetadataCacheDb,
+) -> Result<String, AppError> {
+    let st = SearchType::from_i32(search_type.unwrap_or(0));
+    let photos_dir = vrchat_paths::vrchat_photos_location();
+    if photos_dir.is_empty() {
+        return Ok("[]".into());
+    }
+    let results = find_screenshots(search_query, &photos_dir, st, cache);
+    serde_json::to_string(&results).map_err(|e| AppError::Custom(format!("serialize: {e}")))
+}
+
+pub fn last_screenshot() -> String {
+    let photos_dir = vrchat_paths::vrchat_photos_location();
+    if photos_dir.is_empty() {
+        return String::new();
+    }
+    let mut newest: Option<(String, std::time::SystemTime)> = None;
+    if let Ok(entries) = walkdir::WalkDir::new(&photos_dir)
+        .into_iter()
+        .collect::<Result<Vec<_>, _>>()
+    {
+        for entry in entries {
+            if entry.file_type().is_file()
+                && entry
+                    .path()
+                    .extension()
+                    .is_some_and(|e| e.eq_ignore_ascii_case("png"))
+            {
+                if let Ok(meta) = entry.metadata() {
+                    if let Ok(modified) = meta.modified() {
+                        if newest.as_ref().is_none_or(|(_, t)| modified > *t) {
+                            newest = Some((entry.path().to_string_lossy().into_owned(), modified));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    newest.map(|(p, _)| p).unwrap_or_default()
+}
+
+pub fn delete_all_screenshot_metadata(cache: &MetadataCacheDb) {
+    let photos_dir = vrchat_paths::vrchat_photos_location();
+    if photos_dir.is_empty() {
+        return;
+    }
+    for entry in walkdir::WalkDir::new(&photos_dir).into_iter().flatten() {
+        if entry.file_type().is_file()
+            && entry
+                .path()
+                .extension()
+                .is_some_and(|e| e.eq_ignore_ascii_case("png"))
+        {
+            delete_text_metadata(&entry.path().to_string_lossy(), true);
+        }
+    }
+    cache.clear_all();
+}
+
+pub fn add_screenshot_metadata(path: &str, metadata_string: &str) -> String {
+    if has_vrcx_metadata(path) {
+        return path.to_string();
+    }
+    write_vrcx_metadata(metadata_string, path);
+    path.to_string()
 }
 
 #[derive(Clone, Copy)]

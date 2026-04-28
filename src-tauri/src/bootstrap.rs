@@ -11,7 +11,7 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::Layer;
 
-use crate::api::app::host_capabilities::{
+use crate::domain::host_capabilities::{
     current_host_capabilities, is_host_capability_available, HostCapability,
 };
 use crate::state::AppState;
