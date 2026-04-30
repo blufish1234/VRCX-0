@@ -19,7 +19,7 @@ export function UserTitleLanguages({ languages }) {
     }
 
     return (
-        <span className="inline-flex shrink-0 flex-wrap items-center gap-1">
+        <span className="flex min-w-0 max-w-full flex-wrap items-start gap-1">
             {languages.map((language) => {
                 const key = String(
                     language?.key || language?.value || ''
@@ -30,9 +30,11 @@ export function UserTitleLanguages({ languages }) {
                         <TooltipTrigger asChild>
                             <Badge
                                 variant="outline"
-                                className="shrink-0 text-xs"
+                                className="h-auto min-h-5 max-w-full shrink justify-start text-left text-xs leading-tight whitespace-normal"
                             >
-                                {label}
+                                <span className="min-w-0 break-words">
+                                    {label}
+                                </span>
                             </Badge>
                         </TooltipTrigger>
                         <TooltipContent>{label}</TooltipContent>
