@@ -114,6 +114,7 @@ pub fn run() {
             api::asset_bundle::asset_bundle__sweep_cache,
             api::asset_bundle::asset_bundle__get_cache_size,
             api::log_watcher::log_watcher__get,
+            api::log_watcher::log_watcher__get_current_location,
             api::log_watcher::log_watcher__set_date_till,
             api::log_watcher::log_watcher__reset,
             api::log_watcher::log_watcher__vrc_closed_gracefully,

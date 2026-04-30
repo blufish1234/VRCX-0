@@ -3,9 +3,10 @@ use std::fs::{self, File};
 use std::io::{BufRead, BufReader, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, RwLock};
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
 
 use chrono::{Local, NaiveDateTime, Utc};
+use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 
 const INACTIVE_POLL_KEEPALIVE: Duration = Duration::from_secs(120);
@@ -17,6 +18,7 @@ pub struct LogWatcher {
 
 struct Inner {
     log_list: RwLock<Vec<Vec<String>>>,
+    log_dir: RwLock<Option<PathBuf>>,
     till_date: Mutex<Option<NaiveDateTime>>,
     active: Mutex<bool>,
     reset_flag: Mutex<bool>,
@@ -31,6 +33,7 @@ impl LogWatcher {
         Self {
             inner: Arc::new(Inner {
                 log_list: RwLock::new(Vec::new()),
+                log_dir: RwLock::new(None),
                 till_date: Mutex::new(None),
                 active: Mutex::new(false),
                 reset_flag: Mutex::new(false),
@@ -58,6 +61,7 @@ impl LogWatcher {
         app_handle: AppHandle,
         poll_without_process_monitor: bool,
     ) {
+        *self.inner.log_dir.write().unwrap() = Some(log_dir.clone());
         *self.inner.poll_without_process_monitor.lock().unwrap() = poll_without_process_monitor;
         *self.inner.keep_polling_until.lock().unwrap() =
             Some(Instant::now() + INACTIVE_POLL_KEEPALIVE);
@@ -96,6 +100,11 @@ impl LogWatcher {
         *self.inner.vrc_closed_gracefully.lock().unwrap()
     }
 
+    pub fn current_location_snapshot(&self) -> Option<LogLocationSnapshot> {
+        let log_dir = self.inner.log_dir.read().unwrap().clone()?;
+        scan_current_location_snapshot(&log_dir)
+    }
+
     pub fn set_game_running(&self, running: bool) {
         *self.inner.game_running.lock().unwrap() = running;
         if !running {
@@ -103,6 +112,22 @@ impl LogWatcher {
                 Some(Instant::now() + INACTIVE_POLL_KEEPALIVE);
         }
     }
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LogLocationSnapshot {
+    pub location: String,
+    pub world_name: String,
+    pub created_at: String,
+    pub file_name: String,
+}
+
+struct LogFileCandidate {
+    path: PathBuf,
+    file_name: String,
+    timestamp: Option<NaiveDateTime>,
+    modified: SystemTime,
 }
 
 fn thread_loop(inner: Arc<Inner>, log_dir: PathBuf, app_handle: AppHandle) {
@@ -346,6 +371,107 @@ fn parse_log(
 
     ctx.position = reader.stream_position().unwrap_or(ctx.position);
     ctx.position > initial_position
+}
+
+fn scan_current_location_snapshot(log_dir: &Path) -> Option<LogLocationSnapshot> {
+    if !log_dir.exists() {
+        return None;
+    }
+
+    let candidates: Vec<_> = fs::read_dir(log_dir)
+        .ok()?
+        .filter_map(|entry| entry.ok())
+        .filter_map(|entry| {
+            let path = entry.path();
+            if !path.is_file() {
+                return None;
+            }
+            let name = entry.file_name().to_string_lossy().to_string();
+            if !name.starts_with("output_log_") || !name.ends_with(".txt") {
+                return None;
+            }
+            let modified = entry
+                .metadata()
+                .and_then(|metadata| metadata.modified())
+                .unwrap_or(SystemTime::UNIX_EPOCH);
+            Some(LogFileCandidate {
+                path,
+                timestamp: parse_output_log_file_timestamp(&name),
+                file_name: name,
+                modified,
+            })
+        })
+        .collect();
+
+    let candidate = candidates
+        .iter()
+        .filter(|candidate| candidate.timestamp.is_some())
+        .max_by_key(|candidate| candidate.timestamp)
+        .or_else(|| candidates.iter().max_by_key(|candidate| candidate.modified))?;
+    scan_log_file_location_snapshot(&candidate.path, &candidate.file_name)
+}
+
+fn parse_output_log_file_timestamp(file_name: &str) -> Option<NaiveDateTime> {
+    let timestamp = file_name
+        .strip_prefix("output_log_")?
+        .strip_suffix(".txt")?;
+    NaiveDateTime::parse_from_str(timestamp, "%Y-%m-%d_%H-%M-%S").ok()
+}
+
+fn scan_log_file_location_snapshot(path: &Path, file_name: &str) -> Option<LogLocationSnapshot> {
+    let file = File::open(path).ok()?;
+    let reader = BufReader::with_capacity(65536, file);
+    let mut recent_world_name = String::new();
+    let mut current_location: Option<LogLocationSnapshot> = None;
+
+    for line in reader.lines().map_while(Result::ok) {
+        let trimmed = line.trim_end();
+        if trimmed.len() <= 36 || trimmed.as_bytes().get(31) != Some(&b'-') {
+            continue;
+        }
+
+        let date_str = &trimmed[..19];
+        let line_date = match NaiveDateTime::parse_from_str(date_str, "%Y.%m.%d %H:%M:%S") {
+            Ok(date) => date,
+            Err(_) => continue,
+        };
+        let now_local = Local::now().naive_local();
+        if line_date > now_local + chrono::Duration::minutes(61) {
+            continue;
+        }
+
+        let content = &trimmed[34..];
+        if content.contains("[Behaviour] Entering Room: ") {
+            if let Some(pos) = trimmed.rfind("] Entering Room: ") {
+                recent_world_name = trimmed[pos + 17..].to_string();
+            }
+            continue;
+        }
+
+        if content.contains("[Behaviour] OnLeftRoom") {
+            current_location = None;
+            continue;
+        }
+
+        if content.contains("[Behaviour] Joining ")
+            && !content.contains("] Joining or Creating Room: ")
+            && !content.contains("] Joining friend: ")
+        {
+            if let Some(pos) = trimmed.rfind("] Joining ") {
+                let location = clean_location(&trimmed[pos + 10..]);
+                if !location.is_empty() {
+                    current_location = Some(LogLocationSnapshot {
+                        location,
+                        world_name: recent_world_name.clone(),
+                        created_at: convert_log_time_to_iso8601(trimmed),
+                        file_name: file_name.to_string(),
+                    });
+                }
+            }
+        }
+    }
+
+    current_location
 }
 
 fn convert_log_time_to_iso8601(line: &str) -> String {

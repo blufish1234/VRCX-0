@@ -1,13 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { PageScaffold } from '@/components/layout/PageScaffold.jsx';
 import { userFacingErrorMessage } from '@/lib/errorDisplay.js';
+import { backend } from '@/platform/index.js';
 import {
     gameLogRepository,
     instanceRepository,
     playerListRepository,
+    userProfileRepository,
     vrchatSearchRepository,
     vrchatModerationRepository
 } from '@/repositories/index.js';
@@ -25,8 +27,31 @@ import { enrichPlayerListRows } from './playerListEnrichment.js';
 import {
     buildFavoriteIdSet,
     buildPlayerSourceRows,
-    normalizeString
+    isLiveLocation,
+    normalizeString,
+    resolvePlayerRowUserId
 } from './playerListRows.js';
+
+const PLAYER_PROFILE_FETCH_CONCURRENCY = 4;
+
+function normalizeLogLocationSnapshot(snapshot) {
+    if (!snapshot || typeof snapshot !== 'object') {
+        return null;
+    }
+
+    const location = normalizeString(snapshot.location);
+    if (!isLiveLocation(location)) {
+        return null;
+    }
+
+    return {
+        location,
+        worldName: normalizeString(snapshot.worldName),
+        createdAt:
+            normalizeString(snapshot.createdAt) || new Date().toISOString(),
+        fileName: normalizeString(snapshot.fileName)
+    };
+}
 
 function normalizeApiInstanceUsers(...sources) {
     const rows = [];
@@ -99,6 +124,10 @@ function normalizeApiInstanceUsers(...sources) {
             id: userId || key,
             userId,
             displayName,
+            ref:
+                value.ref && typeof value.ref === 'object'
+                    ? value.ref
+                    : value,
             source: 'instance-api'
         });
     };
@@ -172,8 +201,18 @@ export function PlayerListPage({ embedded = false } = {}) {
         source: 'none'
     });
     const [playerRows, setPlayerRows] = useState([]);
+    const [logLocationSnapshot, setLogLocationSnapshot] = useState(null);
+    const [profilesByUserId, setProfilesByUserId] = useState({});
     const [moderationByUserId, setModerationByUserId] = useState({});
     const [clockNow, setClockNow] = useState(() => Date.now());
+    const requestedProfileKeysRef = useRef(new Set());
+
+    const playerListLocation =
+        currentUserLocation || logLocationSnapshot?.location || '';
+    const playerListWorldId =
+        currentUserWorldId || parseLocation(playerListLocation).worldId || '';
+    const playerListStartedAt =
+        currentLocationStartedAt || logLocationSnapshot?.createdAt || '';
 
     useEffect(() => {
         const timer = window.setInterval(() => {
@@ -188,13 +227,64 @@ export function PlayerListPage({ embedded = false } = {}) {
     useEffect(() => {
         let active = true;
 
+        if (currentUserLocation || !isGameRunning || gameLogDisabled) {
+            setLogLocationSnapshot(null);
+            return () => {
+                active = false;
+            };
+        }
+
+        if (logLocationSnapshot) {
+            return () => {
+                active = false;
+            };
+        }
+
+        backend.logWatcher
+            .GetCurrentLocation()
+            .then((snapshot) => {
+                if (!active) {
+                    return;
+                }
+
+                const normalized = normalizeLogLocationSnapshot(snapshot);
+                const normalizedKey = JSON.stringify(normalized || null);
+                setLogLocationSnapshot((previous) =>
+                    JSON.stringify(previous || null) === normalizedKey
+                        ? previous
+                        : normalized
+                );
+            })
+            .catch(() => {
+                if (!active) {
+                    return;
+                }
+
+                setLogLocationSnapshot(null);
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [
+        addGameLogEventCount,
+        currentUserId,
+        currentUserLocation,
+        gameLogDisabled,
+        isGameRunning,
+        logLocationSnapshot
+    ]);
+
+    useEffect(() => {
+        let active = true;
+
         if (gameLogDisabled) {
             setLoadStatus('idle');
             setDetail('Game log ingestion is disabled.');
             setContext({
                 createdAt: '',
-                location: currentUserLocation || '',
-                worldId: currentUserWorldId || '',
+                location: playerListLocation || '',
+                worldId: playerListWorldId || '',
                 worldName: '',
                 time: 0,
                 groupName: '',
@@ -212,8 +302,8 @@ export function PlayerListPage({ embedded = false } = {}) {
             setDetail('');
             setContext({
                 createdAt: '',
-                location: currentUserLocation || '',
-                worldId: currentUserWorldId || '',
+                location: playerListLocation || '',
+                worldId: playerListWorldId || '',
                 worldName: '',
                 time: 0,
                 groupName: '',
@@ -226,13 +316,13 @@ export function PlayerListPage({ embedded = false } = {}) {
             };
         }
 
-        if (!currentUserLocation) {
+        if (!playerListLocation) {
             setLoadStatus('idle');
             setDetail('Waiting for the current runtime location.');
             setContext({
                 createdAt: '',
                 location: '',
-                worldId: currentUserWorldId || '',
+                worldId: playerListWorldId || '',
                 worldName: '',
                 time: 0,
                 groupName: '',
@@ -245,7 +335,7 @@ export function PlayerListPage({ embedded = false } = {}) {
             };
         }
 
-        if (currentUserLocation === 'traveling') {
+        if (playerListLocation === 'traveling') {
             setLoadStatus('idle');
             setDetail('');
             setContext({
@@ -270,7 +360,7 @@ export function PlayerListPage({ embedded = false } = {}) {
         playerListRepository
             .getCurrentInstanceSnapshot({
                 currentUserId,
-                currentLocation: currentUserLocation
+                currentLocation: playerListLocation
             })
             .then(async (result) => {
                 if (!active) {
@@ -303,10 +393,20 @@ export function PlayerListPage({ embedded = false } = {}) {
                     );
                 }
 
-                setContext({
+                const nextContext = {
                     ...result.context,
                     playerCount: players.length || result.context.playerCount
-                });
+                };
+                if (
+                    logLocationSnapshot?.location &&
+                    logLocationSnapshot.location === nextContext.location
+                ) {
+                    nextContext.createdAt =
+                        nextContext.createdAt || logLocationSnapshot.createdAt;
+                    nextContext.worldName =
+                        nextContext.worldName || logLocationSnapshot.worldName;
+                }
+                setContext(nextContext);
                 setPlayerRows(players);
                 setLoadStatus('ready');
                 setDetail(
@@ -339,11 +439,11 @@ export function PlayerListPage({ embedded = false } = {}) {
         addGameLogEventCount,
         currentUserEndpoint,
         currentUserId,
-        currentUserLocation,
-        currentUserWorldId,
         gameLogTailSyncedAt,
         gameLogDisabled,
-        isGameRunning
+        isGameRunning,
+        playerListLocation,
+        playerListWorldId
     ]);
 
     const favoriteFriendIds = useMemo(
@@ -359,19 +459,119 @@ export function PlayerListPage({ embedded = false } = {}) {
             currentUserSnapshot,
             isGameRunning,
             context,
-            currentUserLocation,
-            currentLocationStartedAt
+            currentUserLocation: playerListLocation,
+            currentLocationStartedAt: playerListStartedAt
         });
     }, [
         context.createdAt,
         context.location,
-        currentLocationStartedAt,
         currentUserId,
-        currentUserLocation,
         currentUserSnapshot,
         isGameRunning,
+        playerListLocation,
+        playerListStartedAt,
         playerRows,
         runtimePlayerRows
+    ]);
+
+    useEffect(() => {
+        requestedProfileKeysRef.current.clear();
+        setProfilesByUserId({});
+    }, [currentUserEndpoint, currentUserId, playerListLocation]);
+
+    useEffect(() => {
+        let active = true;
+        const normalizedCurrentUserId = normalizeString(currentUserId);
+        const pendingUserIds = [];
+
+        for (const row of playerSourceRows) {
+            const userId = resolvePlayerRowUserId(row);
+            if (!userId) {
+                continue;
+            }
+            if (userId === normalizedCurrentUserId) {
+                continue;
+            }
+            if (friendsById[userId]) {
+                continue;
+            }
+            if (profilesByUserId[userId]) {
+                continue;
+            }
+
+            const requestKey = `${currentUserEndpoint || ''}\u0000${userId}`;
+            if (requestedProfileKeysRef.current.has(requestKey)) {
+                continue;
+            }
+
+            requestedProfileKeysRef.current.add(requestKey);
+            pendingUserIds.push(userId);
+        }
+
+        if (!pendingUserIds.length) {
+            return () => {
+                active = false;
+            };
+        }
+
+        async function fetchProfiles() {
+            const queue = [...pendingUserIds];
+            const nextProfiles = {};
+            const workers = Array.from(
+                {
+                    length: Math.min(
+                        PLAYER_PROFILE_FETCH_CONCURRENCY,
+                        queue.length
+                    )
+                },
+                async () => {
+                    while (queue.length) {
+                        const userId = queue.shift();
+                        try {
+                            const profile =
+                                await userProfileRepository.getUserProfile({
+                                    userId,
+                                    endpoint: currentUserEndpoint
+                                });
+                            const profileUserId = normalizeString(
+                                profile?.id || userId
+                            );
+                            if (profileUserId) {
+                                nextProfiles[profileUserId] = profile;
+                            }
+                        } catch (error) {
+                            console.warn(
+                                'PlayerList failed to load player profile:',
+                                userId,
+                                error
+                            );
+                        }
+                    }
+                }
+            );
+
+            await Promise.all(workers);
+            if (!active || !Object.keys(nextProfiles).length) {
+                return;
+            }
+
+            setProfilesByUserId((current) => ({
+                ...current,
+                ...nextProfiles
+            }));
+        }
+
+        void fetchProfiles();
+
+        return () => {
+            active = false;
+        };
+    }, [
+        currentUserEndpoint,
+        currentUserId,
+        friendsById,
+        playerSourceRows,
+        profilesByUserId
     ]);
 
     const enrichedRows = useMemo(() => {
@@ -383,7 +583,8 @@ export function PlayerListPage({ embedded = false } = {}) {
             favoriteFriendIds,
             friendsById,
             moderationByUserId,
-            playerSourceRows
+            playerSourceRows,
+            profilesByUserId
         });
     }, [
         clockNow,
@@ -394,7 +595,8 @@ export function PlayerListPage({ embedded = false } = {}) {
         favoriteFriendIds,
         friendsById,
         moderationByUserId,
-        playerSourceRows
+        playerSourceRows,
+        profilesByUserId
     ]);
 
     const filteredRows = isGameRunning ? enrichedRows : [];
@@ -407,8 +609,8 @@ export function PlayerListPage({ embedded = false } = {}) {
     );
 
     const parsedLocation = useMemo(
-        () => parseLocation(context.location || currentUserLocation || ''),
-        [context.location, currentUserLocation]
+        () => parseLocation(context.location || playerListLocation || ''),
+        [context.location, playerListLocation]
     );
     const isPlayerListSourceUnavailable = Boolean(
         !gameLogDisabled &&
@@ -569,13 +771,13 @@ export function PlayerListPage({ embedded = false } = {}) {
                 clockNow={clockNow}
                 context={context}
                 currentUserEndpoint={currentUserEndpoint}
-                currentUserLocation={currentUserLocation}
+                currentUserLocation={playerListLocation}
                 currentUserSnapshot={currentUserSnapshot}
                 friendCount={headerFriendCount}
                 isGameRunning={isGameRunning}
                 onPreviewImage={openImagePreview}
                 playerCount={headerPlayerCount}
-                startedAt={currentLocationStartedAt}
+                startedAt={playerListStartedAt}
                 t={t}
             />
 

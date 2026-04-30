@@ -1,7 +1,132 @@
 import { userImage } from '@/lib/entityMedia.js';
+import {
+    computeTrustLevel,
+    computeUserPlatform
+} from '@/shared/utils/userTransforms.js';
+import { normalizeProfileLanguageRows } from '@/shared/utils/userLanguage.js';
 
 import { resolvePlatformMeta } from './playerListDisplay.js';
-import { normalizeString, parseTimeMs } from './playerListRows.js';
+import {
+    normalizeString,
+    parseTimeMs,
+    resolvePlayerRowUserId
+} from './playerListRows.js';
+
+function hasArrayItems(value) {
+    return Array.isArray(value) && value.length > 0;
+}
+
+function hasProfileText(value) {
+    return Boolean(normalizeString(value));
+}
+
+function hasUsefulProfileFields(source) {
+    if (!source || typeof source !== 'object') {
+        return false;
+    }
+
+    return Boolean(
+        hasProfileText(source.$trustLevel) ||
+            hasProfileText(source.$trustClass) ||
+            Number(source.$trustSortNum) > 0 ||
+            hasArrayItems(source.tags) ||
+            hasProfileText(source.developerType) ||
+            hasProfileText(source.$platform) ||
+            hasProfileText(source.platform) ||
+            hasProfileText(source.last_platform) ||
+            hasProfileText(source.status) ||
+            hasProfileText(source.statusDescription) ||
+            hasProfileText(source.profilePicOverrideThumbnail) ||
+            hasProfileText(source.profilePicOverride) ||
+            hasProfileText(source.thumbnailUrl) ||
+            hasProfileText(source.currentAvatarThumbnailImageUrl) ||
+            hasProfileText(source.currentAvatarImageUrl) ||
+            hasProfileText(source.userIcon) ||
+            hasArrayItems(source.$languages) ||
+            hasArrayItems(source.languages) ||
+            hasArrayItems(source.bioLinks) ||
+            hasProfileText(source.note) ||
+            hasProfileText(source.memo) ||
+            source.$moderations ||
+            source.moderations ||
+            source.ageVerified === true ||
+            hasProfileText(source.ageVerificationStatus) ||
+            source.isFriend === true
+    );
+}
+
+function resolveRowProfile(row) {
+    const ref = row?.ref && typeof row.ref === 'object' ? row.ref : null;
+    if (hasUsefulProfileFields(ref)) {
+        return ref;
+    }
+    return hasUsefulProfileFields(row) ? row : null;
+}
+
+function normalizeUserRef(source, fallbackUserId) {
+    if (!source || typeof source !== 'object') {
+        return null;
+    }
+
+    const tags = Array.isArray(source.tags) ? source.tags : [];
+    const canComputeTrust =
+        Array.isArray(source.tags) || hasProfileText(source.developerType);
+    const trust = canComputeTrust
+        ? computeTrustLevel(tags, normalizeString(source.developerType))
+        : null;
+    const id = normalizeString(source.id || source.userId || fallbackUserId);
+
+    return {
+        ...source,
+        id: id || source.id,
+        $trustLevel: source.$trustLevel || trust?.trustLevel || '',
+        $trustClass: source.$trustClass || trust?.trustClass || '',
+        $trustSortNum:
+            Number(source.$trustSortNum ?? trust?.trustSortNum ?? 0) || 0,
+        $isModerator: Boolean(source.$isModerator || trust?.isModerator),
+        $isTroll: Boolean(source.$isTroll || trust?.isTroll),
+        $isProbableTroll: Boolean(
+            source.$isProbableTroll || trust?.isProbableTroll
+        ),
+        $platform:
+            source.$platform ||
+            computeUserPlatform(source.platform, source.last_platform)
+    };
+}
+
+function resolveUserRef({
+    currentUserSnapshot,
+    friend,
+    isCurrentUser,
+    normalizedUserId,
+    profilesByUserId,
+    row
+}) {
+    if (isCurrentUser) {
+        return {
+            userRef: normalizeUserRef(currentUserSnapshot, normalizedUserId)
+        };
+    }
+
+    const fetchedProfile = normalizedUserId
+        ? profilesByUserId?.[normalizedUserId]
+        : null;
+    if (friend) {
+        return {
+            userRef: normalizeUserRef(friend, normalizedUserId)
+        };
+    }
+    if (fetchedProfile) {
+        return {
+            userRef: normalizeUserRef(fetchedProfile, normalizedUserId)
+        };
+    }
+
+    const rowProfile = resolveRowProfile(row);
+    return {
+        userRef: normalizeUserRef(rowProfile, normalizedUserId)
+    };
+}
 
 export function enrichPlayerListRows({
     clockNow,
@@ -11,10 +136,11 @@ export function enrichPlayerListRows({
     favoriteFriendIds,
     friendsById,
     moderationByUserId,
-    playerSourceRows
+    playerSourceRows,
+    profilesByUserId = {}
 }) {
     return playerSourceRows.map((row) => {
-        const normalizedUserId = normalizeString(row.userId);
+        const normalizedUserId = resolvePlayerRowUserId(row);
         const friend = normalizedUserId ? friendsById[normalizedUserId] : null;
         const moderation = normalizedUserId
             ? moderationByUserId[normalizedUserId]
@@ -22,9 +148,14 @@ export function enrichPlayerListRows({
         const isCurrentUser =
             normalizedUserId &&
             normalizedUserId === normalizeString(currentUserId);
-        const userRef = isCurrentUser
-            ? currentUserSnapshot
-            : friend || row.ref || null;
+        const { userRef } = resolveUserRef({
+            currentUserSnapshot,
+            friend,
+            isCurrentUser,
+            normalizedUserId,
+            profilesByUserId,
+            row
+        });
         const resolvedDisplayName =
             row.displayName ||
             userRef?.displayName ||
@@ -32,8 +163,7 @@ export function enrichPlayerListRows({
             normalizedUserId ||
             '';
         const trustLevel = userRef?.$trustLevel || '';
-        const trustSortNum =
-            Number.parseInt(userRef?.$trustSortNum ?? 0, 10) || 0;
+        const trustSortNum = Number(userRef?.$trustSortNum ?? 0) || 0;
         const platform =
             userRef?.$platform ||
             userRef?.platform ||
@@ -41,9 +171,7 @@ export function enrichPlayerListRows({
             '';
         const platformMeta = resolvePlatformMeta(platform);
         const statusDescription = userRef?.statusDescription || '';
-        const languages = Array.isArray(userRef?.$languages)
-            ? userRef.$languages
-            : [];
+        const languages = userRef ? normalizeProfileLanguageRows(userRef) : [];
         const bioLinks = Array.isArray(userRef?.bioLinks)
             ? userRef.bioLinks.filter(Boolean)
             : [];
@@ -56,8 +184,18 @@ export function enrichPlayerListRows({
         const isFavorite = normalizedUserId
             ? favoriteFriendIds.has(normalizedUserId)
             : false;
-        const isBlocked = Boolean(moderation?.block);
-        const isMuted = Boolean(moderation?.mute);
+        const isBlocked = Boolean(
+            row.isBlocked ||
+                userRef?.$moderations?.isBlocked ||
+                userRef?.moderations?.isBlocked ||
+                moderation?.block
+        );
+        const isMuted = Boolean(
+            row.isMuted ||
+                userRef?.$moderations?.isMuted ||
+                userRef?.moderations?.isMuted ||
+                moderation?.mute
+        );
         const isAvatarInteractionDisabled = Boolean(
             userRef?.$moderations?.isAvatarInteractionDisabled ||
             userRef?.moderations?.isAvatarInteractionDisabled ||
@@ -79,7 +217,12 @@ export function enrichPlayerListRows({
                     moderation?.timeoutTime ??
                     0
             ) || 0;
-        const ageVerified = Boolean(userRef?.ageVerified);
+        const ageVerified = Boolean(
+            row.ageVerified ||
+                userRef?.ageVerified ||
+                row.ageVerificationStatus === '18+' ||
+                userRef?.ageVerificationStatus === '18+'
+        );
         const joinedAtTime = parseTimeMs(row.joinedAt || row.joinedAtMs);
         const iconWeight =
             (isCurrentUser ? 1000 : 0) +

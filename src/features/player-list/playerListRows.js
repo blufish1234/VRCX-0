@@ -6,6 +6,15 @@ export function normalizeString(value) {
         : String(value ?? '').trim();
 }
 
+export function normalizePlayerUserId(value) {
+    const normalized = normalizeString(value);
+    return normalized.startsWith('usr_') ? normalized : '';
+}
+
+export function resolvePlayerRowUserId(row) {
+    return normalizePlayerUserId(row?.userId || row?.ref?.id || row?.id);
+}
+
 export function parseTimeMs(value) {
     if (!value) {
         return 0;
