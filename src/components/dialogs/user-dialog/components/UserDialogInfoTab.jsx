@@ -196,12 +196,11 @@ function UserDialogPresenceSection({ presence, presenceActions, profile, t }) {
                         />
                         <InstanceActionBar
                             className="min-w-0 flex-wrap"
-                            location={visiblePresenceLocation}
-                            launchLocation={visiblePresenceLocation}
-                            inviteLocation={visiblePresenceLocation}
-                            instanceLocation={visiblePresenceLocation}
+                            target={{
+                                location: visiblePresenceLocation,
+                                worldName: locationWorldTitle
+                            }}
                             instance={locationInstance}
-                            worldName={locationWorldTitle}
                             friendCount={locationFriendCount}
                             playerCount={locationPlayerCount}
                             capacity={

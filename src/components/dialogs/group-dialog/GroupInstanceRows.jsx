@@ -225,12 +225,11 @@ export function GroupInstanceRows({ instances, currentUserId }) {
                             </div>
                             <InstanceActionBar
                                 className="min-w-0 shrink-0 flex-wrap justify-start sm:justify-end"
-                                location={location}
-                                launchLocation={location}
-                                inviteLocation={location}
-                                instanceLocation={location}
-                                shortName={launchToken}
-                                worldName={worldName}
+                                target={{
+                                    location,
+                                    shortName: launchToken,
+                                    worldName
+                                }}
                                 instance={normalizedInstance}
                                 friendCount={
                                     Number(instance.friendCount) || undefined

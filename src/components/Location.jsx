@@ -1,62 +1,34 @@
-import { AlertTriangleIcon, LockIcon } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { LocationContextMenu } from '@/components/location/LocationContextMenu.jsx';
-import { RegionCodeBadge } from '@/components/location/RegionCodeBadge.jsx';
+import { LocationDisplay } from '@/components/location/LocationDisplay.jsx';
+import { resolveLocationTarget } from '@/components/location/locationModel.js';
 import {
     normalizeString,
     useLocationMetadata
 } from '@/components/location/useLocationMetadata.js';
 import { useLocationPreviousInstancesDialog } from '@/components/location/useLocationPreviousInstancesDialog.jsx';
 import { copyTextToClipboard } from '@/lib/entityMedia.js';
-import { cn } from '@/lib/utils.js';
 import { openGroupDialog, openWorldDialog } from '@/services/dialogService.js';
 import { directAccessParse } from '@/services/directAccessService.js';
 import { selfInviteToInstance } from '@/services/launchService.js';
 import { accessTypeLocaleKeyMap } from '@/shared/constants/accessType.js';
 import {
     getLocationText,
-    normalizeLocationValue,
     parseLocation,
     translateAccessType
 } from '@/shared/utils/location.js';
 import { useLaunchStore } from '@/state/launchStore.js';
 import { usePreferencesStore } from '@/state/preferencesStore.js';
-import { Button } from '@/ui/shadcn/button';
-import { Spinner } from '@/ui/shadcn/spinner';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
-
-function locationTarget(location, traveling) {
-    const normalizedLocation = normalizeLocationValue(location);
-    if (
-        typeof traveling !== 'undefined' &&
-        normalizedLocation === 'traveling'
-    ) {
-        return normalizeLocationValue(traveling);
-    }
-    return normalizedLocation;
-}
-
-function LocationTooltip({ disabled, content, children }) {
-    if (disabled || !content) {
-        return children;
-    }
-
-    return (
-        <Tooltip>
-            <TooltipTrigger asChild>{children}</TooltipTrigger>
-            <TooltipContent>{content}</TooltipContent>
-        </Tooltip>
-    );
-}
 
 export function Location({
     location = '',
     traveling,
     hint = '',
     grouphint = '',
+    groupHint = '',
     link = true,
     disableTooltip = false,
     isOpenPreviousInstanceInfoDialog = false,
@@ -85,13 +57,14 @@ export function Location({
     );
     const ageGatedInstancesVisible =
         preferencesHydrated && ageGatedInstancesVisiblePreference;
-    const currentLocation = locationTarget(location, traveling);
+    const currentLocation = resolveLocationTarget(location, traveling);
     const hasShortNameHint = Boolean(
         !normalizeString(currentLocation) && normalizeString(hint).length === 8
     );
     const isTraveling =
         typeof traveling !== 'undefined' &&
         normalizeString(location) === 'traveling';
+    const resolvedGroupHint = normalizeString(groupHint || grouphint);
     const parsedLocation = useMemo(
         () => parseLocation(currentLocation),
         [currentLocation]
@@ -109,7 +82,7 @@ export function Location({
         currentLocation,
         endpoint,
         hint,
-        groupHint: grouphint
+        groupHint: resolvedGroupHint
     });
     const isAgeRestricted = Boolean(
         parsedLocation.ageGate && !ageGatedInstancesVisible
@@ -282,102 +255,27 @@ export function Location({
         openWorld(event);
     }
 
-    const LocationTrigger = asButton ? 'button' : 'span';
-
     const content = (
-        <div
-            className={cn(
-                'inline-flex max-w-full min-w-0 items-center',
-                className
-            )}
-        >
-            {!text ? (
-                <div className="text-transparent">-</div>
-            ) : isAgeRestricted ? (
-                <LocationTooltip
-                    disabled={disableTooltip}
-                    content={t(
-                        'dialog.user.info.instance_age_restricted_tooltip'
-                    )}
-                >
-                    <div className="text-muted-foreground inline-flex min-w-0 items-center gap-1">
-                        <LockIcon className="size-3.5 shrink-0" />
-                        <span className="min-w-0 truncate">
-                            {t('dialog.user.info.instance_age_restricted')}
-                        </span>
-                    </div>
-                </LocationTooltip>
-            ) : (
-                <>
-                    <RegionCodeBadge region={region} />
-                    <LocationTooltip
-                        disabled={
-                            disableTooltip ||
-                            !tooltipContent ||
-                            shouldShowInstanceIdInLocation
-                        }
-                        content={tooltipContent}
-                    >
-                        <LocationTrigger
-                            {...(asButton
-                                ? { type: 'button' }
-                                : {
-                                      role: isLocationLink
-                                          ? 'button'
-                                          : undefined,
-                                      tabIndex: isLocationLink ? 0 : undefined
-                                  })}
-                            className={cn(
-                                'x-location inline-flex max-w-full min-w-0 flex-nowrap items-center truncate overflow-hidden text-left',
-                                isLocationLink
-                                    ? 'hover:text-primary cursor-pointer text-inherit underline-offset-4'
-                                    : 'cursor-default'
-                            )}
-                            onClick={openWorld}
-                            onKeyDown={openWorldFromKeyboard}
-                        >
-                            {isTraveling ? (
-                                <Spinner
-                                    aria-hidden="true"
-                                    aria-label={undefined}
-                                    role="presentation"
-                                    className="mr-1 size-3.5 shrink-0"
-                                />
-                            ) : null}
-                            <span className="min-w-0 flex-1 truncate">
-                                <span>{text}</span>
-                                {shouldShowInstanceIdInLocation &&
-                                resolvedInstanceName ? (
-                                    <span className="ml-1">{`· #${resolvedInstanceName}`}</span>
-                                ) : null}
-                            </span>
-                        </LocationTrigger>
-                    </LocationTooltip>
-                    {showGroupLink && groupName ? (
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            className="hover:text-primary ml-0.5 h-auto min-w-0 p-0 text-left font-normal text-inherit"
-                            onClick={openGroup}
-                            onKeyDown={(event) => event.stopPropagation()}
-                        >
-                            ({groupName})
-                        </Button>
-                    ) : null}
-                    {isClosed ? (
-                        <LocationTooltip
-                            disabled={disableTooltip}
-                            content={t('dialog.user.info.instance_closed')}
-                        >
-                            <AlertTriangleIcon className="text-muted-foreground ml-2 inline-block size-3.5 shrink-0" />
-                        </LocationTooltip>
-                    ) : null}
-                    {parsedLocation.strict ? (
-                        <LockIcon className="text-muted-foreground ml-2 inline-block size-3.5 shrink-0" />
-                    ) : null}
-                </>
-            )}
-        </div>
+        <LocationDisplay
+            asButton={asButton}
+            className={className}
+            disableTooltip={disableTooltip}
+            groupName={groupName}
+            instanceName={resolvedInstanceName}
+            isAgeRestricted={isAgeRestricted}
+            isClosed={isClosed}
+            isLocationLink={isLocationLink}
+            isTraveling={isTraveling}
+            onOpenGroup={openGroup}
+            onOpenLocation={openWorld}
+            onOpenLocationKeyDown={openWorldFromKeyboard}
+            region={region}
+            shouldShowInstanceId={shouldShowInstanceIdInLocation}
+            showGroupLink={showGroupLink}
+            strict={parsedLocation.strict}
+            text={text}
+            tooltipContent={tooltipContent}
+        />
     );
     if (!showContextMenu) {
         return (

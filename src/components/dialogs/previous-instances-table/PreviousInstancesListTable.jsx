@@ -249,13 +249,11 @@ export function PreviousInstancesListTable({
                                         <TableCell className="align-top">
                                             <div className="flex justify-end gap-2">
                                                 <InstanceActionBar
-                                                    location={location}
-                                                    launchLocation={location}
-                                                    inviteLocation={location}
-                                                    instanceLocation={location}
-                                                    worldName={
-                                                        row?.worldName || ''
-                                                    }
+                                                    target={{
+                                                        location,
+                                                        worldName:
+                                                            row?.worldName || ''
+                                                    }}
                                                     showRefresh={false}
                                                     showInstanceInfo={false}
                                                 />

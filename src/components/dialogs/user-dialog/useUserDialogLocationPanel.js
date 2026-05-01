@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import {
+    createInstanceUserRow as createLocationUserRow,
+    isSameInstanceLocation as isSameLocationTag,
+    mergeInstanceUser as mergeLocationUser,
+    mergeInstanceUserRows as mergeLocationUserRows,
+    pushInstanceUserSource as pushLocationUserSource,
+    resolvePresenceLocation,
+    userDisplayName
+} from '@/components/instances/instanceRoster.js';
+import {
     instanceRepository,
     playerListRepository,
     userProfileRepository
@@ -10,15 +19,8 @@ import { parseLocation } from '@/shared/utils/location.js';
 
 import {
     buildCachedInstanceMap,
-    createLocationUserRow,
-    isSameLocationTag,
     locationCacheKey,
-    mergeLocationUser,
-    mergeLocationUserRows,
-    pushLocationUserSource,
-    resolveCurrentInviteLocation,
-    resolvePresenceLocation,
-    userDisplayName
+    resolveCurrentInviteLocation
 } from './userDialogContentHelpers.js';
 import {
     loadLocationOwner,
@@ -234,7 +236,7 @@ export function useUserDialogLocationPanel({
                 return false;
             }
             return isSameLocationTag(
-                resolvePresenceLocation(user),
+                resolvePresenceLocation(user, { requireInstance: true }),
                 activeLocation
             );
         }

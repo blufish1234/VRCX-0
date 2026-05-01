@@ -1,5 +1,13 @@
 import { UserIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
+import {
+    createInstanceUserRow,
+    firstText,
+    isGroupId,
+    mergeInstanceUsers,
+    normalizeInstanceUsers
+} from '@/components/instances/instanceRoster.js';
 import { timeToText } from '@/lib/dateTime.js';
 import { userImage } from '@/lib/entityMedia.js';
 import { userStatusDotClassName } from '@/lib/userStatus.js';
@@ -7,136 +15,8 @@ import { cn } from '@/lib/utils.js';
 import { openUserDialog } from '@/services/dialogService.js';
 import { Button } from '@/ui/shadcn/button';
 import { Spinner } from '@/ui/shadcn/spinner';
-export function firstText(...values) {
-    for (const value of values) {
-        const text =
-            typeof value === 'string'
-                ? value.trim()
-                : String(value ?? '').trim();
-        if (text) {
-            return text;
-        }
-    }
-    return '';
-}
 
-export function isGroupId(value) {
-    return firstText(value).startsWith('grp_');
-}
-
-function normalizeInstanceUser(value) {
-    if (!value) {
-        return null;
-    }
-    if (typeof value === 'string') {
-        const userId = value.trim();
-        return userId ? { id: userId, userId, displayName: userId } : null;
-    }
-    if (typeof value !== 'object') {
-        return null;
-    }
-    const userId = firstText(
-        value.id,
-        value.userId,
-        value.user_id,
-        value.targetUserId,
-        value.target_user_id
-    );
-    const displayName = firstText(
-        value.displayName,
-        value.display_name,
-        value.username,
-        value.name,
-        userId
-    );
-    return {
-        ...value,
-        id: userId || value.id,
-        userId: value.userId || userId,
-        displayName
-    };
-}
-
-export function normalizeInstanceUsers(...sources) {
-    const rows = [];
-    const push = (value) => {
-        if (!value) {
-            return;
-        }
-        if (value instanceof Map) {
-            for (const entry of value.values()) {
-                push(entry);
-            }
-            return;
-        }
-        if (Array.isArray(value)) {
-            for (const entry of value) {
-                push(entry);
-            }
-            return;
-        }
-        if (
-            typeof value === 'object' &&
-            !value.id &&
-            !value.userId &&
-            !value.user_id &&
-            !value.targetUserId &&
-            !value.target_user_id &&
-            !value.displayName &&
-            !value.display_name &&
-            !value.username &&
-            !value.name
-        ) {
-            for (const entry of Object.values(value)) {
-                push(entry);
-            }
-            return;
-        }
-        const row = normalizeInstanceUser(value);
-        if (row) {
-            rows.push(row);
-        }
-    };
-
-    for (const source of sources) {
-        push(source);
-    }
-    return rows;
-}
-
-function instanceUserKey(user) {
-    return firstText(
-        user?.id,
-        user?.userId,
-        user?.user_id,
-        user?.targetUserId,
-        user?.target_user_id,
-        user?.displayName,
-        user?.display_name,
-        user?.username,
-        user?.name
-    );
-}
-
-export function mergeInstanceUsers(...sources) {
-    const usersByKey = new Map();
-    const anonymousUsers = [];
-
-    for (const user of normalizeInstanceUsers(...sources)) {
-        const key = instanceUserKey(user);
-        if (!key) {
-            anonymousUsers.push(user);
-            continue;
-        }
-
-        usersByKey.set(key, {
-            ...(usersByKey.get(key) || {}),
-            ...user
-        });
-    }
-
-    return [...usersByKey.values(), ...anonymousUsers];
-}
+export { firstText, isGroupId, mergeInstanceUsers, normalizeInstanceUsers };
 
 function timestampFromValue(value) {
     if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
@@ -193,9 +73,10 @@ function instanceUserSubtitle(user) {
 }
 
 export function InstanceUserTiles({ instance }) {
+    const { t } = useTranslation();
     const userMap = new Map();
     const pushUser = (user) => {
-        const row = normalizeInstanceUser(user);
+        const row = createInstanceUserRow(user);
         if (!row) {
             return;
         }
@@ -217,7 +98,7 @@ export function InstanceUserTiles({ instance }) {
                 instance.creatorUser?.name,
                 instance.creatorUserId
             ),
-            $subtitle: 'Instance creator'
+            $subtitle: t('dialog.world.instances.instance_creator')
         });
     }
     for (const user of normalizeInstanceUsers(

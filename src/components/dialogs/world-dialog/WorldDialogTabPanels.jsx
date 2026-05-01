@@ -146,17 +146,15 @@ export function WorldDialogTabPanels({ handlers, helpers, state, t }) {
                                         </div>
                                         <InstanceActionBar
                                             className="min-w-0 flex-wrap justify-start sm:justify-end"
-                                            location={location}
-                                            launchLocation={location}
-                                            inviteLocation={location}
-                                            instanceLocation={location}
-                                            shortName={launchToken}
-                                            worldName={
-                                                world.name ||
-                                                instance.worldName ||
-                                                instance.world?.name ||
-                                                ''
-                                            }
+                                            target={{
+                                                location,
+                                                shortName: launchToken,
+                                                worldName:
+                                                    world.name ||
+                                                    instance.worldName ||
+                                                    instance.world?.name ||
+                                                    ''
+                                            }}
                                             instance={instance}
                                             friendCount={
                                                 Number(instance.friendCount) ||

@@ -176,6 +176,23 @@ describe('InstanceActionBar', () => {
         expect(html).toContain('3/24');
     });
 
+    it('accepts a normalized target without repeating location props', () => {
+        const html = renderActionBar({
+            target: {
+                location: 'wrld_test:12345~hidden(usr_owner)~shortName(tok)',
+                shortName: 'tok',
+                worldName: 'Target World'
+            },
+            playerCount: 4,
+            capacity: 12
+        });
+
+        expect(html).toContain('aria-label="Launch instance"');
+        expect(html).toContain('aria-label="Self invite"');
+        expect(html).toContain('aria-label="Refresh instance info"');
+        expect(html).toContain('4/12');
+    });
+
     it('does not render instance actions for private or non-instance locations', () => {
         const html = renderActionBar({
             location: 'private',

@@ -10,11 +10,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
+import {
+    buildInstanceActionTarget,
+    finiteLocationNumber,
+    firstFiniteLocationNumber,
+    normalizeLocationText
+} from '@/components/location/locationModel.js';
 import { formatDateFilter } from '@/lib/dateTime.js';
 import { cn } from '@/lib/utils.js';
 import { instanceRepository } from '@/repositories/index.js';
 import { selfInviteToInstance } from '@/services/launchService.js';
-import { parseLocation } from '@/shared/utils/location.js';
 import { useLaunchStore } from '@/state/launchStore.js';
 import { useModalStore } from '@/state/modalStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
@@ -22,30 +27,6 @@ import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import { Spinner } from '@/ui/shadcn/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
-
-function normalizeString(value) {
-    return typeof value === 'string'
-        ? value.trim()
-        : String(value ?? '').trim();
-}
-
-function finiteNumber(value) {
-    if (value === null || typeof value === 'undefined' || value === '') {
-        return null;
-    }
-    const number = Number(value);
-    return Number.isFinite(number) ? number : null;
-}
-
-function firstFiniteNumber(...values) {
-    for (const value of values) {
-        const number = finiteNumber(value);
-        if (number !== null) {
-            return number;
-        }
-    }
-    return null;
-}
 
 function ActionButton({
     label,
@@ -79,19 +60,11 @@ function ActionButton({
     );
 }
 
-function resolveLocation(baseLocation, fallbackLocation) {
-    const normalized = normalizeString(baseLocation);
-    if (normalized) {
-        return normalized;
-    }
-    return normalizeString(fallbackLocation);
-}
-
 function instanceUserCount(instance) {
     if (!instance) {
         return null;
     }
-    return firstFiniteNumber(
+    return firstFiniteLocationNumber(
         instance.userCount,
         instance.occupants,
         instance.n_users,
@@ -103,7 +76,10 @@ function instanceCapacity(instance) {
     if (!instance) {
         return null;
     }
-    return firstFiniteNumber(instance.capacity, instance.world?.capacity);
+    return firstFiniteLocationNumber(
+        instance.capacity,
+        instance.world?.capacity
+    );
 }
 
 function platformCount(instance, platform) {
@@ -137,7 +113,7 @@ function hasGroupPermission(group, permission) {
 }
 
 function canCloseInstance(instance, currentUserId) {
-    const ownerId = normalizeString(instance?.ownerId);
+    const ownerId = normalizeLocationText(instance?.ownerId);
     if (!ownerId || !currentUserId) {
         return false;
     }
@@ -231,6 +207,7 @@ function InstanceInfoTooltip({
 
 export function InstanceActionBar({
     className,
+    target = null,
     location = '',
     launchLocation = '',
     inviteLocation = '',
@@ -262,44 +239,34 @@ export function InstanceActionBar({
     const showLaunchDialog = useLaunchStore((state) => state.showLaunchDialog);
     const [busy, setBusy] = useState('');
     const [instanceInfo, setInstanceInfo] = useState(instance);
-    const resolvedLaunchLocation = resolveLocation(launchLocation, location);
-    const resolvedInviteLocation = resolveLocation(inviteLocation, location);
-    const resolvedInstanceLocation = resolveLocation(
-        instanceLocation,
-        location
-    );
-    const parsedInviteLocation = useMemo(
-        () => parseLocation(resolvedInviteLocation),
-        [resolvedInviteLocation]
-    );
-    const parsedLaunchLocation = useMemo(
-        () => parseLocation(resolvedLaunchLocation),
-        [resolvedLaunchLocation]
-    );
-    const parsedInstanceLocation = useMemo(
-        () => parseLocation(resolvedInstanceLocation),
-        [resolvedInstanceLocation]
-    );
-    const isRealInviteLocation = Boolean(
-        parsedInviteLocation.isRealInstance &&
-        parsedInviteLocation.worldId &&
-        parsedInviteLocation.instanceId
-    );
-    const isRealLaunchLocation = Boolean(
-        parsedLaunchLocation.isRealInstance &&
-        parsedLaunchLocation.worldId &&
-        parsedLaunchLocation.instanceId
-    );
-    const isRealInstanceLocation = Boolean(
-        parsedInstanceLocation.isRealInstance &&
-        parsedInstanceLocation.worldId &&
-        parsedInstanceLocation.instanceId
+    const actionTarget = useMemo(
+        () =>
+            buildInstanceActionTarget({
+                target,
+                location,
+                launchLocation,
+                inviteLocation,
+                instanceLocation,
+                shortName,
+                worldName
+            }),
+        [
+            target,
+            location,
+            launchLocation,
+            inviteLocation,
+            instanceLocation,
+            shortName,
+            worldName
+        ]
     );
     const userCount = instanceUserCount(instanceInfo);
-    const providedPlayerCount = finiteNumber(playerCount);
+    const providedPlayerCount = finiteLocationNumber(playerCount);
     const resolvedUserCount = userCount ?? providedPlayerCount;
     const capacity =
-        instanceCapacity(instanceInfo) ?? finiteNumber(providedCapacity) ?? 0;
+        instanceCapacity(instanceInfo) ??
+        finiteLocationNumber(providedCapacity) ??
+        0;
     const hasUserCount = userCount !== null || providedPlayerCount !== null;
     const canCloseCurrentInstance = canCloseInstance(
         instanceInfo,
@@ -307,47 +274,48 @@ export function InstanceActionBar({
     );
     const activeContextRef = useRef({
         endpoint,
-        location: resolvedInstanceLocation
+        location: actionTarget.instanceLocation
     });
     const hasInstanceSummary = Boolean(
         instanceInfo || hasUserCount || capacity || friendCount
     );
     const queueSize = Number(instanceInfo?.queueSize) || 0;
     const hasAgeGate = Boolean(
-        instanceInfo?.ageGate || resolvedInstanceLocation.includes('~ageGate')
+        instanceInfo?.ageGate ||
+        actionTarget.instanceLocation.includes('~ageGate')
     );
 
     useEffect(() => {
         activeContextRef.current = {
             endpoint,
-            location: resolvedInstanceLocation
+            location: actionTarget.instanceLocation
         };
         setInstanceInfo(instance);
-    }, [endpoint, instance, resolvedInstanceLocation]);
+    }, [endpoint, instance, actionTarget.instanceLocation]);
 
     function launchInstance() {
-        if (!resolvedLaunchLocation || busy) {
+        if (!actionTarget.launchLocation || busy) {
             return;
         }
         showLaunchDialog(
-            resolvedLaunchLocation,
-            parsedLaunchLocation.shortName || '',
-            shortName || parsedLaunchLocation.shortName || '',
+            actionTarget.launchLocation,
+            actionTarget.parsedLaunchLocation.shortName || '',
+            actionTarget.shortName,
             {
-                worldName
+                worldName: actionTarget.worldName
             }
         );
     }
 
     async function selfInvite() {
-        if (!isRealInviteLocation || busy) {
+        if (!actionTarget.isRealInviteLocation || busy) {
             return;
         }
         setBusy('invite');
         try {
             await selfInviteToInstance(
-                resolvedInviteLocation,
-                shortName || parsedInviteLocation.shortName,
+                actionTarget.inviteLocation,
+                actionTarget.shortName,
                 endpoint
             );
             toast.success(t('message.invite.self_sent'));
@@ -365,10 +333,10 @@ export function InstanceActionBar({
     }
 
     async function refreshInstance() {
-        if (!isRealInstanceLocation || busy) {
+        if (!actionTarget.isRealInstanceLocation || busy) {
             return;
         }
-        const requestLocation = resolvedInstanceLocation;
+        const requestLocation = actionTarget.instanceLocation;
         const requestEndpoint = endpoint;
         setBusy('refresh');
         try {
@@ -383,8 +351,8 @@ export function InstanceActionBar({
                 setInstanceInfo(override);
             } else {
                 const response = await instanceRepository.getInstance({
-                    worldId: parsedInstanceLocation.worldId,
-                    instanceId: parsedInstanceLocation.instanceId,
+                    worldId: actionTarget.parsedInstanceLocation.worldId,
+                    instanceId: actionTarget.parsedInstanceLocation.instanceId,
                     endpoint: requestEndpoint
                 });
                 if (
@@ -410,10 +378,10 @@ export function InstanceActionBar({
     }
 
     async function closeInstance() {
-        if (!resolvedInstanceLocation || busy) {
+        if (!actionTarget.instanceLocation || busy) {
             return;
         }
-        const requestLocation = resolvedInstanceLocation;
+        const requestLocation = actionTarget.instanceLocation;
         const requestEndpoint = endpoint;
         const result = await confirm({
             title: t(
@@ -459,9 +427,9 @@ export function InstanceActionBar({
     }
 
     if (
-        !resolvedInstanceLocation &&
-        !resolvedLaunchLocation &&
-        !resolvedInviteLocation
+        !actionTarget.instanceLocation &&
+        !actionTarget.launchLocation &&
+        !actionTarget.inviteLocation
     ) {
         return null;
     }
@@ -511,7 +479,7 @@ export function InstanceActionBar({
         showInstanceInfo && hasInstanceSummary ? (
             <InstanceInfoTooltip
                 instance={instanceInfo}
-                location={resolvedInstanceLocation}
+                location={actionTarget.instanceLocation}
                 canClose={canCloseCurrentInstance}
                 closeDisabled={Boolean(busy)}
                 onClose={() => void closeInstance()}
@@ -535,7 +503,7 @@ export function InstanceActionBar({
             )}
         >
             {instanceInfoPlacement === 'start' ? instanceSummary : null}
-            {showLaunch && isRealLaunchLocation ? (
+            {showLaunch && actionTarget.isRealLaunchLocation ? (
                 <ActionButton
                     label={t('dialog.instance.generated.launch_instance')}
                     icon={LogInIcon}
@@ -544,7 +512,7 @@ export function InstanceActionBar({
                     onClick={launchInstance}
                 />
             ) : null}
-            {showInvite && isRealInviteLocation ? (
+            {showInvite && actionTarget.isRealInviteLocation ? (
                 <ActionButton
                     label={t('dialog.instance.generated.self_invite')}
                     icon={MailIcon}
@@ -553,7 +521,7 @@ export function InstanceActionBar({
                     onClick={() => void selfInvite()}
                 />
             ) : null}
-            {showRefresh && isRealInstanceLocation ? (
+            {showRefresh && actionTarget.isRealInstanceLocation ? (
                 <ActionButton
                     label={refreshTooltip}
                     icon={RefreshCwIcon}
