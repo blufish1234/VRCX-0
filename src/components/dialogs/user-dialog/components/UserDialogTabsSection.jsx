@@ -11,80 +11,89 @@ import {
 import { UserDialogGroupsTab } from './UserDialogGroupsTab.jsx';
 import { UserDialogInfoTab } from './UserDialogInfoTab.jsx';
 
-export function UserDialogTabsSection({
-    activeTab,
-    avatarReleaseStatus,
-    avatarSort,
-    bioLinks,
-    changeAvatarReleaseStatus,
-    changeAvatarSort,
-    changeTab,
-    changeWorldOrder,
-    changeWorldSort,
-    currentAvatarDialogArgs,
-    currentAvatarDisplayName,
-    currentAvatarTarget,
-    currentEndpoint,
-    currentUserId,
-    effectiveGroupSort,
-    favoriteWorlds,
-    filteredFavoriteWorlds,
-    filteredMutualFriends,
-    filteredProfileGroups,
-    filteredProfileWorlds,
-    groupSearchActive,
-    hideUserMemos,
-    hideUserNotes,
-    isCurrentUser,
-    isFavorite,
-    isFriend,
-    lastSeen,
-    loadTab,
-    locationFriendCount,
-    locationInstance,
-    locationInstanceUsers,
-    locationOwnerId,
-    locationPlayerCount,
-    locationWorldTitle,
-    memo,
-    moderationState,
-    mutualFriends,
-    mutualSort,
-    onEditMemo,
-    onOpenInstanceHistory,
-    onPreviousInstancesChange,
-    onRefreshLocation,
-    openAvatarDialog,
-    openGroupDialog,
-    ownGroupCountText,
-    previousInstances,
-    profile,
-    profileAvatars,
-    profileGroups,
-    profileWorlds,
-    remoteData,
-    remoteErrors,
-    remoteStatus,
-    representedGroup,
-    representedGroupStatus,
-    search,
-    remainingGroupCountText,
-    setGroupSort,
-    setMutualSort,
-    setSearch,
-    tabCounts = {},
-    tabs,
-    t,
-    userGroupSections,
-    userJoinCount,
-    userTimeSpent,
-    visibleHomeLocationTarget,
-    visibleMutualFriends,
-    visiblePresenceLocation,
-    visibleProfileAvatars,
-    worldOrder,
-    worldSort
-}) {
+export function UserDialogTabsSection({ state = {}, actions = {}, t }) {
+    const {
+        root = {},
+        info = {},
+        presence = {},
+        remote = {},
+        mutual = {},
+        groups = {},
+        worlds = {},
+        favoriteWorlds = {},
+        avatars = {},
+        history = {},
+        json = {}
+    } = state;
+    const { activeTab, tabCounts = {}, tabs = [] } = root;
+    const {
+        bioLinks,
+        currentAvatarDialogArgs,
+        currentAvatarDisplayName,
+        currentAvatarTarget,
+        hideUserMemos,
+        hideUserNotes,
+        isCurrentUser,
+        lastSeen,
+        memo,
+        profile,
+        representedGroup,
+        representedGroupStatus,
+        userJoinCount,
+        userTimeSpent,
+        visibleHomeLocationTarget
+    } = info;
+    const { loadTab, remoteData, remoteErrors, remoteStatus, search } = remote;
+    const {
+        filteredMutualFriends,
+        mutualFriends,
+        mutualSort,
+        visibleMutualFriends
+    } = mutual;
+    const {
+        effectiveGroupSort,
+        filteredProfileGroups,
+        groupSearchActive,
+        ownGroupCountText,
+        profileGroups,
+        remainingGroupCountText,
+        userGroupSections
+    } = groups;
+    const {
+        filteredProfileWorlds,
+        profileWorlds,
+        worldOrder,
+        worldSort
+    } = worlds;
+    const {
+        favoriteWorlds: favoriteWorldRows,
+        filteredFavoriteWorlds
+    } = favoriteWorlds;
+    const {
+        avatarReleaseStatus,
+        avatarSort,
+        currentUserId,
+        profileAvatars,
+        visibleProfileAvatars
+    } = avatars;
+    const { previousInstances = [] } = history;
+    const { isFavorite, isFriend, moderationState } = json;
+    const {
+        changeAvatarReleaseStatus,
+        changeAvatarSort,
+        changeTab,
+        changeWorldOrder,
+        changeWorldSort,
+        onEditMemo,
+        onOpenInstanceHistory,
+        onPreviousInstancesChange,
+        onRefreshLocation,
+        openAvatarDialog,
+        openGroupDialog,
+        setGroupSort,
+        setMutualSort,
+        setSearch
+    } = actions;
     const tabsWithCounts = tabs
         .filter((tab) => !tab.hidden)
         .map((tab) => {
@@ -111,18 +120,7 @@ export function UserDialogTabsSection({
             tabs={tabsWithCounts}
         >
             <UserDialogInfoTab
-                presence={{
-                    visiblePresenceLocation,
-                    locationInstance,
-                    locationOwnerId,
-                    locationPlayerCount,
-                    currentUserId,
-                    currentEndpoint,
-                    locationWorldTitle,
-                    locationFriendCount,
-                    previousInstances,
-                    locationInstanceUsers
-                }}
+                presence={presence}
                 presenceActions={{
                     onRefreshLocation,
                     onShowInstanceHistory: onOpenInstanceHistory
@@ -194,7 +192,7 @@ export function UserDialogTabsSection({
             />
             <UserDialogFavoriteWorldsTab
                 remoteData={remoteData}
-                favoriteWorlds={favoriteWorlds}
+                favoriteWorlds={favoriteWorldRows}
                 filteredFavoriteWorlds={filteredFavoriteWorlds}
                 remoteStatus={remoteStatus}
                 remoteErrors={remoteErrors}

@@ -90,20 +90,22 @@ function compactUrl(url) {
     return `${displayUrl.slice(0, 12)}\u2026${displayUrl.slice(-4)}`;
 }
 
-function UserDialogHeaderFacts({
-    actionStatus,
-    isCurrentUser,
-    onCopyUserId,
-    onCopyUserUrl,
-    onOpenUserUrl,
-    onToggleSelfAvatarCopying,
-    onToggleSelfBooping,
-    onToggleSelfDiscordConnections,
-    onToggleSelfSharedConnections,
-    profile,
-    t,
-    userUrl
-}) {
+function UserDialogHeaderFacts({ state = {}, actions = {}, t }) {
+    const {
+        actionStatus = 'idle',
+        isCurrentUser,
+        profile = {},
+        userUrl
+    } = state;
+    const {
+        onCopyUserId,
+        onCopyUserUrl,
+        onOpenUserUrl,
+        onToggleSelfAvatarCopying,
+        onToggleSelfBooping,
+        onToggleSelfDiscordConnections,
+        onToggleSelfSharedConnections
+    } = actions;
     const actionsDisabled = actionStatus !== 'idle';
 
     return (
@@ -216,72 +218,128 @@ function UserDialogHeaderFacts({
     );
 }
 
-export function UserDialogHeaderSection({
-    actionStatus,
-    avatarOverrideState,
-    canInviteFromCurrentLocation,
-    currentAvatarTarget,
-    currentUserBoopingEnabled,
-    detail,
-    extendedModerationState,
-    fallbackAvatarTarget,
-    friendNumber,
-    friendRequestState,
-    imageUrl,
-    isCurrentUser,
-    isFriend,
-    loadStatus,
-    moderationState,
-    onAvatarOverride,
-    onBoop,
-    onCopyUserId,
-    onCopyUserUrl,
-    onEditMemo,
-    onEditSelfProfileDetails,
-    onEditSelfStatus,
-    onExtendedModeration,
-    onFriendRequest,
-    onGroupModeration,
-    onImageClick,
-    onInvite,
-    onInviteMessage,
-    onInviteRequest,
-    onInviteRequestMessage,
-    onInviteToGroup,
-    onModeration,
-    onOpenDiscordProfile,
-    onOpenFallbackAvatar,
-    onOpenImagePreview,
-    onOpenUserIcon,
-    onOpenUserUrl,
-    onRefresh,
-    onReportHacking,
-    onShowAvatarAuthor,
-    onShowInstanceHistory,
-    onSubtitleClick,
-    onTitleClick,
-    onToggleBadgeShowcased,
-    onToggleBadgeVisibility,
-    onToggleSelfAvatarCopying,
-    onToggleSelfBooping,
-    onToggleSelfDiscordConnections,
-    onToggleSelfSharedConnections,
-    onUnfriend,
-    platform,
-    PlatformIcon,
-    previousDisplayNames,
-    previousInstances,
-    profile,
-    profileLanguages,
-    profileTitle,
-    pronounsText,
-    recentDialogShortcut,
-    statusIndicatorClassName,
-    statusStateText,
-    t,
-    userSubtitle,
-    userUrl
-}) {
+export function UserDialogHeaderSection({ state = {}, actions = {}, t }) {
+    const {
+        actionStatus = 'idle',
+        avatarOverrideState = {},
+        canInviteFromCurrentLocation,
+        currentAvatarTarget,
+        currentUserBoopingEnabled,
+        detail,
+        extendedModerationState = {},
+        fallbackAvatarTarget,
+        friendNumber,
+        friendRequestState = {},
+        imageUrl,
+        isCurrentUser,
+        isFriend,
+        loadStatus,
+        moderationState = {},
+        platform,
+        PlatformIcon,
+        previousDisplayNames,
+        previousInstances = [],
+        profile = {},
+        profileLanguages,
+        profileTitle,
+        pronounsText,
+        recentDialogShortcut,
+        statusIndicatorClassName,
+        statusStateText,
+        userSubtitle,
+        userUrl
+    } = state;
+    const {
+        onAvatarOverride,
+        onBoop,
+        onCopyUserId,
+        onCopyUserUrl,
+        onEditMemo,
+        onEditSelfProfileDetails,
+        onEditSelfStatus,
+        onExtendedModeration,
+        onFriendRequest,
+        onGroupModeration,
+        onImageClick,
+        onInvite,
+        onInviteMessage,
+        onInviteRequest,
+        onInviteRequestMessage,
+        onInviteToGroup,
+        onModeration,
+        onOpenDiscordProfile,
+        onOpenFallbackAvatar,
+        onOpenImagePreview,
+        onOpenUserIcon,
+        onOpenUserUrl,
+        onRefresh,
+        onReportHacking,
+        onShowAvatarAuthor,
+        onShowInstanceHistory,
+        onSubtitleClick,
+        onTitleClick,
+        onToggleBadgeShowcased,
+        onToggleBadgeVisibility,
+        onToggleSelfAvatarCopying,
+        onToggleSelfBooping,
+        onToggleSelfDiscordConnections,
+        onToggleSelfSharedConnections,
+        onUnfriend
+    } = actions;
+    const actionMenuState = {
+        actionStatus,
+        avatarOverrideState,
+        canInviteFromCurrentLocation,
+        currentAvatarTarget,
+        currentUserBoopingEnabled,
+        extendedModerationState,
+        fallbackAvatarTarget,
+        friendRequestState,
+        isCurrentUser,
+        isFriend,
+        loadStatus,
+        moderationState,
+        previousInstances,
+        profile,
+        recentDialogShortcut
+    };
+    const actionMenuActions = {
+        onAvatarOverride,
+        onBoop,
+        onEditMemo,
+        onEditSelfProfileDetails,
+        onEditSelfStatus,
+        onExtendedModeration,
+        onFriendRequest,
+        onGroupModeration,
+        onInvite,
+        onInviteMessage,
+        onInviteRequest,
+        onInviteRequestMessage,
+        onInviteToGroup,
+        onModeration,
+        onOpenFallbackAvatar,
+        onRefresh,
+        onReportHacking,
+        onShowAvatarAuthor,
+        onShowInstanceHistory,
+        onUnfriend
+    };
+    const factsState = {
+        actionStatus,
+        isCurrentUser,
+        profile,
+        userUrl
+    };
+    const factsActions = {
+        onCopyUserId,
+        onCopyUserUrl,
+        onOpenUserUrl,
+        onToggleSelfAvatarCopying,
+        onToggleSelfBooping,
+        onToggleSelfDiscordConnections,
+        onToggleSelfSharedConnections
+    };
     const userIconUrl = profile.userIcon
         ? userImage(profile, true, '256', true)
         : '';
@@ -409,51 +467,8 @@ export function UserDialogHeaderSection({
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                     <UserDialogHeaderActions
-                        profile={profile}
-                        loadStatus={loadStatus}
-                        actionStatus={actionStatus}
-                        moderationState={moderationState}
-                        extendedModerationState={extendedModerationState}
-                        avatarOverrideState={avatarOverrideState}
-                        isCurrentUser={isCurrentUser}
-                        isFriend={isFriend}
-                        friendRequestState={friendRequestState}
-                        canInviteFromCurrentLocation={
-                            canInviteFromCurrentLocation
-                        }
-                        currentUserBoopingEnabled={currentUserBoopingEnabled}
-                        currentAvatarTarget={currentAvatarTarget}
-                        fallbackAvatarTarget={fallbackAvatarTarget}
-                        previousInstances={previousInstances}
-                        recentDialogShortcut={recentDialogShortcut}
-                        onRefresh={onRefresh}
-                        onEditMemo={onEditMemo}
-                        onShowAvatarAuthor={onShowAvatarAuthor}
-                        onOpenFallbackAvatar={onOpenFallbackAvatar}
-                        onEditSelfStatus={onEditSelfStatus}
-                        onEditSelfProfileDetails={onEditSelfProfileDetails}
-                        onToggleSelfAvatarCopying={onToggleSelfAvatarCopying}
-                        onToggleSelfBooping={onToggleSelfBooping}
-                        onToggleSelfSharedConnections={
-                            onToggleSelfSharedConnections
-                        }
-                        onToggleSelfDiscordConnections={
-                            onToggleSelfDiscordConnections
-                        }
-                        onFriendRequest={onFriendRequest}
-                        onInvite={onInvite}
-                        onInviteMessage={onInviteMessage}
-                        onInviteRequest={onInviteRequest}
-                        onInviteRequestMessage={onInviteRequestMessage}
-                        onBoop={onBoop}
-                        onUnfriend={onUnfriend}
-                        onInviteToGroup={onInviteToGroup}
-                        onGroupModeration={onGroupModeration}
-                        onShowInstanceHistory={onShowInstanceHistory}
-                        onModeration={onModeration}
-                        onAvatarOverride={onAvatarOverride}
-                        onExtendedModeration={onExtendedModeration}
-                        onReportHacking={onReportHacking}
+                        state={actionMenuState}
+                        actions={actionMenuActions}
                         t={t}
                     />
                 </div>
@@ -516,18 +531,9 @@ export function UserDialogHeaderSection({
             ) : null}
 
             <UserDialogHeaderFacts
-                actionStatus={actionStatus}
-                isCurrentUser={isCurrentUser}
-                onCopyUserId={onCopyUserId}
-                onCopyUserUrl={onCopyUserUrl}
-                onOpenUserUrl={onOpenUserUrl}
-                onToggleSelfAvatarCopying={onToggleSelfAvatarCopying}
-                onToggleSelfBooping={onToggleSelfBooping}
-                onToggleSelfDiscordConnections={onToggleSelfDiscordConnections}
-                onToggleSelfSharedConnections={onToggleSelfSharedConnections}
-                profile={profile}
+                state={factsState}
+                actions={factsActions}
                 t={t}
-                userUrl={userUrl}
             />
         </EntityOverviewCard>
     );

@@ -36,44 +36,46 @@ import {
     EntityActionSub
 } from '../../EntityDialogScaffold.jsx';
 
-export function UserDialogHeaderActions({
-    profile,
-    loadStatus,
-    actionStatus,
-    moderationState,
-    extendedModerationState,
-    avatarOverrideState,
-    isCurrentUser,
-    isFriend,
-    friendRequestState,
-    canInviteFromCurrentLocation,
-    currentUserBoopingEnabled,
-    currentAvatarTarget,
-    fallbackAvatarTarget,
-    previousInstances,
-    recentDialogShortcut,
-    onRefresh,
-    onEditMemo,
-    onShowAvatarAuthor,
-    onOpenFallbackAvatar,
-    onEditSelfStatus,
-    onEditSelfProfileDetails,
-    onFriendRequest,
-    onInvite,
-    onInviteMessage,
-    onInviteRequest,
-    onInviteRequestMessage,
-    onBoop,
-    onUnfriend,
-    onInviteToGroup,
-    onGroupModeration,
-    onShowInstanceHistory,
-    onModeration,
-    onAvatarOverride,
-    onExtendedModeration,
-    onReportHacking,
-    t
-}) {
+export function UserDialogHeaderActions({ state = {}, actions = {}, t }) {
+    const {
+        profile = {},
+        loadStatus,
+        actionStatus = 'idle',
+        moderationState = {},
+        extendedModerationState = {},
+        avatarOverrideState = {},
+        isCurrentUser,
+        isFriend,
+        friendRequestState = {},
+        canInviteFromCurrentLocation,
+        currentUserBoopingEnabled,
+        currentAvatarTarget,
+        fallbackAvatarTarget,
+        previousInstances = [],
+        recentDialogShortcut = () => null
+    } = state;
+    const {
+        onRefresh,
+        onEditMemo,
+        onShowAvatarAuthor,
+        onOpenFallbackAvatar,
+        onEditSelfStatus,
+        onEditSelfProfileDetails,
+        onFriendRequest,
+        onInvite,
+        onInviteMessage,
+        onInviteRequest,
+        onInviteRequestMessage,
+        onBoop,
+        onUnfriend,
+        onInviteToGroup,
+        onGroupModeration,
+        onShowInstanceHistory,
+        onModeration,
+        onAvatarOverride,
+        onExtendedModeration,
+        onReportHacking
+    } = actions;
     const isBusy = loadStatus === 'running' || actionStatus !== 'idle';
     const actionsDisabled = actionStatus !== 'idle';
     const hasAvatarOverride =
