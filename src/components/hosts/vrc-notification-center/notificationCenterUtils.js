@@ -185,7 +185,7 @@ export function openNotificationLink(link) {
         openAvatarDialog({ avatarId });
         return true;
     }
-    void openExternalLink(value);
+    void openExternalLink(value, { directAccess: true });
     return true;
 }
 

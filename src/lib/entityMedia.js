@@ -338,13 +338,13 @@ export async function copyTextToClipboard(text) {
     }
 }
 
-export async function openExternalLink(link) {
+export async function openExternalLink(link, options = {}) {
     if (!link) {
         return;
     }
 
     const normalizedLink = String(link);
-    if (await openDirectAccessTarget(normalizedLink)) {
+    if (options.directAccess && (await openDirectAccessTarget(normalizedLink))) {
         return;
     }
 

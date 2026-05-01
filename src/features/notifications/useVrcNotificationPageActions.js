@@ -62,7 +62,7 @@ export function useVrcNotificationPageActions({
             });
             return;
         }
-        void openExternalLink(value);
+        void openExternalLink(value, { directAccess: true });
     }
     function openNotificationTypeTarget(notification) {
         if (
