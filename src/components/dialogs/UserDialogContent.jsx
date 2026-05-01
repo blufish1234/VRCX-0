@@ -135,13 +135,23 @@ export function UserDialogContent({ userId, seedData = null, openNonce = 0 }) {
     });
 
     const friendSnapshot = friendsById[normalizedUserId] || null;
-    const localSnapshot = isTargetCurrentUser
-        ? currentUserSnapshot
-        : mergeUserDialogLocalSnapshot({
-              friendSnapshot,
-              seedData,
-              knownTargetUser
-          });
+    const localSnapshot = useMemo(
+        () =>
+            isTargetCurrentUser
+                ? currentUserSnapshot
+                : mergeUserDialogLocalSnapshot({
+                      friendSnapshot,
+                      seedData,
+                      knownTargetUser
+                  }),
+        [
+            currentUserSnapshot,
+            friendSnapshot,
+            isTargetCurrentUser,
+            knownTargetUser,
+            seedData
+        ]
+    );
     const targetKey = dialogTargetKey(currentEndpoint, normalizedUserId);
     const gameState = useMemo(
         () => ({
