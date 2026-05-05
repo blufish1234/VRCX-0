@@ -7,7 +7,7 @@ const MAX_MAJOR_VERSION = 99;
 const MAX_MINOR_VERSION = 999;
 const MAX_ALPHA_NUMBER = 999;
 const RELEASE_VERSION_PATTERN =
-    /^v?(?<major>[1-9][0-9]*)\.(?<minor>0|[1-9][0-9]*)\.(?<patch>0)(?:-(?<channel>alpha)\.(?<number>[1-9][0-9]{0,2}))?$/;
+    /^v?(?<major>[1-9][0-9]*)(?:\.(?<minor>0|[1-9][0-9]*)(?:\.(?<patch>0))?)?(?:-(?<channel>alpha)\.(?<number>[1-9][0-9]{0,2}))?$/;
 
 const CHANNEL_ORDER = {
     [RELEASE_CHANNELS.ALPHA]: 0,
@@ -73,7 +73,9 @@ function parseReleaseVersion(version) {
     }
 
     const major = Number.parseInt(match.groups.major, 10);
-    const minor = Number.parseInt(match.groups.minor, 10);
+    const minor = match.groups.minor
+        ? Number.parseInt(match.groups.minor, 10)
+        : 0;
     const alphaNumber = match.groups.number
         ? Number.parseInt(match.groups.number, 10)
         : null;

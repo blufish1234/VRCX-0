@@ -9,11 +9,8 @@ import {
 } from '@/shared/utils/releaseVersion.js';
 
 const INSTALLABLE_PLATFORMS = new Set(['windows', 'linux']);
+const TAURI_UPDATER_MANIFEST_ASSET_NAME = 'latest.json';
 let updateInstallInFlight = null;
-
-function channelIdForBranch(branch) {
-    return String(sanitizeBranch(branch)).toLowerCase();
-}
 
 function platformIdForHost(hostPlatform) {
     return hostPlatform === 'linux'
@@ -23,14 +20,14 @@ function platformIdForHost(hostPlatform) {
           : '';
 }
 
-function getUpdaterTarget(hostPlatform, branch) {
-    const platformId = platformIdForHost(hostPlatform);
-    return platformId ? `${platformId}-${channelIdForBranch(branch)}` : '';
+function getUpdaterTarget(hostPlatform) {
+    return platformIdForHost(hostPlatform);
 }
 
-function getUpdaterManifestAssetName(hostPlatform, branch) {
-    const target = getUpdaterTarget(hostPlatform, branch);
-    return target ? `vrcx-0-updater-${target}.json` : '';
+function getUpdaterManifestAssetName(hostPlatform) {
+    return getUpdaterTarget(hostPlatform)
+        ? TAURI_UPDATER_MANIFEST_ASSET_NAME
+        : '';
 }
 
 function canInstallUpdatesOnPlatform(hostPlatform) {

@@ -46,20 +46,19 @@ where
         return Ok(());
     }
 
-    if paths.db_file.exists() || paths.config_file.exists() {
-        tracing::warn!(
-            "Legacy VRCX data migration skipped: VRCX-0 database or config already exists"
-        );
-    } else {
-        let (source, status) = discover_legacy_source();
-        if let Some(source) = source.as_ref() {
-            copy_legacy_vrcx_data(paths, source)?;
-            tracing::info!("Legacy VRCX data migration completed");
-        } else if let Some(reason) = status.reason {
-            tracing::warn!(reason, "Legacy VRCX data migration skipped");
-        } else {
-            tracing::warn!("Legacy VRCX data migration skipped: no legacy source found");
+    let (source, status) = discover_legacy_source();
+    if let Some(source) = source.as_ref() {
+        if paths.db_file.exists() || paths.config_file.exists() {
+            tracing::warn!(
+                "Legacy VRCX data migration replacing pre-created VRCX-0 database or config"
+            );
         }
+        copy_legacy_vrcx_data(paths, source)?;
+        tracing::info!("Legacy VRCX data migration completed");
+    } else if let Some(reason) = status.reason {
+        tracing::warn!(reason, "Legacy VRCX data migration skipped");
+    } else {
+        tracing::warn!("Legacy VRCX data migration skipped: no legacy source found");
     }
     let _ = std::fs::remove_file(&migration_flag);
     Ok(())
@@ -211,19 +210,36 @@ mod tests {
     }
 
     #[test]
-    fn skips_pending_legacy_migration_when_target_db_or_config_exists() -> Result<(), AppError> {
-        let dir = TestDir::new("legacy-skip");
+    fn confirmed_legacy_migration_replaces_precreated_vrcx0_targets() -> Result<(), AppError> {
+        let dir = TestDir::new("legacy-pending-replace");
         let paths = dir.app_paths();
         let migration_flag = paths.app_data.join("pending_vrcx_migration");
+        let legacy_dir = dir.path.join("VRCX");
+        let legacy_db = legacy_dir.join("VRCX.sqlite3");
+        let legacy_config = legacy_dir.join("VRCX.json");
 
-        write_file(&paths.db_file, b"existing-db")?;
+        write_file(&legacy_db, b"legacy-db")?;
+        write_file(&legacy_config, br#"{"VRCX_CloseToTray":"true"}"#)?;
+        write_file(&paths.db_file, b"precreated-db")?;
+        write_file(&paths.config_file, b"{}")?;
         write_file(&migration_flag, b"1")?;
 
         consume_pending_legacy_migration_with_discovery(&paths, || {
-            panic!("legacy source discovery should be skipped when VRCX-0 targets exist")
+            (
+                Some(LegacyVrcxSource {
+                    db_path: legacy_db,
+                    config_path: Some(legacy_config),
+                    version: 16,
+                }),
+                LegacyVrcxMigrationStatus::unavailable(),
+            )
         })?;
 
-        assert_eq!(std::fs::read(&paths.db_file)?, b"existing-db");
+        assert_eq!(std::fs::read(&paths.db_file)?, b"legacy-db");
+        assert_eq!(
+            std::fs::read_to_string(&paths.config_file)?,
+            r#"{"VRCX_CloseToTray":"true"}"#
+        );
         assert!(!migration_flag.exists());
         Ok(())
     }

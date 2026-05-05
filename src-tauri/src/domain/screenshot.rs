@@ -243,14 +243,12 @@ pub fn parse_vrc_image(xml_string: &str) -> ScreenshotMetadata {
                     "CreatorTool" => creator_tool = Some(text),
                     "Author" => author_name = Some(text),
                     "DateTime" => date_time = Some(text),
-                    "li"
-                        if note.is_none() => {
-                            note = Some(text);
-                        }
-                    "WorldID" | "World"
-                        if world_id.is_none() => {
-                            world_id = Some(text);
-                        }
+                    "li" if note.is_none() => {
+                        note = Some(text);
+                    }
+                    "WorldID" | "World" if world_id.is_none() => {
+                        world_id = Some(text);
+                    }
                     "WorldDisplayName" => world_display_name = Some(text),
                     "AuthorID" => author_id = Some(text),
                     _ => {}
@@ -335,19 +333,18 @@ pub fn parse_lfs_picture(metadata_string: &str) -> ScreenshotMetadata {
         let sub_parts: Vec<&str> = value.split(',').collect();
 
         match key {
-            "author"
-                if sub_parts.len() >= 2 => {
-                    metadata.author.id = if is_cvr {
-                        String::new()
-                    } else {
-                        sub_parts[0].into()
-                    };
-                    metadata.author.display_name = Some(if is_cvr {
-                        format!("{} ({})", sub_parts[1], sub_parts[0])
-                    } else {
-                        sub_parts[1].into()
-                    });
-                }
+            "author" if sub_parts.len() >= 2 => {
+                metadata.author.id = if is_cvr {
+                    String::new()
+                } else {
+                    sub_parts[0].into()
+                };
+                metadata.author.display_name = Some(if is_cvr {
+                    format!("{} ({})", sub_parts[1], sub_parts[0])
+                } else {
+                    sub_parts[1].into()
+                });
+            }
             "world" => {
                 if is_cvr || version == 1 {
                     metadata.world.id = String::new();
@@ -363,13 +360,12 @@ pub fn parse_lfs_picture(metadata_string: &str) -> ScreenshotMetadata {
                     metadata.world.name = Some(sub_parts[2].into());
                 }
             }
-            "pos"
-                if sub_parts.len() >= 3 => {
-                    let x: f32 = sub_parts[0].parse().unwrap_or(0.0);
-                    let y: f32 = sub_parts[1].parse().unwrap_or(0.0);
-                    let z: f32 = sub_parts[2].parse().unwrap_or(0.0);
-                    metadata.pos = Some([x, y, z]);
-                }
+            "pos" if sub_parts.len() >= 3 => {
+                let x: f32 = sub_parts[0].parse().unwrap_or(0.0);
+                let y: f32 = sub_parts[1].parse().unwrap_or(0.0);
+                let z: f32 = sub_parts[2].parse().unwrap_or(0.0);
+                metadata.pos = Some([x, y, z]);
+            }
             "players" => {
                 let players_str = value.split(';');
                 for player in players_str {
