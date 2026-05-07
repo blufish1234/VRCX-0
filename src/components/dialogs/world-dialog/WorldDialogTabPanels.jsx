@@ -15,6 +15,7 @@ import {
     EntityRawJson
 } from '../EntityDialogScaffold.jsx';
 import { PreviousInstancesPanel } from '../PreviousInstancesTableDialog.jsx';
+import { formatPreviousInstanceCount } from '../previous-instances-table/previousInstancesRows.js';
 import {
     InstanceUserTiles,
     WorldInstancesEmptyState,
@@ -273,7 +274,9 @@ export function WorldDialogTabPanels({ handlers, helpers, state, t }) {
                         label={t('dialog.world.info.visit_count')}
                         value={
                             previousInstances.length
-                                ? String(previousInstances.length)
+                                ? formatPreviousInstanceCount(
+                                      previousInstances.length
+                                  )
                                 : '—'
                         }
                         onClick={

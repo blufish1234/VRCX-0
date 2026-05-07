@@ -1,6 +1,18 @@
 import { timeToText } from '@/lib/dateTime.js';
 import { parseLocation } from '@/shared/utils/locationParser.js';
 
+const PREVIOUS_INSTANCE_COUNT_CAP = 10000;
+
+export function formatPreviousInstanceCount(count) {
+    const value = Number(count);
+    if (!Number.isFinite(value) || value < 0) {
+        return '0';
+    }
+    return value >= PREVIOUS_INSTANCE_COUNT_CAP
+        ? '9999+'
+        : String(Math.trunc(value));
+}
+
 export function createdTime(row) {
     return new Date(row?.created_at || row?.createdAt || 0).getTime() || 0;
 }

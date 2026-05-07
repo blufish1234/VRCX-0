@@ -1,4 +1,5 @@
 import { EntityDialogTabs } from '../../EntityDialogScaffold.jsx';
+import { formatPreviousInstanceCount } from '../../previous-instances-table/previousInstancesRows.js';
 import {
     UserDialogActivityTab,
     UserDialogAvatarsTab,
@@ -98,6 +99,10 @@ export function UserDialogTabsSection({ state = {}, actions = {}, t }) {
         .filter((tab) => !tab.hidden)
         .map((tab) => {
             const count = Number(tabCounts[tab.value]);
+            const countText =
+                tab.value === 'instance-history'
+                    ? formatPreviousInstanceCount(count)
+                    : String(count);
             return Number.isFinite(count) && count >= 0
                 ? {
                       ...tab,
@@ -105,7 +110,7 @@ export function UserDialogTabsSection({ state = {}, actions = {}, t }) {
                           <span className="inline-flex items-baseline gap-1.5">
                               <span>{tab.label}</span>
                               <span className="text-muted-foreground text-[11px] leading-none font-medium tabular-nums">
-                                  {count}
+                                  {countText}
                               </span>
                           </span>
                       )

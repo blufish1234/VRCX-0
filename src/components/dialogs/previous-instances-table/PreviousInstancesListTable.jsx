@@ -24,6 +24,7 @@ import {
 } from '@/ui/shadcn/table';
 
 import {
+    formatPreviousInstanceCount,
     rowDuration,
     rowLocation,
     rowLocationObject,
@@ -97,6 +98,8 @@ export function PreviousInstancesListTable({
     onDeleteRow
 }) {
     const { t } = useTranslation();
+    const filteredCountText = formatPreviousInstanceCount(filteredRows.length);
+    const totalCountText = formatPreviousInstanceCount(rows.length);
 
     return (
         <div
@@ -109,7 +112,7 @@ export function PreviousInstancesListTable({
                     <div className="min-w-0">
                         <h3 className="text-base font-semibold">{title}</h3>
                         <p className="text-muted-foreground text-sm">
-                            {filteredRows.length}/{rows.length}{' '}
+                            {filteredCountText}/{totalCountText}{' '}
                             {t(
                                 'dialog.previous_instances.generated.recorded_instance_visits'
                             )}

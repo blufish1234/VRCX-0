@@ -17,6 +17,7 @@ import {
 import { PreviousInstancesListTable } from './previous-instances-table/PreviousInstancesListTable.jsx';
 import {
     createdTime,
+    formatPreviousInstanceCount,
     rowLocation,
     rowSearchText,
     rowWorldId
@@ -203,10 +204,13 @@ function PreviousInstancesTableDialog({
 }) {
     const initialDetailRow =
         detailsOnly && Array.isArray(instances) ? instances[0] || null : null;
+    const instanceCountText = formatPreviousInstanceCount(
+        Array.isArray(instances) ? instances.length : 0
+    );
     const dialogTitle = detailsOnly ? 'Instance Details' : title;
     const dialogDescription = detailsOnly
         ? rowLocation(initialDetailRow) || 'Instance details'
-        : `${Array.isArray(instances) ? instances.length : 0} recorded instance visits.`;
+        : `${instanceCountText} recorded instance visits.`;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
