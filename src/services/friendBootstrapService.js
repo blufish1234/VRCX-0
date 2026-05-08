@@ -20,6 +20,7 @@ import { syncStartupServicesTask } from './startupServicesStatus.js';
 
 const activeBootstraps = new Map();
 const MISSING_FRIEND_CONCURRENCY = 4;
+const FRIEND_REMOVAL_STATUS_CONFIRMATION_LIMIT = 50;
 
 function normalizeUserId(value) {
     return typeof value === 'string'
@@ -72,6 +73,140 @@ function buildFriendStateMap(currentUserSnapshot) {
     return stateById;
 }
 
+function getFriendLogInitKey(userId) {
+    return `friendLogInit_${userId}`;
+}
+
+function buildSnapshotFriendIdSet(currentUserSnapshot) {
+    const friendIds = new Set();
+
+    if (Array.isArray(currentUserSnapshot?.friends)) {
+        for (const value of currentUserSnapshot.friends) {
+            const userId = normalizeUserId(value);
+            if (userId) {
+                friendIds.add(userId);
+            }
+        }
+    }
+
+    return {
+        friendIds,
+        hasFriendList: Array.isArray(currentUserSnapshot?.friends)
+    };
+}
+
+function buildUnfriendHistoryEntry(row, createdAt) {
+    const userId = normalizeUserId(row?.userId);
+    if (!userId) {
+        return null;
+    }
+
+    return {
+        created_at: createdAt,
+        type: 'Unfriend',
+        userId,
+        displayName: row?.displayName || userId,
+        friendNumber: row?.friendNumber ?? row?.$friendNumber ?? null
+    };
+}
+
+function buildFriendLogRemovalCandidates({
+    currentUserId,
+    existingRows,
+    fetchedFriendIds,
+    snapshotFriendIds,
+    hasFriendList
+}) {
+    const normalizedCurrentUserId = normalizeUserId(currentUserId);
+    const candidates = [];
+
+    for (const row of Array.isArray(existingRows) ? existingRows : []) {
+        const userId = normalizeUserId(row?.userId);
+        if (
+            !userId ||
+            userId === normalizedCurrentUserId ||
+            (fetchedFriendIds.has(userId) &&
+                (!hasFriendList || snapshotFriendIds.has(userId)))
+        ) {
+            continue;
+        }
+
+        candidates.push(row);
+    }
+
+    return candidates;
+}
+
+async function confirmFriendLogRemovalHistoryEntries({
+    candidates,
+    endpoint,
+    createdAt
+}) {
+    if (!Array.isArray(candidates) || candidates.length === 0) {
+        return {
+            removedRows: [],
+            historyEntries: []
+        };
+    }
+
+    if (candidates.length > FRIEND_REMOVAL_STATUS_CONFIRMATION_LIMIT) {
+        console.warn(
+            `Friend bootstrap skipped ${candidates.length} unfriend candidates; refusing to confirm a large roster drop.`
+        );
+        return {
+            removedRows: [],
+            historyEntries: []
+        };
+    }
+
+    const pending = [...candidates];
+    const removedRows = [];
+    const historyEntries = [];
+    const workers = Array.from(
+        {
+            length: Math.min(MISSING_FRIEND_CONCURRENCY, pending.length)
+        },
+        async () => {
+            while (pending.length > 0) {
+                const row = pending.shift();
+                const targetUserId = normalizeUserId(row?.userId);
+                if (!targetUserId) {
+                    continue;
+                }
+
+                try {
+                    const response = await vrchatFriendRepository.getFriendStatus(
+                        {
+                            userId: targetUserId,
+                            endpoint
+                        }
+                    );
+                    if (response?.json?.isFriend !== false) {
+                        continue;
+                    }
+                    const entry = buildUnfriendHistoryEntry(row, createdAt);
+                    if (entry) {
+                        removedRows.push(row);
+                        historyEntries.push(entry);
+                    }
+                } catch (error) {
+                    console.warn(
+                        `Friend bootstrap could not confirm unfriend ${targetUserId}:`,
+                        error
+                    );
+                }
+            }
+        }
+    );
+
+    await Promise.all(workers);
+
+    return {
+        removedRows,
+        historyEntries
+    };
+}
+
 export function syncFriendRosterStateFromCurrentUserSnapshot(
     currentUserSnapshot,
     detail = ''
@@ -104,6 +239,66 @@ export function syncFriendRosterStateFromCurrentUserSnapshot(
         });
     }
     return true;
+}
+
+export async function recordFriendLogUnfriendByUserId({
+    currentUserId,
+    targetUserId,
+    nowIso = () => new Date().toJSON()
+}) {
+    const normalizedCurrentUserId = normalizeUserId(currentUserId);
+    const normalizedTargetUserId = normalizeUserId(targetUserId);
+    if (!normalizedCurrentUserId || !normalizedTargetUserId) {
+        return {
+            userId: normalizedCurrentUserId,
+            targetUserId: normalizedTargetUserId,
+            removedCount: 0,
+            historyCount: 0
+        };
+    }
+
+    const initialized = Boolean(
+        await configRepository.getBool(
+            getFriendLogInitKey(normalizedCurrentUserId),
+            false
+        )
+    );
+    if (!initialized) {
+        return {
+            userId: normalizedCurrentUserId,
+            targetUserId: normalizedTargetUserId,
+            removedCount: 0,
+            historyCount: 0
+        };
+    }
+
+    const existingRows =
+        await friendLogRepository.getFriendLogCurrent(normalizedCurrentUserId);
+    const row = existingRows.find(
+        (entry) => normalizeUserId(entry?.userId) === normalizedTargetUserId
+    );
+    const historyEntry = row ? buildUnfriendHistoryEntry(row, nowIso()) : null;
+    if (!historyEntry) {
+        return {
+            userId: normalizedCurrentUserId,
+            targetUserId: normalizedTargetUserId,
+            removedCount: 0,
+            historyCount: 0
+        };
+    }
+
+    const result = await friendLogRepository.deleteFriendLogCurrentArray(
+        normalizedCurrentUserId,
+        [normalizedTargetUserId],
+        { historyEntries: [historyEntry] }
+    );
+
+    return {
+        userId: normalizedCurrentUserId,
+        targetUserId: normalizedTargetUserId,
+        removedCount: result?.count ?? 0,
+        historyCount: result?.historyCount ?? 0
+    };
 }
 
 function createFallbackFriendUser(userId, existingRow) {
@@ -261,7 +456,17 @@ async function runFriendBootstrap({
 
     const displayName = getDisplayName(currentUserSnapshot) || normalizedUserId;
     const stateById = buildFriendStateMap(currentUserSnapshot);
-    const expectedIds = Array.from(stateById.keys());
+    const { friendIds: snapshotFriendIds, hasFriendList } =
+        buildSnapshotFriendIdSet(currentUserSnapshot);
+    const expectedIds = Array.from(
+        new Set([...stateById.keys(), ...snapshotFriendIds])
+    );
+    const friendLogInitialized = Boolean(
+        await configRepository.getBool(
+            getFriendLogInitKey(normalizedUserId),
+            false
+        )
+    );
     const existingRows =
         await friendLogRepository.getFriendLogCurrent(normalizedUserId);
     const existingRowsById = new Map(
@@ -298,7 +503,7 @@ async function runFriendBootstrap({
     }
 
     const missingIds = expectedIds.filter(
-        (friendId) => !fetchedFriendsById.has(friendId)
+        (friendId) => !friendLogInitialized && !fetchedFriendsById.has(friendId)
     );
     const recoveredFriends = await fetchMissingFriends(missingIds, endpoint);
     for (const friend of recoveredFriends) {
@@ -309,9 +514,37 @@ async function runFriendBootstrap({
         fetchedFriendsById.set(friendId, friend);
     }
 
-    const includedIds = Array.from(
-        new Set([...expectedIds, ...fetchedFriendsById.keys()])
+    const existingIds = existingRows
+        .map((row) => normalizeUserId(row?.userId))
+        .filter(Boolean);
+    const fetchedFriendIds = new Set(fetchedFriendsById.keys());
+    const { removedRows, historyEntries } = friendLogInitialized
+        ? await confirmFriendLogRemovalHistoryEntries({
+              candidates: buildFriendLogRemovalCandidates({
+                  currentUserId: normalizedUserId,
+                  existingRows,
+                  fetchedFriendIds,
+                  snapshotFriendIds,
+                  hasFriendList
+              }),
+              endpoint,
+              createdAt: new Date().toJSON()
+          })
+        : { removedRows: [], historyEntries: [] };
+    const removedFriendIds = new Set(
+        removedRows
+            .map((row) => normalizeUserId(row?.userId))
+            .filter(Boolean)
     );
+    const includedIds = friendLogInitialized
+        ? Array.from(
+              new Set([
+                  ...existingIds,
+                  ...(hasFriendList ? snapshotFriendIds : []),
+                  ...fetchedFriendsById.keys()
+              ])
+          ).filter((friendId) => !removedFriendIds.has(friendId))
+        : Array.from(new Set([...expectedIds, ...fetchedFriendsById.keys()]));
     const friendOrderSourceIds =
         Array.isArray(currentUserSnapshot?.friends) &&
         currentUserSnapshot.friends.length
@@ -370,9 +603,10 @@ async function runFriendBootstrap({
 
     await friendLogRepository.replaceFriendLogCurrent(
         normalizedUserId,
-        friendLogRows
+        friendLogRows,
+        { historyEntries }
     );
-    await configRepository.setBool(`friendLogInit_${normalizedUserId}`, true);
+    await configRepository.setBool(getFriendLogInitKey(normalizedUserId), true);
 
     const detail = '';
 

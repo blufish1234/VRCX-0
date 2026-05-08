@@ -112,6 +112,24 @@ async function deleteFriend({ userId, endpoint = '' }) {
     );
 }
 
+async function getFriendStatus({ userId, endpoint = '' }) {
+    const normalizedUserId =
+        typeof userId === 'string'
+            ? userId.trim()
+            : String(userId ?? '').trim();
+    if (!normalizedUserId) {
+        throw new Error(
+            'VrchatFriendRepository.getFriendStatus requires a user id.'
+        );
+    }
+
+    return executeGet(
+        `user/${encodeURIComponent(normalizedUserId)}/friendStatus`,
+        {},
+        { endpoint }
+    );
+}
+
 async function sendFriendRequest({ userId, endpoint = '' }) {
     const normalizedUserId =
         typeof userId === 'string'
@@ -166,6 +184,7 @@ const vrchatFriendRepository = Object.freeze({
     getAllFriends,
     getUser,
     deleteFriend,
+    getFriendStatus,
     sendFriendRequest,
     cancelFriendRequest
 });
@@ -179,6 +198,7 @@ export {
     getAllFriends,
     getUser,
     deleteFriend,
+    getFriendStatus,
     sendFriendRequest,
     cancelFriendRequest
 };

@@ -12,6 +12,7 @@ import {
     recordCurrentUserSnapshot,
     recordFriendPatch
 } from './domainIngestionService.js';
+import { recordFriendLogUnfriendByUserId } from './friendBootstrapService.js';
 import { applyCurrentUserLocationEvent } from './realtime-presence/currentUserLocationFallback.js';
 import { dispatchRealtimePresenceMessage } from './realtime-presence/dispatcher.js';
 import {
@@ -127,23 +128,20 @@ function removeCurrentUserFriend(userId) {
         return;
     }
 
-    runtimeStore.setAuthBootstrap({
-        currentUserSnapshot: {
-            ...snapshot,
-            friends: removeFromArray(snapshot.friends, normalizedUserId),
-            onlineFriends: removeFromArray(
-                snapshot.onlineFriends,
-                normalizedUserId
-            ),
-            activeFriends: removeFromArray(
-                snapshot.activeFriends,
-                normalizedUserId
-            ),
-            offlineFriends: removeFromArray(
-                snapshot.offlineFriends,
-                normalizedUserId
-            )
+    const nextSnapshot = { ...snapshot };
+    for (const key of [
+        'friends',
+        'onlineFriends',
+        'activeFriends',
+        'offlineFriends'
+    ]) {
+        if (Array.isArray(snapshot[key])) {
+            nextSnapshot[key] = removeFromArray(snapshot[key], normalizedUserId);
         }
+    }
+
+    runtimeStore.setAuthBootstrap({
+        currentUserSnapshot: nextSnapshot
     });
 }
 
@@ -224,6 +222,18 @@ export async function handleRealtimePresenceEvent(message) {
                     cancelPendingOffline(userId);
                     useFriendRosterStore.getState().removeFriend(userId);
                     removeCurrentUserFriend(userId);
+                    try {
+                        const runtimeState = useRuntimeStore.getState();
+                        await recordFriendLogUnfriendByUserId({
+                            currentUserId: runtimeState.auth.currentUserId,
+                            targetUserId: userId
+                        });
+                    } catch (error) {
+                        console.warn(
+                            'Friend log unfriend recording failed:',
+                            error
+                        );
+                    }
                     notifyFriendLogMenu();
                     return true;
                 }
