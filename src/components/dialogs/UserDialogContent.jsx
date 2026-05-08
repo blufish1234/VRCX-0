@@ -68,7 +68,12 @@ function useDelayedUserDialogSkeleton(loading, identity) {
     return visible;
 }
 
-export function UserDialogContent({ userId, seedData = null, openNonce = 0 }) {
+export function UserDialogContent({
+    userId,
+    seedData = null,
+    initialAction = '',
+    openNonce = 0
+}) {
     const { t } = useTranslation();
 
     const normalizedUserId = normalizeUserId(userId);
@@ -437,6 +442,7 @@ export function UserDialogContent({ userId, seedData = null, openNonce = 0 }) {
                 actionStatus={actionStatus}
                 recentActionVersion={recentActionVersion}
                 reloadToken={reloadToken}
+                initialAction={initialAction}
                 moderationState={moderationState}
                 extendedModerationState={extendedModerationState}
                 avatarOverrideState={avatarOverrideState}
@@ -502,6 +508,9 @@ export function UserDialogContent({ userId, seedData = null, openNonce = 0 }) {
                 }
                 onEditSelfStatus={selfActions.editSelfStatus}
                 onEditSelfProfileDetails={selfActions.editSelfProfileDetails}
+                onSetSelfProfileMediaField={
+                    selfActions.setSelfProfileMediaField
+                }
                 onToggleSelfAvatarCopying={selfActions.toggleSelfAvatarCopying}
                 onToggleSelfBooping={selfActions.toggleSelfBooping}
                 onToggleSelfSharedConnections={

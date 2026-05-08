@@ -5,6 +5,7 @@ import {
     EyeOffIcon,
     HandIcon,
     HistoryIcon,
+    ImageIcon,
     MailPlusIcon,
     MailQuestionIcon,
     MessageSquarePlusIcon,
@@ -61,6 +62,7 @@ export function UserDialogHeaderActions({ state = {}, actions = {}, t }) {
         onOpenFallbackAvatar,
         onEditSelfStatus,
         onEditSelfProfileDetails,
+        onEditSelfProfileMedia,
         onFriendRequest,
         onInvite,
         onInviteMessage,
@@ -149,6 +151,13 @@ export function UserDialogHeaderActions({ state = {}, actions = {}, t }) {
                             onSelect={onEditSelfProfileDetails}
                         >
                             {t('dialog.user.actions.edit_profile_details')}
+                        </EntityActionItem>
+                        <EntityActionItem
+                            icon={ImageIcon}
+                            disabled={actionsDisabled}
+                            onSelect={onEditSelfProfileMedia}
+                        >
+                            {t('dialog.user.actions.edit_profile_media')}
                         </EntityActionItem>
                     </>
                 ) : null}

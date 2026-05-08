@@ -467,6 +467,31 @@ async function getUserInventoryItem(
     });
 }
 
+async function updateInventoryItem(
+    inventoryId: unknown,
+    params: MediaApiParams = {},
+    options: MediaApiOptions = {}
+) {
+    const normalizedInventoryId =
+        typeof inventoryId === 'string'
+            ? inventoryId.trim()
+            : String(inventoryId ?? '').trim();
+    if (!normalizedInventoryId) {
+        throw new Error(
+            'MediaRepository.updateInventoryItem requires an inventory id.'
+        );
+    }
+
+    return executeRequest(
+        `inventory/${encodeURIComponent(normalizedInventoryId)}`,
+        {
+            method: 'PUT',
+            params,
+            endpoint: options.endpoint
+        }
+    );
+}
+
 async function consumeInventoryBundle(
     inventoryId: unknown,
     options: MediaApiOptions = {}
@@ -769,6 +794,7 @@ const mediaApiRepository = Object.freeze({
     deletePrint,
     getInventoryItems,
     getUserInventoryItem,
+    updateInventoryItem,
     consumeInventoryBundle,
     redeemReward,
     uploadAvatarImageLegacy,
@@ -795,6 +821,7 @@ export {
     deletePrint,
     getInventoryItems,
     getUserInventoryItem,
+    updateInventoryItem,
     consumeInventoryBundle,
     redeemReward,
     uploadAvatarImageLegacy,

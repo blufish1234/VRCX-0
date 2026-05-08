@@ -213,6 +213,15 @@ export const protectedRoutes = [
         )
     },
     {
+        path: '/tools/inventory',
+        titleKey: 'app.routes.inventory',
+        descriptionKey: 'app.routes.inventory_browser_and_media_actions',
+        element: lazyRouteElement(
+            () => import('@/features/tools/InventoryPage.jsx'),
+            'InventoryPage'
+        )
+    },
+    {
         path: '/tools/screenshot-metadata',
         titleKey: 'app.routes.screenshot_metadata',
         descriptionKey:

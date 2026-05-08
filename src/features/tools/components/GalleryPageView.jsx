@@ -1,3 +1,8 @@
+import {
+    PageBody,
+    PageScaffold
+} from '@/components/layout/PageScaffold.jsx';
+
 export function GalleryPageView({
     GalleryHeader,
     t,
@@ -12,28 +17,14 @@ export function GalleryPageView({
     setActiveTab,
     beginUpload,
     setProfileField,
-    consumeInventoryBundle,
-    openExternalLink,
     deleteFileAsset,
     deletePrint,
-    setEmojiAnimationStyle,
-    setEmojiAnimFps,
-    setEmojiAnimFrameCount,
-    setEmojiAnimLoopPingPong,
-    setEmojiAnimType,
     setPrintCropBorder,
     setPrintUploadNote,
-    redeemReward,
     refreshTab,
     activeTab,
     assets,
     currentUserId,
-    emojiAnimFps,
-    emojiAnimFrameCount,
-    emojiAnimLoopPingPong,
-    emojiAnimationStyle,
-    emojiAnimType,
-    galleryLimits,
     gridDensityConfig,
     isVrcPlusSupporter,
     loadingByTab,
@@ -48,10 +39,11 @@ export function GalleryPageView({
     setCropRequest,
     confirmCroppedUpload,
     openImagePreview,
-    uploadAuthTargetRef
+    uploadAuthTargetRef,
+    openProfileMedia
 }) {
     return (
-        <div className="gallery-page x-container flex min-h-0 flex-1 flex-col p-6">
+        <PageScaffold className="gallery-page">
             <GalleryHeader
                 t={t}
                 uploadInputRef={uploadInputRef}
@@ -61,57 +53,45 @@ export function GalleryPageView({
                 onGridDensityChange={changeGridDensity}
                 onBack={() => navigate('/tools')}
                 onRefreshAll={() => void refreshAll()}
+                onOpenProfileMedia={openProfileMedia}
             />
 
-            <GalleryTabsSection
-                t={t}
-                handlers={{
-                    onActiveTabChange: setActiveTab,
-                    onBeginUpload: beginUpload,
-                    onClearProfileField: (fieldName, fileId) =>
-                        void setProfileField(fieldName, fileId),
-                    onConsumeBundle: (inventoryId) =>
-                        void consumeInventoryBundle(inventoryId),
-                    onCreateAnimatedEmoji: () =>
-                        void openExternalLink('https://vrcemoji.com'),
-                    onDeleteFile: (tab, fileId) =>
-                        void deleteFileAsset(tab, fileId),
-                    onDeletePrint: (printId) => void deletePrint(printId),
-                    onEmojiAnimationStyleChange: setEmojiAnimationStyle,
-                    onEmojiAnimFpsChange: setEmojiAnimFps,
-                    onEmojiAnimFrameCountChange: setEmojiAnimFrameCount,
-                    onEmojiAnimLoopPingPongChange: setEmojiAnimLoopPingPong,
-                    onEmojiAnimTypeChange: setEmojiAnimType,
-                    onPreview: openImagePreview,
-                    onPrintCropBorderChange: setPrintCropBorder,
-                    onPrintUploadNoteChange: setPrintUploadNote,
-                    onRedeem: () => void redeemReward(),
-                    onRefresh: (tab) => void refreshTab(tab),
-                    onSetProfileField: (fieldName, fileId) =>
-                        void setProfileField(fieldName, fileId)
-                }}
-                state={{
-                    activeTab,
-                    assets,
-                    currentUserId,
-                    emojiAnimFps,
-                    emojiAnimFrameCount,
-                    emojiAnimLoopPingPong,
-                    emojiAnimationStyle,
-                    emojiAnimType,
-                    galleryLimits,
-                    gridDensityConfig,
-                    isVrcPlusSupporter,
-                    loadingByTab,
-                    mutatingKey,
-                    printCropBorder,
-                    printUploadNote,
-                    profilePicOverride,
-                    tabCounts,
-                    uploadingTab,
-                    userIcon
-                }}
-            />
+            <PageBody>
+                <GalleryTabsSection
+                    t={t}
+                    handlers={{
+                        onActiveTabChange: setActiveTab,
+                        onBeginUpload: beginUpload,
+                        onClearProfileField: (fieldName, fileId) =>
+                            void setProfileField(fieldName, fileId),
+                        onDeleteFile: (tab, fileId) =>
+                            void deleteFileAsset(tab, fileId),
+                        onDeletePrint: (printId) => void deletePrint(printId),
+                        onPreview: openImagePreview,
+                        onPrintCropBorderChange: setPrintCropBorder,
+                        onPrintUploadNoteChange: setPrintUploadNote,
+                        onRefresh: (tab) => void refreshTab(tab),
+                        onSetProfileField: (fieldName, fileId) =>
+                            void setProfileField(fieldName, fileId),
+                        onOpenProfileMedia: openProfileMedia
+                    }}
+                    state={{
+                        activeTab,
+                        assets,
+                        currentUserId,
+                        gridDensityConfig,
+                        isVrcPlusSupporter,
+                        loadingByTab,
+                        mutatingKey,
+                        printCropBorder,
+                        printUploadNote,
+                        profilePicOverride,
+                        tabCounts,
+                        uploadingTab,
+                        userIcon
+                    }}
+                />
+            </PageBody>
 
             <GalleryDialogs
                 cropRequest={cropRequest}
@@ -122,6 +102,6 @@ export function GalleryPageView({
                 }}
                 t={t}
             />
-        </div>
+        </PageScaffold>
     );
 }

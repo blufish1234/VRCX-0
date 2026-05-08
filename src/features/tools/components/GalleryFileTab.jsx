@@ -1,12 +1,12 @@
-import { RefreshCwIcon, UploadIcon, XIcon } from 'lucide-react';
+import { PencilIcon, RefreshCwIcon, UploadIcon, XIcon } from 'lucide-react';
 
 import { Button } from '@/ui/shadcn/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/shadcn/card';
 import { TabsContent } from '@/ui/shadcn/tabs';
 
 import { GalleryEmojiUploadSettings } from './GalleryEmojiUploadSettings.jsx';
 import { GalleryFileCard } from './GalleryFileCard.jsx';
 import { EmptyState, LoadingState } from './GalleryViewParts.jsx';
+import { MediaLibraryToolbar } from './MediaLibraryToolbar.jsx';
 
 export function GalleryFileTab({
     t,
@@ -37,20 +37,19 @@ export function GalleryFileTab({
     onCreateAnimatedEmoji,
     onPreview,
     onSetProfileField,
-    onDeleteFile
+    onDeleteFile,
+    onOpenProfileMedia
 }) {
     return (
         <TabsContent
             value={tab}
             className="mt-2 min-h-0 flex-1 data-[state=active]:flex data-[state=inactive]:hidden"
         >
-            <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                <CardHeader className="gap-4">
-                    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                        <div>
-                            <CardTitle>{t(definition.titleKey)}</CardTitle>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <MediaLibraryToolbar
+                    title={t(definition.titleKey)}
+                    actions={
+                        <>
                             <Button
                                 variant="outline"
                                 size="sm"
@@ -75,6 +74,7 @@ export function GalleryFileTab({
                                     variant="outline"
                                     size="sm"
                                     disabled={
+                                        !isVrcPlusSupporter ||
                                         !profilePicOverride ||
                                         Boolean(mutatingKey)
                                     }
@@ -86,24 +86,31 @@ export function GalleryFileTab({
                                     }
                                 >
                                     <XIcon data-icon="inline-start" />
-                                    {t('dialog.gallery_icons.clear')}
+                                    {t('dialog.gallery_icons.clear_banner')}
                                 </Button>
                             ) : null}
                             {tab === 'icons' ? (
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    disabled={!userIcon || Boolean(mutatingKey)}
+                                    disabled={
+                                        !isVrcPlusSupporter ||
+                                        !userIcon ||
+                                        Boolean(mutatingKey)
+                                    }
                                     onClick={() =>
                                         onClearProfileField('userIcon', '')
                                     }
                                 >
                                     <XIcon data-icon="inline-start" />
-                                    {t('dialog.gallery_icons.clear')}
+                                    {t(
+                                        'dialog.gallery_icons.clear_profile_icon'
+                                    )}
                                 </Button>
                             ) : null}
-                        </div>
-                    </div>
+                        </>
+                    }
+                >
                     {tab === 'emojis' ? (
                         <GalleryEmojiUploadSettings
                             t={t}
@@ -126,8 +133,8 @@ export function GalleryFileTab({
                             onCreateAnimatedEmoji={onCreateAnimatedEmoji}
                         />
                     ) : null}
-                </CardHeader>
-                <CardContent className="p-4 min-h-0 flex-1 overflow-y-auto">
+                </MediaLibraryToolbar>
+                <div className="min-h-0 flex-1 overflow-y-auto pr-1">
                     {loading ? (
                         <LoadingState />
                     ) : files.length > 0 ? (
@@ -161,10 +168,24 @@ export function GalleryFileTab({
                                 'view.tools.generated_dynamic.refresh_this_tab_to_load_value_files',
                                 { value: definition.tag }
                             )}
-                        />
+                        >
+                            {tab === 'gallery' ? (
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={onOpenProfileMedia}
+                                >
+                                    <PencilIcon data-icon="inline-start" />
+                                    {t(
+                                        'dialog.gallery_icons.edit_current_profile_media'
+                                    )}
+                                </Button>
+                            ) : null}
+                        </EmptyState>
                     )}
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         </TabsContent>
     );
 }

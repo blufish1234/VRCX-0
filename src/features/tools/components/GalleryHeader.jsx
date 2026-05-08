@@ -1,5 +1,16 @@
-import { ArrowLeftIcon, RefreshCwIcon, SettingsIcon } from 'lucide-react';
+import {
+    ArrowLeftIcon,
+    PencilIcon,
+    RefreshCwIcon,
+    SettingsIcon
+} from 'lucide-react';
 
+import {
+    PageHeader,
+    PageTitle,
+    PageToolbar,
+    PageToolbarRow
+} from '@/components/layout/PageScaffold.jsx';
 import { IMAGE_UPLOAD_ACCEPT } from '@/shared/utils/imageUpload.js';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
@@ -74,7 +85,8 @@ export function GalleryHeader({
     gridDensity,
     onGridDensityChange,
     onBack,
-    onRefreshAll
+    onRefreshAll,
+    onOpenProfileMedia
 }) {
     return (
         <>
@@ -85,36 +97,50 @@ export function GalleryHeader({
                 className="hidden"
                 onChange={onUploadChange}
             />
-            <div className="ml-2 flex items-center gap-2">
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className="mr-3"
-                    onClick={onBack}
-                >
-                    <ArrowLeftIcon data-icon="inline-start" />
-                    {t('nav_tooltip.tools')}
-                </Button>
-                <span className="header">
-                    {t('dialog.gallery_icons.header')}
-                </span>
-                {uploadingTab ? (
-                    <Badge variant="outline">
-                        {t('message.upload.loading')} {uploadingTab}
-                    </Badge>
-                ) : null}
-                <div className="ml-auto flex items-center gap-1">
-                    <GalleryGridSettingsMenu
-                        t={t}
-                        gridDensity={gridDensity}
-                        onGridDensityChange={onGridDensityChange}
-                    />
-                    <Button variant="outline" size="sm" onClick={onRefreshAll}>
-                        <RefreshCwIcon data-icon="inline-start" />
-                        {t('dialog.gallery_icons.refresh')}
+            <PageToolbar>
+                <PageToolbarRow className="items-start">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mr-1"
+                        onClick={onBack}
+                    >
+                        <ArrowLeftIcon data-icon="inline-start" />
+                        {t('nav_tooltip.tools')}
                     </Button>
-                </div>
-            </div>
+                    <PageHeader className="min-w-0 p-0">
+                        <PageTitle>{t('dialog.gallery_icons.header')}</PageTitle>
+                    </PageHeader>
+                    {uploadingTab ? (
+                        <Badge variant="outline">
+                            {t('message.upload.loading')} {uploadingTab}
+                        </Badge>
+                    ) : null}
+                    <div className="ml-auto flex flex-wrap items-center gap-1">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={onOpenProfileMedia}
+                        >
+                            <PencilIcon data-icon="inline-start" />
+                            {t('dialog.gallery_icons.edit_current_profile_media')}
+                        </Button>
+                        <GalleryGridSettingsMenu
+                            t={t}
+                            gridDensity={gridDensity}
+                            onGridDensityChange={onGridDensityChange}
+                        />
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={onRefreshAll}
+                        >
+                            <RefreshCwIcon data-icon="inline-start" />
+                            {t('dialog.gallery_icons.refresh')}
+                        </Button>
+                    </div>
+                </PageToolbarRow>
+            </PageToolbar>
         </>
     );
 }

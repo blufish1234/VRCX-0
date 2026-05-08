@@ -5,11 +5,6 @@ export function GalleryTabsSection({ handlers, state, t }) {
         activeTab,
         assets,
         currentUserId,
-        emojiAnimFps,
-        emojiAnimFrameCount,
-        emojiAnimLoopPingPong,
-        emojiAnimationStyle,
-        emojiAnimType,
         gridDensityConfig,
         isVrcPlusSupporter,
         loadingByTab,
@@ -25,21 +20,14 @@ export function GalleryTabsSection({ handlers, state, t }) {
         onActiveTabChange,
         onBeginUpload,
         onClearProfileField,
-        onConsumeBundle,
-        onCreateAnimatedEmoji,
         onDeleteFile,
         onDeletePrint,
-        onEmojiAnimationStyleChange,
-        onEmojiAnimFpsChange,
-        onEmojiAnimFrameCountChange,
-        onEmojiAnimLoopPingPongChange,
-        onEmojiAnimTypeChange,
         onPreview,
         onPrintCropBorderChange,
         onPrintUploadNoteChange,
-        onRedeem,
         onRefresh,
-        onSetProfileField
+        onSetProfileField,
+        onOpenProfileMedia
     } = handlers;
 
     return (
@@ -57,24 +45,14 @@ export function GalleryTabsSection({ handlers, state, t }) {
                 currentUserId,
                 profilePicOverride,
                 userIcon,
-                emojiAnimType,
-                emojiAnimationStyle,
-                emojiAnimFps,
-                emojiAnimFrameCount,
-                emojiAnimLoopPingPong,
                 gridDensityConfig,
                 onRefresh,
                 onBeginUpload,
                 onClearProfileField,
-                onEmojiAnimTypeChange,
-                onEmojiAnimationStyleChange,
-                onEmojiAnimFpsChange,
-                onEmojiAnimFrameCountChange,
-                onEmojiAnimLoopPingPongChange,
-                onCreateAnimatedEmoji,
                 onPreview,
                 onSetProfileField,
-                onDeleteFile
+                onDeleteFile,
+                onOpenProfileMedia
             }}
             printsTab={{
                 prints: assets.prints,
@@ -91,16 +69,6 @@ export function GalleryTabsSection({ handlers, state, t }) {
                 onPrintCropBorderChange,
                 onPreview,
                 onDeletePrint
-            }}
-            inventoryTab={{
-                items: assets.inventory,
-                loading: loadingByTab.inventory,
-                mutatingKey,
-                gridDensityConfig,
-                onRefresh,
-                onRedeem,
-                onPreview,
-                onConsumeBundle
             }}
         />
     );

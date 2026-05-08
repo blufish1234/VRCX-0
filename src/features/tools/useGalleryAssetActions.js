@@ -181,12 +181,8 @@ export function useGalleryAssetActions({
     }
     async function refreshAll() {
         await Promise.allSettled([
-            refreshFileTab('gallery'),
-            refreshFileTab('icons'),
-            refreshFileTab('emojis'),
-            refreshFileTab('stickers'),
-            refreshPrints(),
-            refreshInventory()
+            ...Object.keys(FILE_TABS).map((tab) => refreshFileTab(tab)),
+            refreshPrints()
         ]);
     }
     function beginUpload(tab) {

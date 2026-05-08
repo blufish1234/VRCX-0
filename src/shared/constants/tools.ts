@@ -7,7 +7,10 @@ type ToolCategoryKey =
     | 'other';
 
 type ToolAction =
-    | { type: 'route'; routeName: 'screenshot-metadata' | 'gallery' }
+    | {
+          type: 'route';
+          routeName: 'screenshot-metadata' | 'gallery' | 'inventory';
+      }
     | {
           type: 'app-api';
           method: string;
@@ -83,6 +86,16 @@ const toolDefinitions: ToolDefinition[] = [
         navEligible: true,
         requiredCapability: 'screenshotCache',
         action: { type: 'route', routeName: 'gallery' }
+    },
+    {
+        key: 'inventory',
+        category: 'image',
+        iconKey: 'package',
+        navIcon: 'lucide:Package',
+        titleKey: 'view.tools.pictures.inventory',
+        descriptionKey: 'view.tools.pictures.inventory_description',
+        navEligible: true,
+        action: { type: 'route', routeName: 'inventory' }
     },
     {
         key: 'vrc-photos',

@@ -118,6 +118,7 @@ export function DialogHost() {
                         }`}
                         userId={activeDialog?.entityId}
                         seedData={dialogPayload?.seedData ?? null}
+                        initialAction={dialogPayload?.initialAction ?? ''}
                         openNonce={activeDialog?.openNonce ?? 0}
                     />
                 ) : isWorldDialog ? (

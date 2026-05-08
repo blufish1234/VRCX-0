@@ -38,6 +38,7 @@ export const routePathByName = Object.freeze({
     'charts-mutual': '/charts/mutual',
     tools: '/tools',
     gallery: '/tools/gallery',
+    inventory: '/tools/inventory',
     'screenshot-metadata': '/tools/screenshot-metadata',
     settings: '/settings'
 });

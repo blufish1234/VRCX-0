@@ -116,6 +116,31 @@ function openEntityDialog({
         store.activeDialog?.kind === kind &&
         normalizeEntityId(store.activeDialog?.entityId) === normalizedEntityId
     ) {
+        if (kind === 'user' && payload?.initialAction) {
+            const nextPayload = {
+                ...(store.activeDialog.payload || {}),
+                ...payload
+            };
+            entityDialogOpenNonce += 1;
+            const nextDialog = {
+                ...store.activeDialog,
+                payload: nextPayload,
+                openNonce: entityDialogOpenNonce
+            };
+            store.setDialogTrail(
+                nextDialog,
+                store.breadcrumbs.map((crumb, index) =>
+                    index === store.breadcrumbs.length - 1
+                        ? {
+                              ...crumb,
+                              payload: nextPayload,
+                              openNonce: entityDialogOpenNonce
+                          }
+                        : crumb
+                )
+            );
+            return;
+        }
         if (kind === 'user') {
             toast.info(
                 i18n.t('dialog.user.generated_toast.already_viewing_user', {
@@ -161,7 +186,8 @@ export function openUserDialog({
     userId,
     title = '',
     description = '',
-    seedData = null
+    seedData = null,
+    initialAction = ''
 } = {}) {
     recordUserDialogSeed(userId, title, seedData);
     openEntityDialog({
@@ -169,7 +195,13 @@ export function openUserDialog({
         entityId: userId,
         title,
         description,
-        payload: seedData ? { seedData } : null
+        payload:
+            seedData || initialAction
+                ? {
+                      ...(seedData ? { seedData } : {}),
+                      ...(initialAction ? { initialAction } : {})
+                  }
+                : null
     });
 }
 

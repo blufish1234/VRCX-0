@@ -1,5 +1,6 @@
 import { ExternalLinkIcon } from 'lucide-react';
 
+import { cn } from '@/lib/utils.js';
 import { emojiAnimationStyleList } from '@/shared/constants/emoji.js';
 import { Button } from '@/ui/shadcn/button';
 import { Checkbox } from '@/ui/shadcn/checkbox';
@@ -26,10 +27,19 @@ export function GalleryEmojiUploadSettings({
     onEmojiAnimFpsChange,
     onEmojiAnimFrameCountChange,
     onEmojiAnimLoopPingPongChange,
-    onCreateAnimatedEmoji
+    onCreateAnimatedEmoji,
+    compact = false,
+    className
 }) {
     return (
-        <FieldGroup className="bg-muted/20 flex-row flex-wrap items-end gap-3 rounded-lg border p-3">
+        <FieldGroup
+            className={cn(
+                compact
+                    ? 'flex-col gap-3'
+                    : 'bg-muted/20 flex-row flex-wrap items-end gap-3 rounded-lg border p-3',
+                className
+            )}
+        >
             <Field className="min-w-56">
                 <FieldLabel>
                     {t('dialog.gallery_icons.emoji_animation_styles')}

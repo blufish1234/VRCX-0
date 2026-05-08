@@ -2,7 +2,6 @@ import { Tabs, TabsList, TabsTrigger } from '@/ui/shadcn/tabs';
 
 import { FILE_TABS, TAB_ORDER } from '../galleryConstants.js';
 import { GalleryFileTab } from './GalleryFileTab.jsx';
-import { GalleryInventoryTab } from './GalleryInventoryTab.jsx';
 import { GalleryPrintsTab } from './GalleryPrintsTab.jsx';
 
 export function GalleryTabs({
@@ -11,8 +10,7 @@ export function GalleryTabs({
     onActiveTabChange,
     tabCounts,
     fileTab,
-    printsTab,
-    inventoryTab
+    printsTab
 }) {
     return (
         <Tabs
@@ -74,10 +72,10 @@ export function GalleryTabs({
                     onPreview={fileTab.onPreview}
                     onSetProfileField={fileTab.onSetProfileField}
                     onDeleteFile={fileTab.onDeleteFile}
+                    onOpenProfileMedia={fileTab.onOpenProfileMedia}
                 />
             ))}
             <GalleryPrintsTab t={t} {...printsTab} />
-            <GalleryInventoryTab t={t} {...inventoryTab} />
         </Tabs>
     );
 }

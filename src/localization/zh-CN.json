@@ -864,8 +864,10 @@
                 "header": "相册",
                 "screenshot": "截图管理",
                 "screenshot_description": "管理截图或查看截图元数据",
-                "gallery": "图片&库存管理",
-                "gallery_description": "管理图片和库存"
+                "gallery": "相册",
+                "gallery_description": "管理个人资料图片和拍立得",
+                "inventory": "库存",
+                "inventory_description": "管理表情、贴纸、物品和装饰"
             },
             "shortcuts": {
                 "header": "文件直通车",
@@ -1523,6 +1525,8 @@
                 "moderation_enable_chatbox": "取消屏蔽聊天气泡",
                 "moderation_disable_chatbox": "屏蔽聊天气泡",
                 "edit_status": "社交状态",
+                "edit_profile_details": "个人资料详情",
+                "edit_profile_media": "个人资料媒体",
                 "edit_language": "语言",
                 "edit_bio": "个人简介",
                 "edit_pronouns": "人称代词",
@@ -1532,6 +1536,19 @@
                 "logout": "退出登录",
                 "edit_note_memo": "编辑备注",
                 "reset_home": "重置出生点"
+            },
+            "profile_media": {
+                "description": "更新个人资料图片和 VRChat+ 个人资料图标。",
+                "profile_photo": "个人资料图片",
+                "profile_photo_description": "这张图片会显示在个人资料卡片和公开个人资料中。",
+                "profile_icon": "个人资料图标",
+                "profile_icon_description": "这个 VRChat+ 图标会作为小型个人资料标识显示。",
+                "upload_profile_photo": "上传图片",
+                "upload_profile_icon": "上传图标",
+                "use_profile_photo": "使用图片",
+                "use_profile_icon": "使用图标",
+                "empty_title": "暂无媒体",
+                "empty_description": "刷新此区域或上传新图片。"
             },
             "info": {
                 "header": "信息",
@@ -2214,7 +2231,7 @@
             "clear_errors": "清除错误信息"
         },
         "gallery_icons": {
-            "header": "相册与库存",
+            "header": "相册",
             "recommended_image_size": "推荐的图片尺寸",
             "gallery": "相册",
             "icons": "图标",
@@ -2225,6 +2242,12 @@
             "refresh": "刷新",
             "upload": "上传",
             "clear": "清除",
+            "profile_photo": "个人资料图片",
+            "profile_icon": "个人资料图标",
+            "clear_profile_photo": "清除个人资料图片",
+            "clear_profile_icon": "清除个人资料图标",
+            "edit_profile_media": "编辑个人资料媒体",
+            "profile_icons_managed_link": "个人资料图标在“编辑个人资料媒体”中管理",
             "emoji_animation_styles": "动画样式",
             "emoji_animation_type": "动画表情",
             "emoji_animation_fps": "FPS：",
@@ -2241,6 +2264,29 @@
             "redeem": "兑换码兑换",
             "create_animated_emoji": "动画表情生成器",
             "crop_image": "确认上传"
+        },
+        "inventory": {
+            "header": "库存",
+            "emojis": "表情",
+            "stickers": "贴纸",
+            "items": "物品",
+            "cosmetics": "装饰",
+            "custom": "自定义",
+            "exclusive": "专属",
+            "archived": "已归档",
+            "all_items": "全部物品",
+            "drones": "无人机",
+            "portals": "传送门",
+            "warp_effects": "传送特效",
+            "loading_screens": "加载画面",
+            "archive": "归档",
+            "unarchive": "取消归档",
+            "archived_success": "物品已归档",
+            "unarchived_success": "物品已恢复",
+            "failed_to_load": "库存加载失败",
+            "failed_to_archive": "库存物品更新失败",
+            "empty_title": "暂无物品",
+            "empty_description": "刷新此分类以加载可用物品。"
         },
         "image_crop": {
             "rotate_left": "向左旋转",

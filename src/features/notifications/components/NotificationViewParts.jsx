@@ -417,7 +417,7 @@ export function BoopReplyDialog({
                         disabled={sending}
                         onClick={() => {
                             onOpenChange(false);
-                            navigate('/tools/gallery');
+                            navigate('/tools/inventory');
                         }}
                     >
                         {t('view.notification.generated.emoji_manager')}

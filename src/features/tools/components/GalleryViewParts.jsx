@@ -3,13 +3,15 @@ import {
     LoadingState as AppLoadingState
 } from '@/components/layout/PageScaffold.jsx';
 
-export function EmptyState({ title, description }) {
+export function EmptyState({ title, description, children }) {
     return (
         <AppEmptyState
             className="min-h-72"
             title={title}
             description={description}
-        />
+        >
+            {children}
+        </AppEmptyState>
     );
 }
 

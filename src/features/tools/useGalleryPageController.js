@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import { openExternalLink } from '@/lib/entityMedia.js';
-import { mediaRepository, vrchatAuthRepository } from '@/repositories/index.js';
+import { mediaRepository } from '@/repositories/index.js';
 import userProfileRepository from '@/repositories/userProfileRepository.js';
+import { openUserDialog } from '@/services/dialogService.js';
 import { emojiAnimationStyleList } from '@/shared/constants/emoji.js';
 import {
     readFileAsBase64,
@@ -22,6 +22,8 @@ import { GalleryTabsSection } from './components/GalleryTabsSection.jsx';
 import {
     EMPTY_ASSETS,
     FILE_TABS,
+    sanitizeGalleryTab,
+    TAB_ORDER,
     UPLOAD_ASPECT_RATIOS
 } from './galleryConstants.js';
 import {
@@ -141,6 +143,7 @@ function validateImageFile(file, t) {
 }
 export function useGalleryPageController() {
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const { t } = useTranslation();
     const uploadInputRef = useRef(null);
     const uploadTargetRef = useRef('gallery');
@@ -155,7 +158,9 @@ export function useGalleryPageController() {
     const confirm = useModalStore((state) => state.confirm);
     const openImagePreview = useModalStore((state) => state.openImagePreview);
     const prompt = useModalStore((state) => state.prompt);
-    const [activeTab, setActiveTab] = useState('gallery');
+    const [activeTab, setActiveTabState] = useState(() =>
+        sanitizeGalleryTab(searchParams.get('tab'))
+    );
     const [assets, setAssets] = useState(EMPTY_ASSETS);
     const [loadingByTab, setLoadingByTab] = useState({});
     const [uploadingTab, setUploadingTab] = useState('');
@@ -171,10 +176,6 @@ export function useGalleryPageController() {
     const [gridDensity, setGridDensity] = useState(() =>
         readGalleryGridDensityPreference()
     );
-    const [galleryLimits, setGalleryLimits] = useState({
-        maxUserEmoji: null,
-        maxUserStickers: null
-    });
     const gridDensityConfig = useMemo(
         () => getGalleryGridDensityConfig(gridDensity),
         [gridDensity]
@@ -190,65 +191,23 @@ export function useGalleryPageController() {
         () => ({
             gallery: `${assets.gallery.length}/64`,
             icons: `${assets.icons.length}/64`,
-            emojis: `${assets.emojis.length}/${galleryLimits.maxUserEmoji ?? '-'}`,
-            stickers: `${assets.stickers.length}/${galleryLimits.maxUserStickers ?? '-'}`,
-            prints: `${assets.prints.length}/64`,
-            inventory: String(assets.inventory.length)
+            prints: `${assets.prints.length}/64`
         }),
-        [assets, galleryLimits.maxUserEmoji, galleryLimits.maxUserStickers]
+        [assets.gallery.length, assets.icons.length, assets.prints.length]
     );
     useEffect(() => {
         if (!currentUserId) {
             setAssets(EMPTY_ASSETS);
             setLoadingByTab({});
-            setGalleryLimits({
-                maxUserEmoji: null,
-                maxUserStickers: null
-            });
             return;
         }
         void refreshAll();
     }, [currentEndpoint, currentUserId]);
+
     useEffect(() => {
-        if (!currentUserId) {
-            return undefined;
-        }
-        let active = true;
-        vrchatAuthRepository
-            .getConfig({
-                endpoint: currentEndpoint || ''
-            })
-            .then((response) => {
-                if (!active) {
-                    return;
-                }
-                const config =
-                    response?.json && typeof response.json === 'object'
-                        ? response.json
-                        : {};
-                setGalleryLimits({
-                    maxUserEmoji: Number.isFinite(Number(config.maxUserEmoji))
-                        ? Number(config.maxUserEmoji)
-                        : null,
-                    maxUserStickers: Number.isFinite(
-                        Number(config.maxUserStickers)
-                    )
-                        ? Number(config.maxUserStickers)
-                        : null
-                });
-            })
-            .catch(() => {
-                if (active) {
-                    setGalleryLimits({
-                        maxUserEmoji: null,
-                        maxUserStickers: null
-                    });
-                }
-            });
-        return () => {
-            active = false;
-        };
-    }, [currentEndpoint, currentUserId]);
+        const nextTab = sanitizeGalleryTab(searchParams.get('tab'));
+        setActiveTabState((current) => (current === nextTab ? current : nextTab));
+    }, [searchParams]);
     const {
         refreshTab,
         refreshAll,
@@ -309,6 +268,37 @@ export function useGalleryPageController() {
         setGridDensity(nextDensity);
         writeGalleryGridDensityPreference(nextDensity);
     }
+    function setActiveTab(nextValue) {
+        const nextTab = sanitizeGalleryTab(nextValue);
+        setActiveTabState(nextTab);
+        setSearchParams(
+            (currentParams) => {
+                const nextParams = new URLSearchParams(currentParams);
+                if (nextTab === TAB_ORDER[0]) {
+                    nextParams.delete('tab');
+                } else {
+                    nextParams.set('tab', nextTab);
+                }
+                return nextParams;
+            },
+            { replace: true }
+        );
+    }
+    function openProfileMedia() {
+        if (!currentUserId) {
+            toast.error(t('view.tools.generated.no_current_user_is_available'));
+            return;
+        }
+        openUserDialog({
+            userId: currentUserId,
+            title:
+                currentUserSnapshot?.displayName ||
+                currentUserSnapshot?.username ||
+                currentUserId,
+            seedData: currentUserSnapshot || null,
+            initialAction: 'profile-media'
+        });
+    }
 
     return {
         GalleryHeader,
@@ -325,7 +315,6 @@ export function useGalleryPageController() {
         beginUpload,
         setProfileField,
         consumeInventoryBundle,
-        openExternalLink,
         deleteFileAsset,
         deletePrint,
         setEmojiAnimationStyle,
@@ -345,7 +334,6 @@ export function useGalleryPageController() {
         emojiAnimLoopPingPong,
         emojiAnimationStyle,
         emojiAnimType,
-        galleryLimits,
         gridDensityConfig,
         isVrcPlusSupporter,
         loadingByTab,
@@ -360,6 +348,7 @@ export function useGalleryPageController() {
         setCropRequest,
         confirmCroppedUpload,
         openImagePreview,
-        uploadAuthTargetRef
+        uploadAuthTargetRef,
+        openProfileMedia
     };
 }

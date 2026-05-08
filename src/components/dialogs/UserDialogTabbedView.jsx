@@ -1,5 +1,5 @@
 import { ClockIcon } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -27,6 +27,7 @@ import {
     EntityDialogTwoColumnLayout
 } from './EntityDialogScaffold.jsx';
 import { UserDialogHeaderSection } from './user-dialog/components/UserDialogHeaderSection.jsx';
+import { UserDialogProfileMediaPanel } from './user-dialog/components/UserDialogProfileMediaPanel.jsx';
 import { UserDialogTabsSection } from './user-dialog/components/UserDialogTabsSection.jsx';
 import { buildUserDialogLocationUsers } from './user-dialog/userDialogLocationUsers.js';
 import {
@@ -61,6 +62,7 @@ export function UserDialogTabbedView({
     actionStatus,
     recentActionVersion = 0,
     reloadToken = 0,
+    initialAction = '',
     moderationState,
     extendedModerationState = { interactOff: false, muteChat: false },
     avatarOverrideState = { hideAvatar: false, showAvatar: false },
@@ -106,6 +108,7 @@ export function UserDialogTabbedView({
     onGroupModeration,
     onEditSelfStatus,
     onEditSelfProfileDetails,
+    onSetSelfProfileMediaField,
     onToggleSelfAvatarCopying,
     onToggleSelfBooping,
     onToggleSelfSharedConnections,
@@ -142,6 +145,7 @@ export function UserDialogTabbedView({
     const prompt = useModalStore((state) => state.prompt);
     const confirm = useModalStore((state) => state.confirm);
     const [selectedGroupIds, setSelectedGroupIds] = useState(() => new Set());
+    const [selfPanel, setSelfPanel] = useState('');
 
     const tabData = useUserDialogTabData({
         profile,
@@ -157,6 +161,12 @@ export function UserDialogTabbedView({
         selectedGroupIds,
         t
     });
+
+    useEffect(() => {
+        if (initialAction === 'profile-media' && isCurrentUser) {
+            setSelfPanel('profile-media');
+        }
+    }, [initialAction, isCurrentUser]);
 
     const {
         activeTab,
@@ -455,6 +465,7 @@ export function UserDialogTabbedView({
         onCopyUserUrl: () => void copyUserText(userUrl, 'User URL'),
         onEditMemo,
         onEditSelfProfileDetails,
+        onEditSelfProfileMedia: () => setSelfPanel('profile-media'),
         onEditSelfStatus,
         onExtendedModeration,
         onFriendRequest,
@@ -613,11 +624,23 @@ export function UserDialogTabbedView({
                     />
                 }
             >
-                <UserDialogTabsSection
-                    state={tabsState}
-                    actions={tabsActions}
-                    t={t}
-                />
+                {selfPanel === 'profile-media' && isCurrentUser ? (
+                    <UserDialogProfileMediaPanel
+                        profile={profile}
+                        endpoint={currentEndpoint}
+                        isVrcPlusSupporter={isLocalUserVrcPlusSupporter}
+                        actionStatus={actionStatus}
+                        onBack={() => setSelfPanel('')}
+                        onSetProfileMediaField={onSetSelfProfileMediaField}
+                        t={t}
+                    />
+                ) : (
+                    <UserDialogTabsSection
+                        state={tabsState}
+                        actions={tabsActions}
+                        t={t}
+                    />
+                )}
             </EntityDialogTwoColumnLayout>
         </EntityDialogScaffold>
     );

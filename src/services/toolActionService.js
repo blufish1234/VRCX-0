@@ -12,6 +12,7 @@ import { useRuntimeStore } from '@/state/runtimeStore.js';
 
 const toolRouteMap = {
     gallery: '/tools/gallery',
+    inventory: '/tools/inventory',
     'screenshot-metadata': '/tools/screenshot-metadata'
 };
 

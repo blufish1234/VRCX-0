@@ -8,6 +8,7 @@ import {
     vrchatAuthRepository
 } from '@/repositories/index.js';
 import { mergeCurrentUserPresenceFields } from '@/shared/utils/currentUserPresence.js';
+import { normalizeVrchatEndpointDomain } from '@/shared/vrchatEndpoint.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
 
 import {
@@ -89,6 +90,14 @@ function normalizeProfilePronouns(profile) {
     return Array.isArray(profile?.pronouns)
         ? normalizeStringArray(profile.pronouns).join(', ')
         : String(profile?.pronouns || '');
+}
+
+function buildProfileMediaFileUrl(endpoint, fileId) {
+    if (!fileId) {
+        return '';
+    }
+    const base = normalizeVrchatEndpointDomain(endpoint);
+    return `${base}/file/${fileId}/1`;
 }
 
 function areStringArraysEqual(left, right) {
@@ -503,6 +512,46 @@ export function useUserDialogSelfActions({
         }
     }
 
+    async function setSelfProfileMediaField(fieldName, fileId) {
+        if (!isCurrentUser || actionStatusRef.current !== 'idle' || !profile) {
+            return false;
+        }
+        const isVrcPlusSupporter = Boolean(
+            currentUserSnapshot?.$isVRCPlus ||
+                currentUserSnapshot?.tags?.includes?.('system_supporter') ||
+                globalThis?.$debug?.debugVrcPlus
+        );
+        if (!isVrcPlusSupporter) {
+            toast.error(t('message.vrcplus.required'));
+            return false;
+        }
+        const normalizedFileId =
+            typeof fileId === 'string'
+                ? fileId.trim()
+                : String(fileId ?? '').trim();
+        const nextValue = buildProfileMediaFileUrl(
+            currentEndpoint,
+            normalizedFileId
+        );
+        if (nextValue === profile?.[fieldName]) {
+            return true;
+        }
+        return saveCurrentUserPatch(
+            {
+                [fieldName]: nextValue
+            },
+            {
+                successMessage:
+                    fieldName === 'userIcon'
+                        ? t('message.gallery.profile_icon_changed')
+                        : t('message.gallery.profile_pic_changed'),
+                errorMessage: t(
+                    'view.tools.generated_toast.failed_to_update_profile_media'
+                )
+            }
+        );
+    }
+
     async function toggleSelfAvatarCopying() {
         await saveCurrentUserPatch(
             { allowAvatarCopying: !profile?.allowAvatarCopying },
@@ -662,6 +711,7 @@ export function useUserDialogSelfActions({
         actions: {
             editSelfStatus,
             editSelfProfileDetails,
+            setSelfProfileMediaField,
             toggleSelfAvatarCopying,
             toggleSelfBooping,
             toggleSelfSharedConnections,
