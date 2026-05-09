@@ -1,6 +1,6 @@
 # VRCX-0
 
-[English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja-JP.md)
+[English](README.md) | [简体中文](README.zh-CN.md) | 日本語
 
 VRCX-0 は VRCX のフォークです。従来の CEF ベースの構成から、**Tauri + React** ベースへ作り直しています。
 以前 VRCX の主要開発者の一人として参加していたメンバーが、引き続き開発しています。

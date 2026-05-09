@@ -1,6 +1,6 @@
 # VRCX-0
 
-[English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja-JP.md)
+[English](README.md) | 简体中文 | [日本語](README.ja-JP.md)
 
 VRCX-0 是 VRCX 的 fork，正在使用 **Tauri + React** 重新构建，替代原有的 CEF 架构。
 它由 VRCX 以前的主开发者之一继续开发。
