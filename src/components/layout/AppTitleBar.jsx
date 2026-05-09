@@ -18,11 +18,6 @@ import { QuickSearchDialog } from '@/components/sidebar/QuickSearchDialog.jsx';
 import { cn } from '@/lib/utils.js';
 import { backend } from '@/platform/index.js';
 import { setSidebarCollapsedPreference } from '@/services/preferencesService.js';
-import {
-    canInstallUpdatesOnPlatform,
-    checkInstallableUpdate,
-    defaultBranchForVersion
-} from '@/services/updateService.js';
 import { usePreferencesStore } from '@/state/preferencesStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
 import { useSessionStore } from '@/state/sessionStore.js';
@@ -43,9 +38,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 import { AppMenuBar } from './AppMenuBar.jsx';
 import { useDirectAccessAction } from './useDirectAccessAction.js';
 import { useRightSidePanelVisibility } from './useRightSidePanelVisibility.js';
-
-const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000;
-const UPDATE_CHECK_RETRY_MS = 5 * 60 * 1000;
 
 function TitleBarButton({ label, className, children, onClick, ...props }) {
     return (
@@ -101,7 +93,6 @@ export function AppTitleBar() {
     const location = useLocation();
     const [isMaximized, setIsMaximized] = useState(false);
     const [quickSearchOpen, setQuickSearchOpen] = useState(false);
-    const [hasAvailableUpdate, setHasAvailableUpdate] = useState(false);
     const { openDirectAccessFromClipboard } = useDirectAccessAction();
     const isSessionReady = useSessionStore(
         (state) => state.sessionPhase === 'ready'
@@ -130,6 +121,9 @@ export function AppTitleBar() {
     );
     const hostPlatform = useRuntimeStore(
         (state) => state.hostCapabilities.platform
+    );
+    const hasAvailableUpdate = useRuntimeStore((state) =>
+        Boolean(state.updateLoop.hasAvailableUpdate)
     );
     const sidebarOpen = useShellStore((state) => state.sidebarOpen);
     const {
@@ -178,59 +172,6 @@ export function AppTitleBar() {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isSessionReady, openDirectAccessFromClipboard]);
-
-    useEffect(() => {
-        if (!isSessionReady || !canInstallUpdatesOnPlatform(hostPlatform)) {
-            setHasAvailableUpdate(false);
-            return undefined;
-        }
-
-        let active = true;
-        let checking = false;
-        let lastUpdateCheckAt = 0;
-        let lastUpdateFailureAt = 0;
-        const refreshAvailableUpdate = ({ force = false } = {}) => {
-            const now = Date.now();
-            if (
-                checking ||
-                (!force &&
-                    (now - lastUpdateCheckAt < UPDATE_CHECK_INTERVAL_MS ||
-                        now - lastUpdateFailureAt < UPDATE_CHECK_RETRY_MS))
-            ) {
-                return;
-            }
-
-            checking = true;
-            checkInstallableUpdate(defaultBranchForVersion(VERSION || ''), {
-                hostPlatform
-            })
-                .then((value) => {
-                    lastUpdateCheckAt = Date.now();
-                    lastUpdateFailureAt = 0;
-                    if (active) {
-                        setHasAvailableUpdate(Boolean(value));
-                    }
-                })
-                .catch(() => {
-                    lastUpdateFailureAt = Date.now();
-                })
-                .finally(() => {
-                    checking = false;
-                });
-        };
-
-        refreshAvailableUpdate({ force: true });
-        const intervalId = window.setInterval(
-            refreshAvailableUpdate,
-            UPDATE_CHECK_INTERVAL_MS
-        );
-        window.addEventListener('focus', refreshAvailableUpdate);
-        return () => {
-            active = false;
-            window.clearInterval(intervalId);
-            window.removeEventListener('focus', refreshAvailableUpdate);
-        };
-    }, [hostPlatform, isSessionReady]);
 
     async function runWindowAction(action, shouldSync = true) {
         try {

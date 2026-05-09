@@ -43,11 +43,14 @@ import {
     runPresenceAutomation
 } from './presence-automation/index.js';
 
+// 3hr
+const APP_UPDATE_CHECK_INTERVAL_SECONDS = 3 * 3600;
+
 const timers = {
     currentUserRefresh: 300,
     friendsRefresh: 3600,
     groupInstanceRefresh: 0,
-    appUpdateCheck: 3600,
+    appUpdateCheck: APP_UPDATE_CHECK_INTERVAL_SECONDS,
     clearVRCXCacheCheck: 86400,
     discordUpdate: 0,
     autoStateChange: 0,
@@ -70,13 +73,21 @@ function resetTimers() {
     timers.currentUserRefresh = 300;
     timers.friendsRefresh = 3600;
     timers.groupInstanceRefresh = 0;
-    timers.appUpdateCheck = 3600;
+    timers.appUpdateCheck = APP_UPDATE_CHECK_INTERVAL_SECONDS;
     timers.clearVRCXCacheCheck = 86400;
     timers.discordUpdate = 0;
     timers.autoStateChange = 0;
     timers.databaseOptimize = 3600;
     timers.moderationRefresh = 3600;
     lastTickAt = Date.now();
+}
+
+function setUpdaterCheckResult(hasAvailableUpdate, detail = '') {
+    useRuntimeStore.getState().setUpdateLoopState({
+        hasAvailableUpdate: Boolean(hasAvailableUpdate),
+        lastUpdaterCheckAt: new Date().toISOString(),
+        lastUpdaterCheckDetail: detail
+    });
 }
 
 function safeJsonParse(value, fallback) {
@@ -687,7 +698,11 @@ async function checkForAppUpdate({ includeRegistryBackup = true } = {}) {
         await configRepository.setString('autoUpdateVRCX', autoUpdateMode);
     }
 
-    if (autoUpdateMode !== 'Off') {
+    if (autoUpdateMode === 'Off') {
+        useRuntimeStore.getState().setUpdateLoopState({
+            hasAvailableUpdate: false
+        });
+    } else {
         try {
             const savedBranch = await configRepository.getString('branch', '');
             const defaultBranch = defaultBranchForVersion(VERSION || '');
@@ -721,27 +736,26 @@ async function checkForAppUpdate({ includeRegistryBackup = true } = {}) {
                         ),
                         message
                     });
-                    useRuntimeStore.getState().setUpdateLoopState({
-                        lastUpdaterCheckAt: new Date().toISOString(),
-                        lastUpdaterCheckDetail: message
-                    });
+                    setUpdaterCheckResult(true, message);
                     useRuntimeStore
                         .getState()
                         .setSystemHostOpen('updaterOpen', true);
+                } else {
+                    setUpdaterCheckResult(false);
                 }
             } else {
                 const latestRelease = await fetchLatestBranchRelease(branch, {
                     hostPlatform,
                     requireInstallerAsset: false
                 });
-                if (
+                const hasUpdate =
                     latestRelease &&
                     hasUpdateForBranch(
                         branch,
                         VERSION || '',
                         latestRelease.canonicalVersion
-                    )
-                ) {
+                    );
+                if (hasUpdate) {
                     const displayVersion = formatReleaseDisplayVersion(
                         latestRelease.canonicalVersion
                     );
@@ -756,9 +770,12 @@ async function checkForAppUpdate({ includeRegistryBackup = true } = {}) {
                         ),
                         message
                     });
+                    setUpdaterCheckResult(true, message);
                     useRuntimeStore
                         .getState()
                         .setSystemHostOpen('updaterOpen', true);
+                } else {
+                    setUpdaterCheckResult(false);
                 }
             }
         } catch (error) {
@@ -809,7 +826,11 @@ export async function runBackgroundMaintenanceTick() {
         await runDueTask('friendsRefresh', 3600, refreshFriendsAndFavorites);
         await runGroupUserInstancesIfDue();
         await runDueTask('moderationRefresh', 3600, refreshPlayerModerations);
-        await runDueTask('appUpdateCheck', 3600, checkForAppUpdate);
+        await runDueTask(
+            'appUpdateCheck',
+            APP_UPDATE_CHECK_INTERVAL_SECONDS,
+            checkForAppUpdate
+        );
         await runClearVrcxCacheIfDue();
         await runDueTask('discordUpdate', 3, refreshDiscordPresence);
         await runDueTask('autoStateChange', 3, updateAutoStateChange);

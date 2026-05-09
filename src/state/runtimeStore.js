@@ -103,7 +103,10 @@ const initialState = {
         tickCount: 0,
         lastTickAt: null,
         lastGameLogSyncAt: null,
-        lastGameLogSyncDetail: ''
+        lastGameLogSyncDetail: '',
+        hasAvailableUpdate: false,
+        lastUpdaterCheckAt: null,
+        lastUpdaterCheckDetail: ''
     },
     activity: createActivityState(),
     transport: createTransportState(),
