@@ -1,4 +1,4 @@
-import { CheckIcon, ImageIcon, XIcon } from 'lucide-react';
+import { ImageIcon, XIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -100,12 +100,7 @@ function ProfileMediaThumbnail({
                         src={imageUrl}
                         alt={displayName || file.id}
                         loading="lazy"
-                        className={cn(
-                            'size-full',
-                            section.fieldName === 'userIcon'
-                                ? 'object-contain'
-                                : 'object-cover'
-                        )}
+                        className="size-full object-cover"
                     />
                 ) : (
                     <ImageIcon />
@@ -116,7 +111,6 @@ function ProfileMediaThumbnail({
                     variant="secondary"
                     className="absolute top-1 left-1 bg-background/80"
                 >
-                    <CheckIcon data-icon="inline-start" />
                     {t('dialog.gallery_icons.current')}
                 </Badge>
             ) : null}
