@@ -148,18 +148,15 @@ function recordOnlineFeed({
     location,
     time = ''
 }) {
-    if (!isRealLocation(location)) {
-        return;
-    }
-    const { worldName, groupName } = resolveLocationName(
-        location,
-        patch,
-        previous
-    );
+    const normalizedLocation =
+        typeof location === 'string' ? location.trim() : '';
+    const { worldName, groupName } = isRealLocation(normalizedLocation)
+        ? resolveLocationName(normalizedLocation, patch, previous)
+        : { worldName: '', groupName: '' };
     publishFeedEntry(
         {
             ...buildFeedBase({ type, userId, patch, previous }),
-            location,
+            location: normalizedLocation,
             worldName,
             groupName,
             time

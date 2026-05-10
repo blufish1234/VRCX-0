@@ -281,7 +281,7 @@ export function getFeedRowId(row) {
         return `id:${row.id}`;
     }
     if (row?.rowId != null) {
-        return `row:${row.rowId}`;
+        return `row:${row?.type ?? ''}:${row.rowId}`;
     }
     const type = row?.type ?? '';
     const createdAt = row?.created_at ?? row?.createdAt ?? '';
