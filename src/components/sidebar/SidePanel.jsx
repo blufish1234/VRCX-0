@@ -609,6 +609,11 @@ export const SidePanel = forwardRef(function SidePanel(
                                             <TabsTrigger
                                                 value={item.value}
                                                 title={item.title}
+                                                data-active={
+                                                    activeTab === item.value
+                                                        ? ''
+                                                        : undefined
+                                                }
                                                 className={cn(
                                                     'min-w-0 flex-none',
                                                     showTabText
