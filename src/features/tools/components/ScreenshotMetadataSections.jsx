@@ -13,6 +13,11 @@ import {
 import { useTranslation } from 'react-i18next';
 
 import { KeyboardShortcut } from '@/components/keyboard/KeyboardShortcut.jsx';
+import {
+    PageBackButton,
+    PageHeader,
+    PageTitle
+} from '@/components/layout/PageScaffold.jsx';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import {
@@ -60,11 +65,14 @@ export function ScreenshotMetadataHeader({
 }) {
     return (
         <div className="ml-2 flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="mr-3" onClick={onBack}>
-                <ArrowLeftIcon data-icon="inline-start" />
-                {backLabel}
-            </Button>
-            <span className="header">{title}</span>
+            <PageBackButton
+                label={backLabel}
+                onClick={onBack}
+                className="mr-2"
+            />
+            <PageHeader className="min-w-0 p-0">
+                <PageTitle>{title}</PageTitle>
+            </PageHeader>
             {deleting ? <Badge variant="outline">{deletingLabel}</Badge> : null}
             {uploading ? (
                 <Badge variant="outline">{uploadingLabel}</Badge>

@@ -1,5 +1,8 @@
+import { ArrowLeftIcon } from 'lucide-react';
+
 import { userFacingErrorMessage } from '@/lib/errorDisplay.js';
 import { cn } from '@/lib/utils.js';
+import { Button } from '@/ui/shadcn/button';
 import {
     Empty,
     EmptyContent,
@@ -82,6 +85,24 @@ export function PageToolbarRow({ className = '', children }) {
         >
             {children}
         </div>
+    );
+}
+
+export function PageBackButton({ label, onClick, className = '' }) {
+    return (
+        <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className={cn(
+                'text-muted-foreground hover:text-foreground -ml-1 h-8 shrink-0 gap-1.5 rounded-md px-1.5 font-medium',
+                className
+            )}
+            onClick={onClick}
+        >
+            <ArrowLeftIcon data-icon="inline-start" className="size-4" />
+            <span className="truncate">{label}</span>
+        </Button>
     );
 }
 

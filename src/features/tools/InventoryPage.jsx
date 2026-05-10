@@ -1,6 +1,5 @@
 import {
     ArchiveIcon,
-    ArrowLeftIcon,
     GiftIcon,
     ImageIcon,
     PackageIcon,
@@ -19,6 +18,7 @@ import { toast } from 'sonner';
 import {
     EmptyState,
     LoadingState,
+    PageBackButton,
     PageBody,
     PageHeader,
     PageScaffold,
@@ -1129,16 +1129,11 @@ export function InventoryPage() {
                 onChange={uploadSelectedFile}
             />
             <PageToolbar>
-                <PageToolbarRow className="items-start">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="mr-1"
+                <PageToolbarRow className="items-center">
+                    <PageBackButton
+                        label={t('nav_tooltip.tools')}
                         onClick={() => navigate('/tools')}
-                    >
-                        <ArrowLeftIcon data-icon="inline-start" />
-                        {t('nav_tooltip.tools')}
-                    </Button>
+                    />
                     <PageHeader className="min-w-0 p-0">
                         <PageTitle>{t('dialog.inventory.header')}</PageTitle>
                     </PageHeader>

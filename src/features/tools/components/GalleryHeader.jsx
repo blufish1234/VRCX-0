@@ -1,6 +1,7 @@
-import { ArrowLeftIcon, RefreshCwIcon, SettingsIcon } from 'lucide-react';
+import { RefreshCwIcon, SettingsIcon } from 'lucide-react';
 
 import {
+    PageBackButton,
     PageHeader,
     PageTitle,
     PageToolbar,
@@ -92,16 +93,11 @@ export function GalleryHeader({
                 onChange={onUploadChange}
             />
             <PageToolbar>
-                <PageToolbarRow className="items-start">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="mr-1"
+                <PageToolbarRow className="items-center">
+                    <PageBackButton
+                        label={t('nav_tooltip.tools')}
                         onClick={onBack}
-                    >
-                        <ArrowLeftIcon data-icon="inline-start" />
-                        {t('nav_tooltip.tools')}
-                    </Button>
+                    />
                     <PageHeader className="min-w-0 p-0">
                         <PageTitle>{t('dialog.gallery_icons.header')}</PageTitle>
                     </PageHeader>
