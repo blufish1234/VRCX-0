@@ -39,8 +39,7 @@ export function GalleryPageView({
     setCropRequest,
     confirmCroppedUpload,
     openImagePreview,
-    uploadAuthTargetRef,
-    openProfileMedia
+    uploadAuthTargetRef
 }) {
     return (
         <PageScaffold className="gallery-page">
@@ -53,7 +52,6 @@ export function GalleryPageView({
                 onGridDensityChange={changeGridDensity}
                 onBack={() => navigate('/tools')}
                 onRefreshAll={() => void refreshAll()}
-                onOpenProfileMedia={openProfileMedia}
             />
 
             <PageBody>
@@ -72,8 +70,7 @@ export function GalleryPageView({
                         onPrintUploadNoteChange: setPrintUploadNote,
                         onRefresh: (tab) => void refreshTab(tab),
                         onSetProfileField: (fieldName, fileId) =>
-                            void setProfileField(fieldName, fileId),
-                        onOpenProfileMedia: openProfileMedia
+                            void setProfileField(fieldName, fileId)
                     }}
                     state={{
                         activeTab,

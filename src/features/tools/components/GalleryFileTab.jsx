@@ -1,4 +1,4 @@
-import { PencilIcon, RefreshCwIcon, UploadIcon, XIcon } from 'lucide-react';
+import { RefreshCwIcon, UploadIcon, XIcon } from 'lucide-react';
 
 import { Button } from '@/ui/shadcn/button';
 import { TabsContent } from '@/ui/shadcn/tabs';
@@ -37,8 +37,7 @@ export function GalleryFileTab({
     onCreateAnimatedEmoji,
     onPreview,
     onSetProfileField,
-    onDeleteFile,
-    onOpenProfileMedia
+    onDeleteFile
 }) {
     return (
         <TabsContent
@@ -47,7 +46,6 @@ export function GalleryFileTab({
         >
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                 <MediaLibraryToolbar
-                    title={t(definition.titleKey)}
                     actions={
                         <>
                             <Button
@@ -138,7 +136,9 @@ export function GalleryFileTab({
                     {loading ? (
                         <LoadingState />
                     ) : files.length > 0 ? (
-                        <div className={gridDensityConfig.fileGridClass}>
+                        <div
+                            className={`${gridDensityConfig.fileGridClass} p-1`}
+                        >
                             {files.map((file) => (
                                 <GalleryFileCard
                                     key={file.id}
@@ -168,21 +168,7 @@ export function GalleryFileTab({
                                 'view.tools.generated_dynamic.refresh_this_tab_to_load_value_files',
                                 { value: definition.tag }
                             )}
-                        >
-                            {tab === 'gallery' ? (
-                                <Button
-                                    type="button"
-                                    variant="secondary"
-                                    size="sm"
-                                    onClick={onOpenProfileMedia}
-                                >
-                                    <PencilIcon data-icon="inline-start" />
-                                    {t(
-                                        'dialog.gallery_icons.edit_current_profile_media'
-                                    )}
-                                </Button>
-                            ) : null}
-                        </EmptyState>
+                        />
                     )}
                 </div>
             </div>

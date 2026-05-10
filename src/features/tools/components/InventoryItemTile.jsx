@@ -43,7 +43,7 @@ export function InventoryItemTile({
             primaryAction={primaryAction}
             menuActions={menuActions}
             menuLabel={menuLabel}
-            contentClassName="min-h-28"
+            contentClassName="min-h-20"
         />
     );
 }

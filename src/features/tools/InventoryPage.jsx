@@ -427,6 +427,7 @@ function InventoryFileCard({
     const imageUrl = getLatestFileUrl(file);
     const displayName = getUsefulDisplayName(file);
     const isMutating = mutatingKey === `file:${file.id}`;
+    const hideFileName = category === 'emojis' || category === 'stickers';
     const badges =
         category === 'emojis'
             ? [
@@ -459,6 +460,7 @@ function InventoryFileCard({
             imageUrl={imageUrl}
             alt={displayName || file.id}
             imageFit="contain"
+            hideContent={hideFileName}
             placeholderIcon={ImageIcon}
             renderMedia={
                 category === 'emojis' && imageUrl
@@ -592,7 +594,7 @@ function InventoryRows({
     }
 
     return (
-        <div className={densityConfig.inventoryGridClass}>
+        <div className={`${densityConfig.inventoryGridClass} p-1`}>
             {rows.map((row) =>
                 source === 'file' ? (
                     <InventoryFileCard

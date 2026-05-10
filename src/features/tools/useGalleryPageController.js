@@ -5,7 +5,6 @@ import { toast } from 'sonner';
 
 import { mediaRepository } from '@/repositories/index.js';
 import userProfileRepository from '@/repositories/userProfileRepository.js';
-import { openUserDialog } from '@/services/dialogService.js';
 import { emojiAnimationStyleList } from '@/shared/constants/emoji.js';
 import {
     readFileAsBase64,
@@ -284,22 +283,6 @@ export function useGalleryPageController() {
             { replace: true }
         );
     }
-    function openProfileMedia() {
-        if (!currentUserId) {
-            toast.error(t('view.tools.generated.no_current_user_is_available'));
-            return;
-        }
-        openUserDialog({
-            userId: currentUserId,
-            title:
-                currentUserSnapshot?.displayName ||
-                currentUserSnapshot?.username ||
-                currentUserId,
-            seedData: currentUserSnapshot || null,
-            initialAction: 'profile-media'
-        });
-    }
-
     return {
         GalleryHeader,
         t,
@@ -348,7 +331,6 @@ export function useGalleryPageController() {
         setCropRequest,
         confirmCroppedUpload,
         openImagePreview,
-        uploadAuthTargetRef,
-        openProfileMedia
+        uploadAuthTargetRef
     };
 }

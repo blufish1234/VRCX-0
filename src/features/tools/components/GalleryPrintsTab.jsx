@@ -6,8 +6,6 @@ import {
     UploadIcon
 } from 'lucide-react';
 
-import { formatDateFilter } from '@/lib/dateTime.js';
-import { getPrintFileName } from '@/shared/utils/gallery.js';
 import { Button } from '@/ui/shadcn/button';
 import { Checkbox } from '@/ui/shadcn/checkbox';
 import { Field, FieldGroup, FieldLabel } from '@/ui/shadcn/field';
@@ -22,7 +20,7 @@ import {
 import { TabsContent } from '@/ui/shadcn/tabs';
 
 import { EmptyState, LoadingState } from './GalleryViewParts.jsx';
-import { MediaAssetTile, shortAssetId } from './MediaAssetTile.jsx';
+import { MediaAssetTile } from './MediaAssetTile.jsx';
 import { MediaLibraryToolbar } from './MediaLibraryToolbar.jsx';
 
 export function GalleryPrintsTab({
@@ -49,7 +47,6 @@ export function GalleryPrintsTab({
         >
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                 <MediaLibraryToolbar
-                    title={t('dialog.gallery_icons.prints')}
                     actions={
                         <>
                             <Popover>
@@ -136,58 +133,33 @@ export function GalleryPrintsTab({
                     {loading ? (
                         <LoadingState />
                     ) : prints.length > 0 ? (
-                        <div className={gridDensityConfig.printsGridClass}>
+                        <div
+                            className={`${gridDensityConfig.printsGridClass} p-1`}
+                        >
                             {prints.map((print) => {
                                 const imageUrl = print?.files?.image || '';
                                 const isMutating =
                                     mutatingKey === `prints:${print.id}`;
-                                const createdAt = print.createdAt
-                                    ? formatDateFilter(print.createdAt, 'long')
-                                    : '';
 
                                 return (
                                     <MediaAssetTile
                                         key={print.id}
-                                        title={print.note || shortAssetId(print.id)}
-                                        subtitle={
-                                            print.note
-                                                ? getPrintFileName(print)
-                                                : ''
-                                        }
-                                        meta={[
-                                            print.worldName || print.worldId
-                                                ? {
-                                                      key: 'world',
-                                                      label:
-                                                          print.worldName ||
-                                                          print.worldId
-                                                  }
-                                                : null,
-                                            print.authorName || print.authorId
-                                                ? {
-                                                      key: 'author',
-                                                      label:
-                                                          print.authorName ||
-                                                          print.authorId
-                                                  }
-                                                : null,
-                                            createdAt
-                                                ? {
-                                                      key: 'createdAt',
-                                                      label: createdAt
-                                                  }
-                                                : null
-                                        ].filter(Boolean)}
                                         imageUrl={imageUrl}
                                         alt={print.note || print.id}
-                                        aspectClass="aspect-[16/9]"
-                                        imageFit="cover"
+                                        aspectClass="aspect-[2048/1440]"
+                                        imageFit="contain"
+                                        imagePosition="top"
+                                        hideContent
                                         placeholderIcon={ImageIcon}
                                         onPreview={() =>
                                             onPreview({
                                                 id: print.id,
                                                 url: imageUrl,
-                                                title: getPrintFileName(print)
+                                                title:
+                                                    print.note ||
+                                                    t(
+                                                        'dialog.gallery_icons.prints'
+                                                    )
                                             })
                                         }
                                         menuLabel={t('aria.more')}

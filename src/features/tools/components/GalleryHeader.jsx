@@ -1,9 +1,4 @@
-import {
-    ArrowLeftIcon,
-    PencilIcon,
-    RefreshCwIcon,
-    SettingsIcon
-} from 'lucide-react';
+import { ArrowLeftIcon, RefreshCwIcon, SettingsIcon } from 'lucide-react';
 
 import {
     PageHeader,
@@ -85,8 +80,7 @@ export function GalleryHeader({
     gridDensity,
     onGridDensityChange,
     onBack,
-    onRefreshAll,
-    onOpenProfileMedia
+    onRefreshAll
 }) {
     return (
         <>
@@ -117,14 +111,6 @@ export function GalleryHeader({
                         </Badge>
                     ) : null}
                     <div className="ml-auto flex flex-wrap items-center gap-1">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={onOpenProfileMedia}
-                        >
-                            <PencilIcon data-icon="inline-start" />
-                            {t('dialog.gallery_icons.edit_current_profile_media')}
-                        </Button>
                         <GalleryGridSettingsMenu
                             t={t}
                             gridDensity={gridDensity}

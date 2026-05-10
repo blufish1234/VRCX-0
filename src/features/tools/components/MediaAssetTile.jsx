@@ -79,28 +79,38 @@ export function MediaAssetTile({
     alt,
     aspectClass = 'aspect-square',
     imageFit = 'cover',
+    imagePosition = 'center',
     isCurrent = false,
     currentLabel,
     menuLabel,
     placeholderIcon: PlaceholderIcon = ImageIcon,
     renderMedia,
     onPreview,
+    onMediaClick,
+    mediaHoverLabel,
     primaryAction,
     menuActions,
     className,
-    contentClassName
+    contentClassName,
+    hideContent = false
 }) {
     const safeTitle = String(title || '').trim();
     const safeSubtitle = String(subtitle || '').trim();
     const safeMeta = (Array.isArray(meta) ? meta : [meta]).filter(Boolean);
     const safeBadges = (badges || []).filter(Boolean);
     const hasPrimaryAction = Boolean(primaryAction?.label);
+    const handleMediaClick = onMediaClick || onPreview;
+    const imageClassName = cn(
+        'size-full',
+        imageFit === 'contain' ? 'object-contain' : 'object-cover',
+        imagePosition === 'top' && 'object-top'
+    );
 
     return (
         <Card
             size="sm"
             className={cn(
-                'group/tile gap-0 overflow-hidden rounded-lg py-0 transition-colors',
+                'group/tile gap-0 overflow-hidden rounded-lg py-0 transition-colors data-[size=sm]:gap-0 data-[size=sm]:py-0',
                 isCurrent && 'ring-primary ring-2',
                 className
             )}
@@ -110,7 +120,9 @@ export function MediaAssetTile({
                     type="button"
                     variant="ghost"
                     className="block h-auto w-full rounded-none p-0"
-                    onClick={imageUrl || renderMedia ? onPreview : undefined}
+                    onClick={
+                        imageUrl || renderMedia ? handleMediaClick : undefined
+                    }
                 >
                     <div
                         className={cn(
@@ -120,24 +132,14 @@ export function MediaAssetTile({
                     >
                         {renderMedia ? (
                             renderMedia({
-                                className: cn(
-                                    'size-full',
-                                    imageFit === 'contain'
-                                        ? 'object-contain'
-                                        : 'object-cover'
-                                )
+                                className: imageClassName
                             })
                         ) : imageUrl ? (
                             <img
                                 src={imageUrl}
                                 alt={alt || safeTitle}
                                 loading="lazy"
-                                className={cn(
-                                    'size-full',
-                                    imageFit === 'contain'
-                                        ? 'object-contain'
-                                        : 'object-cover'
-                                )}
+                                className={imageClassName}
                             />
                         ) : (
                             <PlaceholderIcon className="size-8" />
@@ -160,57 +162,64 @@ export function MediaAssetTile({
                         </Badge>
                     ))}
                 </div>
+                {mediaHoverLabel ? (
+                    <div className="bg-background/85 text-foreground pointer-events-none absolute top-2 left-2 max-w-[calc(100%-3rem)] -translate-y-1 rounded-sm px-1.5 py-0.5 text-xs font-medium opacity-0 backdrop-blur-[1px] transition-all group-focus-within/tile:translate-y-0 group-focus-within/tile:opacity-100 group-hover/tile:translate-y-0 group-hover/tile:opacity-100">
+                        {mediaHoverLabel}
+                    </div>
+                ) : null}
                 <div className="absolute top-2 right-2">
                     <TileActionsMenu actions={menuActions} label={menuLabel} />
                 </div>
             </div>
-            <CardContent
-                className={cn(
-                    'flex min-h-20 items-start gap-2 p-2.5',
-                    contentClassName
-                )}
-            >
-                <div className="min-w-0 flex-1">
-                    {safeTitle ? (
-                        <div
-                            className="truncate text-sm font-medium"
-                            title={safeTitle}
+            {hideContent ? null : (
+                <CardContent
+                    className={cn(
+                        'flex min-h-20 items-start gap-2 p-2.5',
+                        contentClassName
+                    )}
+                >
+                    <div className="min-w-0 flex-1">
+                        {safeTitle ? (
+                            <div
+                                className="truncate text-sm font-medium"
+                                title={safeTitle}
+                            >
+                                {safeTitle}
+                            </div>
+                        ) : null}
+                        {safeSubtitle ? (
+                            <div
+                                className="text-muted-foreground truncate font-mono text-xs"
+                                title={safeSubtitle}
+                            >
+                                {safeSubtitle}
+                            </div>
+                        ) : null}
+                        {safeMeta.map((item) => (
+                            <div
+                                key={item.key || item.label || item}
+                                className="text-muted-foreground truncate text-xs"
+                                title={item.title || item.label || item}
+                            >
+                                {item.label || item}
+                            </div>
+                        ))}
+                    </div>
+                    {hasPrimaryAction ? (
+                        <Button
+                            type="button"
+                            variant={primaryAction.variant || 'outline'}
+                            size="sm"
+                            className="shrink-0"
+                            disabled={primaryAction.disabled}
+                            onClick={primaryAction.onClick}
                         >
-                            {safeTitle}
-                        </div>
+                            {renderIcon(primaryAction.icon)}
+                            {primaryAction.label}
+                        </Button>
                     ) : null}
-                    {safeSubtitle ? (
-                        <div
-                            className="text-muted-foreground truncate font-mono text-xs"
-                            title={safeSubtitle}
-                        >
-                            {safeSubtitle}
-                        </div>
-                    ) : null}
-                    {safeMeta.map((item) => (
-                        <div
-                            key={item.key || item.label || item}
-                            className="text-muted-foreground truncate text-xs"
-                            title={item.title || item.label || item}
-                        >
-                            {item.label || item}
-                        </div>
-                    ))}
-                </div>
-                {hasPrimaryAction ? (
-                    <Button
-                        type="button"
-                        variant={primaryAction.variant || 'outline'}
-                        size="sm"
-                        className="shrink-0"
-                        disabled={primaryAction.disabled}
-                        onClick={primaryAction.onClick}
-                    >
-                        {renderIcon(primaryAction.icon)}
-                        {primaryAction.label}
-                    </Button>
-                ) : null}
-            </CardContent>
+                </CardContent>
+            )}
         </Card>
     );
 }

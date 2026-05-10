@@ -73,7 +73,9 @@ export function GalleryInventoryTab({
                     {loading ? (
                         <LoadingState />
                     ) : items.length > 0 ? (
-                        <div className={gridDensityConfig.inventoryGridClass}>
+                        <div
+                            className={`${gridDensityConfig.inventoryGridClass} p-1`}
+                        >
                             {items.map((item) => {
                                 const isMutating =
                                     mutatingKey === `inventory:${item.id}`;

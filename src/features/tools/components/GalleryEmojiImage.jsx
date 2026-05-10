@@ -39,7 +39,7 @@ export function GalleryEmojiImage({ file, imageUrl, alt, className }) {
                 src={imageUrl}
                 alt={alt}
                 loading="lazy"
-                className={cn(className, 'object-cover')}
+                className={className}
             />
         );
     }

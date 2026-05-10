@@ -26,8 +26,7 @@ export function GalleryTabsSection({ handlers, state, t }) {
         onPrintCropBorderChange,
         onPrintUploadNoteChange,
         onRefresh,
-        onSetProfileField,
-        onOpenProfileMedia
+        onSetProfileField
     } = handlers;
 
     return (
@@ -51,8 +50,7 @@ export function GalleryTabsSection({ handlers, state, t }) {
                 onClearProfileField,
                 onPreview,
                 onSetProfileField,
-                onDeleteFile,
-                onOpenProfileMedia
+                onDeleteFile
             }}
             printsTab={{
                 prints: assets.prints,

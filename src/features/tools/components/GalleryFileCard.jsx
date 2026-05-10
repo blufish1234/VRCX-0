@@ -1,9 +1,9 @@
-import { CheckIcon, ImageIcon, Trash2Icon } from 'lucide-react';
+import { CheckIcon, EyeIcon, ImageIcon, Trash2Icon } from 'lucide-react';
 
 import { extractFileId } from '@/shared/utils/fileUtils.js';
 
 import { GalleryEmojiImage } from './GalleryEmojiImage.jsx';
-import { MediaAssetTile, shortAssetId } from './MediaAssetTile.jsx';
+import { MediaAssetTile } from './MediaAssetTile.jsx';
 
 function getLatestFileUrl(file) {
     const versions = Array.isArray(file?.versions) ? file.versions : [];
@@ -80,8 +80,6 @@ export function GalleryFileCard({
                       : null
               ].filter(Boolean)
             : [];
-    const mediaTitle = displayName || shortAssetId(file.id);
-    const subtitle = displayName ? shortAssetId(file.id) : '';
     const primaryAction =
         profileField && !isCurrent
             ? {
@@ -95,11 +93,16 @@ export function GalleryFileCard({
                   onClick: () => onSetProfileField(profileField, file.id)
               }
             : null;
+    const canUseProfileMedia = primaryAction && !primaryAction.disabled;
+    const previewAction = () =>
+        onPreview({
+            id: file.id,
+            title: displayName || t(definition.titleKey),
+            url: imageUrl
+        });
 
     return (
         <MediaAssetTile
-            title={mediaTitle}
-            subtitle={subtitle}
             badges={badges}
             imageUrl={imageUrl}
             alt={file.displayName || file.name || file.id}
@@ -109,6 +112,7 @@ export function GalleryFileCard({
             currentLabel={t('dialog.gallery_icons.current')}
             menuLabel={t('aria.more')}
             placeholderIcon={ImageIcon}
+            hideContent
             renderMedia={
                 imageUrl
                     ? ({ className }) => (
@@ -121,15 +125,29 @@ export function GalleryFileCard({
                       )
                     : null
             }
-            onPreview={() =>
-                onPreview({
-                    id: file.id,
-                    title: displayName || t(definition.titleKey),
-                    url: imageUrl
-                })
+            onPreview={previewAction}
+            onMediaClick={
+                canUseProfileMedia ? primaryAction.onClick : previewAction
             }
-            primaryAction={primaryAction}
+            mediaHoverLabel={canUseProfileMedia ? primaryAction.label : ''}
             menuActions={[
+                imageUrl
+                    ? {
+                          key: 'preview',
+                          label: t('common.actions.open'),
+                          icon: EyeIcon,
+                          onSelect: previewAction
+                      }
+                    : null,
+                primaryAction && !canUseProfileMedia
+                    ? {
+                          key: 'use-profile-media',
+                          label: primaryAction.label,
+                          icon: CheckIcon,
+                          disabled: primaryAction.disabled,
+                          onSelect: primaryAction.onClick
+                      }
+                    : null,
                 {
                     key: 'delete',
                     label: t('common.actions.delete'),

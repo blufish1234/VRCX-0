@@ -72,7 +72,6 @@ export function GalleryTabs({
                     onPreview={fileTab.onPreview}
                     onSetProfileField={fileTab.onSetProfileField}
                     onDeleteFile={fileTab.onDeleteFile}
-                    onOpenProfileMedia={fileTab.onOpenProfileMedia}
                 />
             ))}
             <GalleryPrintsTab t={t} {...printsTab} />
