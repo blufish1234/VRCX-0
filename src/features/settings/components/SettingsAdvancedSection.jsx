@@ -79,13 +79,6 @@ export function SettingsAdvancedSection({ advanced }) {
                     checked
                 )
             }
-            onLogEmptyAvatarsChange={(checked) =>
-                void saveBoolPreference(
-                    'logEmptyAvatars',
-                    'logEmptyAvatars',
-                    checked
-                )
-            }
             onAutoLoginDelayEnabledChange={(checked) =>
                 void saveBoolPreference(
                     'autoLoginDelayEnabled',

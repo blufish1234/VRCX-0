@@ -206,8 +206,7 @@
                 },
                 "logging": {
                     "header": "Logging",
-                    "resource_load": "Log Udon string/image load",
-                    "empty_avatar": "Log avatars in feed without names"
+                    "resource_load": "Log Udon string/image load"
                 },
                 "automation": {
                     "auto_state_change_tooltip": "인스턴스에 다른 사람이 있을 때 상태를 자동으로 바꿉니다",

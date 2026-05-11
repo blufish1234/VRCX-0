@@ -296,8 +296,7 @@
                 },
                 "logging": {
                     "header": "Registro",
-                    "resource_load": "Registrar carga de cadena/imagen de Udon",
-                    "empty_avatar": "Registrar avatares en el feed sin nombres"
+                    "resource_load": "Registrar carga de cadena/imagen de Udon"
                 },
                 "automation": {
                     "auto_change_status": "Cambio Automático de Estado",

@@ -432,8 +432,7 @@
                 },
                 "logging": {
                     "header": "Logi",
-                    "resource_load": "Loguj wczytywanie tekstu/obrazków w Udonie",
-                    "empty_avatar": "Loguj awatary w aktywności bez nazw"
+                    "resource_load": "Loguj wczytywanie tekstu/obrazków w Udonie"
                 },
                 "automation": {
                     "auto_change_status": "Automatyczna zmiana statusu",

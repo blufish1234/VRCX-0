@@ -23,7 +23,6 @@ export function SettingsAdvancedTab({
     onAutoSweepVRChatCacheChange,
     onUdonExceptionLoggingChange,
     onLogResourceLoadChange,
-    onLogEmptyAvatarsChange,
     onAutoLoginDelayEnabledChange,
     onPromptAutoLoginDelaySeconds,
     onOpenShortcutFolder,
@@ -121,14 +120,6 @@ export function SettingsAdvancedTab({
                         <Switch
                             checked={prefs.logResourceLoad}
                             onCheckedChange={onLogResourceLoadChange}
-                        />
-                    </Field>
-                    <Field
-                        label={t('view.settings.general.logging.empty_avatar')}
-                    >
-                        <Switch
-                            checked={prefs.logEmptyAvatars}
-                            onCheckedChange={onLogEmptyAvatarsChange}
                         />
                     </Field>
                     <Field

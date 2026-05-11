@@ -61,13 +61,6 @@ function setDocumentLanguage(language) {
     document.documentElement.setAttribute('lang', language);
 }
 
-function applyPointerHoverClass(enabled) {
-    document.documentElement.classList.toggle(
-        'force-pointer-on-hover',
-        Boolean(enabled)
-    );
-}
-
 function applyAccessibleStatusClass(enabled) {
     document.documentElement.classList.toggle(
         'accessible-status-indicators',
@@ -129,7 +122,6 @@ export async function loadPreferenceSnapshot() {
         dataTableStriped,
         tableDensity,
         compactTableMode,
-        showPointerOnHover,
         accessibleStatusIndicators,
         showNewDashboardButton,
         recentActionCooldownEnabled,
@@ -169,7 +161,6 @@ export async function loadPreferenceSnapshot() {
         enableAppLauncherRunProcessOnce,
         udonExceptionLogging,
         logResourceLoad,
-        logEmptyAvatars,
         autoLoginDelayEnabled,
         autoLoginDelaySeconds,
         isStartAtWindowsStartup,
@@ -211,7 +202,6 @@ export async function loadPreferenceSnapshot() {
         configRepository.getBool('dataTableStriped', false),
         configRepository.getString('tableDensity', null),
         configRepository.getBool('compactTableMode', false),
-        configRepository.getBool('showPointerOnHover', false),
         configRepository.getBool('VRCX_accessibleStatusIndicators', false),
         configRepository.getBool('showNewDashboardButton', true),
         configRepository.getBool('recentActionCooldownEnabled', false),
@@ -251,7 +241,6 @@ export async function loadPreferenceSnapshot() {
         configRepository.getBool('enableAppLauncherRunProcessOnce', true),
         configRepository.getBool('udonExceptionLogging', false),
         configRepository.getBool('logResourceLoad', false),
-        configRepository.getBool('logEmptyAvatars', false),
         configRepository.getBool('autoLoginDelayEnabled', false),
         configRepository.getInt('autoLoginDelaySeconds', 0),
         configRepository.getBool('StartAtWindowsStartup', false),
@@ -334,7 +323,6 @@ export async function loadPreferenceSnapshot() {
         : 60;
     applyTableDensityClass(resolvedTableDensity);
     applyDataTableStripedClass(dataTableStriped);
-    applyPointerHoverClass(showPointerOnHover);
     applyAccessibleStatusClass(accessibleStatusIndicators);
     applyTrustColorClasses(trustColor);
     configureRecentActionCooldown({
@@ -353,7 +341,6 @@ export async function loadPreferenceSnapshot() {
         notificationLayout: notificationLayout || DEFAULT_NOTIFICATION_LAYOUT,
         dataTableStriped: Boolean(dataTableStriped),
         tableDensity: resolvedTableDensity,
-        showPointerOnHover: Boolean(showPointerOnHover),
         accessibleStatusIndicators: Boolean(accessibleStatusIndicators),
         showNewDashboardButton: Boolean(showNewDashboardButton),
         recentActionCooldownEnabled: Boolean(recentActionCooldownEnabled),
@@ -397,7 +384,6 @@ export async function loadPreferenceSnapshot() {
         ),
         udonExceptionLogging: Boolean(udonExceptionLogging),
         logResourceLoad: Boolean(logResourceLoad),
-        logEmptyAvatars: Boolean(logEmptyAvatars),
         autoLoginDelayEnabled: Boolean(autoLoginDelayEnabled),
         autoLoginDelaySeconds: Number.isFinite(autoLoginDelaySeconds)
             ? autoLoginDelaySeconds
@@ -511,13 +497,6 @@ export async function setTableDensityPreference(value) {
     applyTableDensityClass(density);
     await configRepository.setString('VRCX_tableDensity', density);
     patchPreferences({ tableDensity: density });
-}
-
-export async function setPointerOnHoverPreference(value) {
-    const nextValue = Boolean(value);
-    applyPointerHoverClass(nextValue);
-    await configRepository.setBool('VRCX_showPointerOnHover', nextValue);
-    patchPreferences({ showPointerOnHover: nextValue });
 }
 
 export async function setAccessibleStatusIndicatorsPreference(value) {

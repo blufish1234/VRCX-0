@@ -785,7 +785,6 @@
                 "logging": {
                     "header": "記錄",
                     "resource_load": "記錄 Udon 字串/圖片載入",
-                    "empty_avatar": "記錄沒有名稱的動態影像",
                     "auto_login_delay": "自動登入延遲",
                     "auto_login_delay_button": "設定延遲秒數"
                 },
@@ -876,8 +875,6 @@
                     "table_page_sizes_error": "每頁筆數必須為 1 到 1000 之間的數字",
                     "show_notification_icon_dot": "顯示系統匣通知紅點",
                     "striped_data_table_mode": "表格條紋模式",
-                    "toggle_pointer_on_hover": "滑鼠懸停時強制顯示指標",
-                    "toggle_pointer_on_hover_description": "對所有可點擊的元素始終顯示指標游標。",
                     "accessible_status_indicators": "無障礙狀態指示器",
                     "accessible_status_indicators_description": "除了顏色外，也使用形狀來區分不同狀態。",
                     "use_official_status_colors": "使用官方狀態顏色",

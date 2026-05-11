@@ -451,8 +451,7 @@
                 },
                 "logging": {
                     "header": "Se connecter",
-                    "resource_load": "Journal des textes/images chargées par Udon",
-                    "empty_avatar": "Journal des avatars dans l'actualité sans noms"
+                    "resource_load": "Journal des textes/images chargées par Udon"
                 },
                 "automation": {
                     "auto_change_status": "Changer automatiquement de statut",

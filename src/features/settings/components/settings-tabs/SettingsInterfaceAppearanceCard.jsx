@@ -91,7 +91,6 @@ export function SettingsInterfaceAppearanceCard({
     onZoomBlur,
     onNotificationIconDotChange,
     onDataTableStripedChange,
-    onPointerOnHoverChange,
     onAccessibleStatusIndicatorsChange
 }) {
     const fontDropdownDisplayText = getFontDropdownDisplayText(t, prefs);
@@ -241,20 +240,6 @@ export function SettingsInterfaceAppearanceCard({
                     <Switch
                         checked={prefs.dataTableStriped}
                         onCheckedChange={onDataTableStripedChange}
-                    />
-                </Field>
-
-                <Field
-                    label={t(
-                        'view.settings.appearance.appearance.toggle_pointer_on_hover'
-                    )}
-                    description={t(
-                        'view.settings.appearance.appearance.toggle_pointer_on_hover_description'
-                    )}
-                >
-                    <Switch
-                        checked={prefs.showPointerOnHover}
-                        onCheckedChange={onPointerOnHoverChange}
                     />
                 </Field>
 

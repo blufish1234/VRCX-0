@@ -37,7 +37,6 @@ export interface PreferencesSnapshot {
     notificationLayout: NotificationLayoutPreference;
     dataTableStriped: boolean;
     tableDensity: TableDensityPreference;
-    showPointerOnHover: boolean;
     accessibleStatusIndicators: boolean;
     showNewDashboardButton: boolean;
     recentActionCooldownEnabled: boolean;
@@ -79,7 +78,6 @@ export interface PreferencesSnapshot {
     enableAppLauncherRunProcessOnce: boolean;
     udonExceptionLogging: boolean;
     logResourceLoad: boolean;
-    logEmptyAvatars: boolean;
     autoLoginDelayEnabled: boolean;
     autoLoginDelaySeconds: number;
     isStartAtWindowsStartup: boolean;

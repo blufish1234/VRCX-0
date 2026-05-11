@@ -195,8 +195,7 @@
                 },
                 "logging": {
                     "header": "Naplózás",
-                    "resource_load": "Udon string/kép betöltés naplózása",
-                    "empty_avatar": "Név nélküli avatarok naplózása a hírfolyamban"
+                    "resource_load": "Udon string/kép betöltés naplózása"
                 },
                 "automation": {
                     "auto_state_change_tooltip": "Állapot automatikus váltása, ha mások is vannak a példányban (egyedül / társaságban)",

@@ -195,8 +195,7 @@
                 },
                 "logging": {
                     "header": "Logging",
-                    "resource_load": "Log Udon string/image load",
-                    "empty_avatar": "Log avatars in feed without names"
+                    "resource_load": "Log Udon string/image load"
                 },
                 "automation": {
                     "auto_state_change_tooltip": "Tự động thay đổi status khi có người khác trong world instance (Một mình / Cùng mọi người)",

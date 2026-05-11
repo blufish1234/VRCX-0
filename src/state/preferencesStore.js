@@ -121,7 +121,6 @@ export const DEFAULT_PREFERENCES = Object.freeze({
     notificationLayout: 'notification-center',
     dataTableStriped: false,
     tableDensity: 'standard',
-    showPointerOnHover: false,
     accessibleStatusIndicators: false,
     showNewDashboardButton: true,
     recentActionCooldownEnabled: false,
@@ -163,7 +162,6 @@ export const DEFAULT_PREFERENCES = Object.freeze({
     enableAppLauncherRunProcessOnce: true,
     udonExceptionLogging: false,
     logResourceLoad: false,
-    logEmptyAvatars: false,
     autoLoginDelayEnabled: false,
     autoLoginDelaySeconds: 0,
     isStartAtWindowsStartup: false,
@@ -214,7 +212,6 @@ export function normalizePreferenceSnapshot(snapshot = {}) {
                 : 'notification-center',
         dataTableStriped: normalizeBool(next.dataTableStriped),
         tableDensity: normalizeTableDensity(next.tableDensity),
-        showPointerOnHover: normalizeBool(next.showPointerOnHover),
         accessibleStatusIndicators: normalizeBool(
             next.accessibleStatusIndicators
         ),
@@ -279,7 +276,6 @@ export function normalizePreferenceSnapshot(snapshot = {}) {
         ),
         udonExceptionLogging: normalizeBool(next.udonExceptionLogging),
         logResourceLoad: normalizeBool(next.logResourceLoad),
-        logEmptyAvatars: normalizeBool(next.logEmptyAvatars),
         autoLoginDelayEnabled: normalizeBool(next.autoLoginDelayEnabled),
         autoLoginDelaySeconds: normalizeBoundedInt(next.autoLoginDelaySeconds, {
             min: 0,

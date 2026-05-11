@@ -44,7 +44,6 @@ export function SettingsPageView({ controller }) {
         saveBoolPreference,
         savePreferenceValue,
         setDataTableStripedPreference,
-        setPointerOnHoverPreference,
         setAccessibleStatusIndicatorsPreference,
         setShowNewDashboardButtonPreference,
         openTablePageSizesDialog,
@@ -162,13 +161,6 @@ export function SettingsPageView({ controller }) {
                             'dataTableStriped',
                             checked,
                             () => setDataTableStripedPreference(checked)
-                        )
-                    }
-                    onPointerOnHoverChange={(checked) =>
-                        void savePreferenceValue(
-                            'showPointerOnHover',
-                            checked,
-                            () => setPointerOnHoverPreference(checked)
                         )
                     }
                     onAccessibleStatusIndicatorsChange={(checked) =>

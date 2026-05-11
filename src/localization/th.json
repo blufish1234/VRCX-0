@@ -306,8 +306,7 @@
                 },
                 "logging": {
                     "header": "การบันทึก",
-                    "resource_load": "บันทึกการโหลดสตริง/รูปภาพของ Udon",
-                    "empty_avatar": "บันทึกอวาตาร์ที่ไม่มีชื่อในฟีด"
+                    "resource_load": "บันทึกการโหลดสตริง/รูปภาพของ Udon"
                 },
                 "automation": {
                     "auto_change_status": "เปลี่ยนสถานะอัตโนมัติ",

@@ -1,5 +1,4 @@
-import { onPreferenceChanged } from '@/lib/preferenceEvents.js';
-import { configRepository, feedRepository } from '@/repositories/index.js';
+import { feedRepository } from '@/repositories/index.js';
 import { useFeedLiveStore } from '@/state/feedLiveStore.js';
 import { useFriendRosterStore } from '@/state/friendRosterStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
@@ -19,10 +18,6 @@ import {
 
 const PENDING_OFFLINE_DELAY_MS = 170000;
 const pendingOfflineTimers = new Map();
-let logEmptyAvatars = false;
-let logEmptyAvatarsLoaded = false;
-let logEmptyAvatarsLoadPromise = null;
-let unsubscribeLogEmptyAvatars = null;
 
 function currentSessionUserId() {
     return normalizeUserId(useRuntimeStore.getState().auth.currentUserId);
@@ -192,55 +187,6 @@ function recordGpsFeed({ userId, patch = {}, previous = {}, location }) {
     );
 }
 
-function initLogEmptyAvatarsPreference() {
-    if (unsubscribeLogEmptyAvatars) {
-        return;
-    }
-    unsubscribeLogEmptyAvatars = onPreferenceChanged(
-        'logEmptyAvatars',
-        (value) => {
-            logEmptyAvatars = Boolean(value);
-            logEmptyAvatarsLoaded = true;
-            logEmptyAvatarsLoadPromise = null;
-        }
-    );
-    logEmptyAvatarsLoadPromise = configRepository
-        .getBool('logEmptyAvatars', false)
-        .then((value) => {
-            logEmptyAvatars = Boolean(value);
-            logEmptyAvatarsLoaded = true;
-            logEmptyAvatarsLoadPromise = null;
-        })
-        .catch(() => {
-            logEmptyAvatarsLoaded = true;
-            logEmptyAvatarsLoadPromise = null;
-        });
-}
-
-function shouldRecordAvatarChange(
-    currentAvatarImageUrl,
-    previousAvatarImageUrl
-) {
-    initLogEmptyAvatarsPreference();
-    if (!logEmptyAvatarsLoaded && !logEmptyAvatarsLoadPromise) {
-        logEmptyAvatarsLoadPromise = configRepository
-            .getBool('logEmptyAvatars', false)
-            .then((value) => {
-                logEmptyAvatars = Boolean(value);
-                logEmptyAvatarsLoaded = true;
-                logEmptyAvatarsLoadPromise = null;
-            })
-            .catch(() => {
-                logEmptyAvatarsLoaded = true;
-                logEmptyAvatarsLoadPromise = null;
-            });
-    }
-    return Boolean(
-        currentAvatarImageUrl !== previousAvatarImageUrl &&
-        (logEmptyAvatars || previousAvatarImageUrl)
-    );
-}
-
 function recordProfileDiffFeed({ userId, patch = {}, previous = {} }) {
     if (!previous || !isOnlineState(previous)) {
         return;
@@ -308,23 +254,8 @@ function recordProfileDiffFeed({ userId, patch = {}, previous = {} }) {
             previousCurrentAvatarThumbnailImageUrl:
                 previous.currentAvatarThumbnailImageUrl || ''
         };
-        if (
-            shouldRecordAvatarChange(
-                currentAvatarImageUrl,
-                previousAvatarImageUrl
-            )
-        ) {
+        if (previousAvatarImageUrl) {
             publishFeedEntry(entry, 'addAvatarToDatabase');
-        } else if (
-            !logEmptyAvatarsLoaded &&
-            !previousAvatarImageUrl &&
-            logEmptyAvatarsLoadPromise
-        ) {
-            void logEmptyAvatarsLoadPromise.then(() => {
-                if (logEmptyAvatars) {
-                    publishFeedEntry(entry, 'addAvatarToDatabase');
-                }
-            });
         }
     }
 }

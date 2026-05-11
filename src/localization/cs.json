@@ -203,8 +203,7 @@
                 },
                 "logging": {
                     "header": "Záznamy",
-                    "resource_load": "Záznam načítání Udon nápisů/obrázků",
-                    "empty_avatar": "Záznam avatarů v kanálu bez jmen"
+                    "resource_load": "Záznam načítání Udon nápisů/obrázků"
                 },
                 "automation": {
                     "auto_change_status": "Automaticky měnit status",

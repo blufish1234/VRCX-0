@@ -16,7 +16,6 @@ export function SettingsInterfaceTab({
     onZoomBlur,
     onNotificationIconDotChange,
     onDataTableStripedChange,
-    onPointerOnHoverChange,
     onAccessibleStatusIndicatorsChange,
     onShowInstanceIdInLocationChange,
     onAgeGatedInstancesVisibleChange,
@@ -52,7 +51,6 @@ export function SettingsInterfaceTab({
                 onZoomBlur={onZoomBlur}
                 onNotificationIconDotChange={onNotificationIconDotChange}
                 onDataTableStripedChange={onDataTableStripedChange}
-                onPointerOnHoverChange={onPointerOnHoverChange}
                 onAccessibleStatusIndicatorsChange={
                     onAccessibleStatusIndicatorsChange
                 }
