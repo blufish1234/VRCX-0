@@ -67,9 +67,11 @@ function getAutomationScopeKey(facts) {
 
 function isCurrentAuthScope(facts) {
     const auth = useRuntimeStore.getState().auth || {};
+    const authCurrentUserId =
+        auth.currentUserId || auth.currentUserSnapshot?.id || '';
     return (
         String(auth.currentUserEndpoint || '') === String(facts?.endpoint || '') &&
-        String(auth.currentUserId || '') === String(facts?.currentUserId || '')
+        String(authCurrentUserId) === String(facts?.currentUserId || '')
     );
 }
 
@@ -234,8 +236,14 @@ export async function applyPresenceAutomationResult({
     result,
     throttle = {}
 }) {
-    const currentUser = facts.currentUser;
-    if (!facts.currentUserId || !facts.endpoint || !currentUser?.id) {
+    const currentUser =
+        facts.currentUser && typeof facts.currentUser === 'object'
+            ? facts.currentUser
+            : null;
+    const currentUserId = String(
+        currentUser?.id || facts.currentUserId || ''
+    ).trim();
+    if (!currentUserId || !currentUser) {
         addAuditLog({
             action: 'profile-update',
             skippedReason: 'missing-current-user',
@@ -243,13 +251,19 @@ export async function applyPresenceAutomationResult({
         });
         return { applied: false, reason: 'missing-current-user' };
     }
+    const currentUserSnapshot = currentUser.id
+        ? currentUser
+        : {
+              ...currentUser,
+              id: currentUserId
+          };
 
     const scopeKey = getAutomationScopeKey(facts);
     const writeState = getWriteState(scopeKey);
     pruneRestoreSnapshotsForScope(scopeKey);
     const { patch: effectivePatch, pendingRestores } =
-        buildPatchWithTimeRestore(currentUser, result, scopeKey);
-    const changedPatch = getChangedPatch(currentUser, effectivePatch);
+        buildPatchWithTimeRestore(currentUserSnapshot, result, scopeKey);
+    const changedPatch = getChangedPatch(currentUserSnapshot, effectivePatch);
     if (!Object.keys(changedPatch).length) {
         completeTimeRestores(pendingRestores);
         return { applied: false, reason: 'no-change' };
@@ -308,7 +322,7 @@ export async function applyPresenceAutomationResult({
 
     try {
         const updatedUser = await userProfileRepository.updateCurrentUser({
-            userId: currentUser.id,
+            userId: currentUserId,
             endpoint: facts.endpoint,
             params: changedPatch
         });
@@ -331,7 +345,7 @@ export async function applyPresenceAutomationResult({
         }
         useRuntimeStore.getState().setAuthBootstrap({
             currentUserSnapshot: {
-                ...currentUser,
+                ...currentUserSnapshot,
                 ...updatedUser
             }
         });

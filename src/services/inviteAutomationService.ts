@@ -83,9 +83,11 @@ function getVerifiedCurrentLocation(gameState) {
 
 function isCurrentInviteScope({ endpoint, currentUserId }) {
     const auth = useRuntimeStore.getState().auth || {};
+    const authCurrentUserId =
+        auth.currentUserId || auth.currentUserSnapshot?.id || '';
     return (
         String(auth.currentUserEndpoint || '') === String(endpoint || '') &&
-        String(auth.currentUserId || '') === String(currentUserId || '')
+        String(authCurrentUserId) === String(currentUserId || '')
     );
 }
 
@@ -341,12 +343,13 @@ export async function handleInviteAutomationNotification(notification) {
         return { handled: false, reason: 'game-not-running' };
     }
 
-    const currentUserId = auth.currentUserId;
-    const endpoint = auth.currentUserEndpoint;
+    const currentUserId =
+        auth.currentUserId || auth.currentUserSnapshot?.id || '';
+    const endpoint = auth.currentUserEndpoint || '';
     const currentInviteLocation = resolveCurrentInviteLocation(
         runtimeState.gameState
     );
-    if (!currentUserId || !endpoint || !currentInviteLocation) {
+    if (!currentUserId || !currentInviteLocation) {
         return { handled: false, reason: 'missing-current-session-or-location' };
     }
 
