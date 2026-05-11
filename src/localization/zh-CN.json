@@ -3787,7 +3787,7 @@
             "header": "曾加入的房间",
             "info": "曾加入的房间",
             "search_placeholder": "搜索",
-            "table_view": "表格视图",
+            "table_view": "玩家",
             "chart_view": "图表视图",
             "generated": {
                 "no_player_detail_rows": "没有玩家详情行",
@@ -3795,18 +3795,24 @@
                 "no_instance_selected": "没有房间所选",
                 "select_an_instance_row_to_view_its_details": "选择一条房间记录以查看详情",
                 "back": "返回",
-                "loading_instance_details": "正在加载房间详情",
-                "no_player_detail_rows_for_this_instance": "没有玩家详情行房间",
+                "instance_details": "房间详情",
+                "loading_instance_details": "正在加载房间详情...",
+                "failed_to_load_instance_details": "加载房间详情失败",
+                "no_player_detail_rows_for_this_instance": "此房间没有玩家详情行",
                 "leave_details": "离开详情（",
+                "leave_details_count": "离开详情（{count}）",
+                "players_count": "{count} 名玩家",
                 "this_user_instance_row_cannot_be_deleted_without_event_ids": "缺少事件 ID，无法删除此玩家房间记录",
                 "instance_record_deleted": "房间记录已删除",
                 "recorded_instance_visits": "条房间访问记录",
+                "recorded_instance_visits_count": "{count} 条房间访问记录",
                 "rows": "行",
                 "location": "位置变动",
                 "open_instance_details": "打开房间详情",
                 "details": "详情",
                 "no_instance_records": "没有房间记录",
-                "page": "页"
+                "page": "页",
+                "none": "无"
             }
         },
         "group_member_moderation": {

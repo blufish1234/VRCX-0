@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { gameLogRepository } from '@/repositories/index.js';
-import { openWorldDialog } from '@/services/dialogService.js';
 import { useModalStore } from '@/state/modalStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
 import {
@@ -19,10 +18,17 @@ import {
     createdTime,
     formatPreviousInstanceCount,
     rowLocation,
-    rowSearchText,
-    rowWorldId
+    rowSearchText
 } from './previous-instances-table/previousInstancesRows.js';
 import { PreviousInstanceDetailsPanel } from './previous-instances-table/PreviousInstancesViewParts.jsx';
+
+function instanceDialogDescription(row, t) {
+    const parts = [row?.worldName, row?.groupName].filter(Boolean);
+    return parts.length
+        ? parts.join(' / ')
+        : t('dialog.previous_instances.generated.instance_details');
+}
+
 function PreviousInstancesPanel({
     title = 'Instance History',
     instances = [],
@@ -133,15 +139,6 @@ function PreviousInstancesPanel({
         }
     }
 
-    function openLocation(row) {
-        const worldId = rowWorldId(row);
-        if (!worldId) {
-            return;
-        }
-        openWorldDialog({ worldId, title: row?.worldName || undefined });
-        onClose?.();
-    }
-
     if (detailsOnly || detailRow) {
         return (
             <PreviousInstanceDetailsPanel
@@ -185,7 +182,6 @@ function PreviousInstancesPanel({
             onClose={onClose}
             currentUserId={currentUserId}
             currentEndpoint={currentEndpoint}
-            onOpenLocation={openLocation}
             onOpenDetails={setDetailRow}
             onDeleteRow={deleteRow}
         />
@@ -202,15 +198,23 @@ function PreviousInstancesTableDialog({
     onRowsChange = null,
     detailsOnly = false
 }) {
+    const { t } = useTranslation();
     const initialDetailRow =
         detailsOnly && Array.isArray(instances) ? instances[0] || null : null;
     const instanceCountText = formatPreviousInstanceCount(
         Array.isArray(instances) ? instances.length : 0
     );
-    const dialogTitle = detailsOnly ? 'Instance Details' : title;
+    const dialogTitle = detailsOnly
+        ? t('dialog.previous_instances.info')
+        : title;
     const dialogDescription = detailsOnly
-        ? rowLocation(initialDetailRow) || 'Instance details'
-        : `${instanceCountText} recorded instance visits.`;
+        ? instanceDialogDescription(initialDetailRow, t)
+        : t(
+              'dialog.previous_instances.generated.recorded_instance_visits_count',
+              {
+                  count: instanceCountText
+              }
+          );
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

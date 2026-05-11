@@ -1,7 +1,14 @@
-import { ArrowLeftIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import {
+    PageBackButton,
+    PageDescription,
+    PageHeader,
+    PageTitle,
+    PageToolbar,
+    PageToolbarRow
+} from '@/components/layout/PageScaffold.jsx';
 import {
     useKnownUserFact,
     useKnownUserFacts
@@ -11,7 +18,7 @@ import {
     gameLogRepository,
     userProfileRepository
 } from '@/repositories/index.js';
-import { openUserDialog } from '@/services/dialogService.js';
+import { openUserDialog, openWorldDialog } from '@/services/dialogService.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
 import { Alert, AlertDescription } from '@/ui/shadcn/alert';
 import { Button } from '@/ui/shadcn/button';
@@ -40,7 +47,8 @@ import {
     playerUserId,
     rowDuration,
     rowLocation,
-    rowOwnerUserId
+    rowOwnerUserId,
+    rowWorldId
 } from './previousInstancesRows.js';
 
 export function formatDate(value) {
@@ -80,10 +88,24 @@ export function DialogErrorState({ children }) {
     );
 }
 
+function instanceDetailsSummary(row, t) {
+    const parts = [row?.worldName, row?.groupName].filter(Boolean);
+    if (parts.length) {
+        return parts.join(' / ');
+    }
+    const dateText = formatDate(row?.created_at || row?.createdAt);
+    return dateText !== '-'
+        ? dateText
+        : t('dialog.previous_instances.generated.instance_details');
+}
+
 export function InstanceOwnerCell({ userId, location = '', endpoint = '' }) {
     const knownUser = useKnownUserFact(userId, { endpoint });
     const displayName =
-        knownUser?.displayName || knownUser?.username || knownUser?.name || userId;
+        knownUser?.displayName ||
+        knownUser?.username ||
+        knownUser?.name ||
+        userId;
 
     useEffect(() => {
         if (!userId || displayName !== userId) {
@@ -130,6 +152,35 @@ export function InstanceOwnerCell({ userId, location = '', endpoint = '' }) {
     );
 }
 
+function InstanceWorldCell({ row }) {
+    const worldId = rowWorldId(row);
+    const worldName = row?.worldName || '';
+
+    if (!worldId && !worldName) {
+        return <span className="text-muted-foreground">-</span>;
+    }
+
+    if (!worldId) {
+        return <span>{worldName}</span>;
+    }
+
+    return (
+        <Button
+            type="button"
+            variant="ghost"
+            className="hover:text-primary h-auto max-w-full min-w-0 justify-start p-0 text-left font-normal"
+            onClick={() =>
+                openWorldDialog({
+                    worldId,
+                    title: worldName || undefined
+                })
+            }
+        >
+            <span className="truncate">{worldName || worldId}</span>
+        </Button>
+    );
+}
+
 export function PreviousInstanceDetailsPanel({
     row,
     onBack = null,
@@ -151,10 +202,7 @@ export function PreviousInstanceDetailsPanel({
     const playerFactIds = useMemo(() => {
         const seen = new Set();
         const ids = [];
-        for (const player of [
-            ...infoData.players,
-            ...infoData.details
-        ]) {
+        for (const player of [...infoData.players, ...infoData.details]) {
             const userId = playerUserId(player);
             if (!userId || seen.has(userId)) {
                 continue;
@@ -187,12 +235,7 @@ export function PreviousInstanceDetailsPanel({
             }
         }
         return ids;
-    }, [
-        infoData.details,
-        infoData.players,
-        knownPlayersById,
-        playerFactIds
-    ]);
+    }, [infoData.details, infoData.players, knownPlayersById, playerFactIds]);
 
     useEffect(() => {
         setDetailsViewMode('players');
@@ -247,7 +290,9 @@ export function PreviousInstanceDetailsPanel({
                     error:
                         error instanceof Error
                             ? error.message
-                            : 'Failed to load instance details.',
+                            : t(
+                                  'dialog.previous_instances.generated.failed_to_load_instance_details'
+                              ),
                     players: [],
                     details: []
                 });
@@ -256,7 +301,7 @@ export function PreviousInstanceDetailsPanel({
         return () => {
             active = false;
         };
-    }, [currentEndpoint, row]);
+    }, [currentEndpoint, row, t]);
 
     useEffect(() => {
         if (!missingPlayerProfileIds.length) {
@@ -264,14 +309,12 @@ export function PreviousInstanceDetailsPanel({
         }
 
         Promise.allSettled(
-            missingPlayerProfileIds
-                .slice(0, 50)
-                .map((userId) =>
-                    userProfileRepository.getUserProfile({
-                        userId,
-                        endpoint: currentEndpoint
-                    })
-                )
+            missingPlayerProfileIds.slice(0, 50).map((userId) =>
+                userProfileRepository.getUserProfile({
+                    userId,
+                    endpoint: currentEndpoint
+                })
+            )
         ).catch(() => {});
     }, [currentEndpoint, missingPlayerProfileIds]);
 
@@ -312,261 +355,273 @@ export function PreviousInstanceDetailsPanel({
 
     return (
         <div
-            className={['flex min-h-0 flex-col gap-4 overflow-auto', className]
+            className={[
+                'flex min-h-0 flex-col gap-3 overflow-hidden',
+                className
+            ]
                 .filter(Boolean)
                 .join(' ')}
         >
             {showTitle || onBack ? (
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                    {showTitle ? (
-                        <div className="min-w-0">
-                            <h3 className="text-base font-semibold">
-                                {t('dialog.previous_instances.info')}
-                            </h3>
-                            <p className="text-muted-foreground truncate text-sm">
-                                {rowLocation(row) || 'Instance details'}
-                            </p>
-                        </div>
-                    ) : null}
-                    {onBack ? (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={onBack}
-                        >
-                            <ArrowLeftIcon data-icon="inline-start" />
-                            {t('dialog.previous_instances.generated.back')}
-                        </Button>
-                    ) : null}
-                </div>
+                <PageToolbar className="pb-0">
+                    <PageToolbarRow className="items-center">
+                        {onBack ? (
+                            <PageBackButton
+                                label={t('common.actions.back')}
+                                onClick={onBack}
+                            />
+                        ) : null}
+                        {showTitle ? (
+                            <PageHeader className="min-w-0 p-0">
+                                <PageTitle>
+                                    {t('dialog.previous_instances.info')}
+                                </PageTitle>
+                                <PageDescription className="truncate">
+                                    {instanceDetailsSummary(row, t)}
+                                </PageDescription>
+                            </PageHeader>
+                        ) : null}
+                    </PageToolbarRow>
+                </PageToolbar>
             ) : null}
-            <div className="grid gap-2 text-sm sm:grid-cols-2">
-                <div>
-                    <span className="text-muted-foreground">
-                        {t('table.previous_instances.date')}
-                    </span>
-                    <div>{formatDate(row?.created_at || row?.createdAt)}</div>
-                </div>
-                <div>
-                    <span className="text-muted-foreground">
-                        {t('table.previous_instances.time')}
-                    </span>
-                    <div>{rowDuration(row)}</div>
-                </div>
-                <div>
-                    <span className="text-muted-foreground">
-                        {t('table.previous_instances.world')}
-                    </span>
-                    <div>{row?.worldName || '-'}</div>
-                </div>
-                <div>
-                    <span className="text-muted-foreground">
-                        {t('dialog.new_instance.group')}
-                    </span>
-                    <div>{row?.groupName || '-'}</div>
-                </div>
-                <div>
-                    <span className="text-muted-foreground">
-                        {t('table.previous_instances.instance_creator')}
-                    </span>
+            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto pr-1">
+                <div className="grid gap-2 text-sm sm:grid-cols-2">
                     <div>
-                        <InstanceOwnerCell
-                            userId={rowOwnerUserId(row)}
-                            location={rowLocation(row)}
-                            endpoint={currentEndpoint}
-                        />
+                        <span className="text-muted-foreground">
+                            {t('table.previous_instances.date')}
+                        </span>
+                        <div>
+                            {formatDate(row?.created_at || row?.createdAt)}
+                        </div>
+                    </div>
+                    <div>
+                        <span className="text-muted-foreground">
+                            {t('table.previous_instances.time')}
+                        </span>
+                        <div>{rowDuration(row)}</div>
+                    </div>
+                    <div>
+                        <span className="text-muted-foreground">
+                            {t('table.previous_instances.world')}
+                        </span>
+                        <div className="min-w-0">
+                            <InstanceWorldCell row={row} />
+                        </div>
+                    </div>
+                    <div>
+                        <span className="text-muted-foreground">
+                            {t('dialog.new_instance.group')}
+                        </span>
+                        <div>{row?.groupName || '-'}</div>
+                    </div>
+                    <div>
+                        <span className="text-muted-foreground">
+                            {t('table.previous_instances.instance_creator')}
+                        </span>
+                        <div>
+                            <InstanceOwnerCell
+                                userId={rowOwnerUserId(row)}
+                                location={rowLocation(row)}
+                                endpoint={currentEndpoint}
+                            />
+                        </div>
                     </div>
                 </div>
-            </div>
-            <Tabs
-                value={detailsViewMode}
-                onValueChange={setDetailsViewMode}
-                className="min-h-0"
-            >
-                <div className="flex items-center justify-between gap-3">
-                    <TabsList variant="line">
-                        <TabsTrigger value="players">
-                            {t('dashboard.widget.instance_players')}
-                        </TabsTrigger>
-                        <TabsTrigger value="timeline">
-                            {t('dialog.previous_instances.chart_view')}
-                        </TabsTrigger>
-                    </TabsList>
-                    <span className="text-muted-foreground text-xs">
-                        {infoData.players.length}{' '}
-                        {t('dashboard.widget.instance_players')}
-                    </span>
-                </div>
-                {infoData.status === 'running' ? (
-                    <div className="text-muted-foreground flex items-center gap-2 rounded-md border border-dashed p-4 text-sm">
-                        <Spinner className="size-4" />
-                        <span>
+                <Tabs
+                    value={detailsViewMode}
+                    onValueChange={setDetailsViewMode}
+                    className="flex min-h-0 shrink-0 flex-col"
+                >
+                    <div className="flex items-center justify-between gap-3">
+                        <TabsList variant="line">
+                            <TabsTrigger value="players">
+                                {t('dialog.previous_instances.table_view')}
+                            </TabsTrigger>
+                            <TabsTrigger value="timeline">
+                                {t('dialog.previous_instances.chart_view')}
+                            </TabsTrigger>
+                        </TabsList>
+                        <span className="text-muted-foreground text-xs">
                             {t(
-                                'dialog.previous_instances.generated.loading_instance_details'
+                                'dialog.previous_instances.generated.players_count',
+                                {
+                                    count: infoData.players.length
+                                }
                             )}
                         </span>
                     </div>
-                ) : null}
-                {infoData.status === 'error' ? (
-                    <DialogErrorState>{infoData.error}</DialogErrorState>
-                ) : null}
-                {infoData.status === 'ready' ? (
-                    <>
-                        <TabsContent value="players" className="mt-2">
-                            <div className="max-h-80 overflow-auto rounded-md border">
-                                <Table>
-                                    <TableHeader className="bg-background sticky top-0">
-                                        <TableRow>
-                                            <TableHead>
-                                                {t(
-                                                    'table.previous_instances.display_name'
-                                                )}
-                                            </TableHead>
-                                            <TableHead>
-                                                {t(
-                                                    'table.group_member_moderation.user_id'
-                                                )}
-                                            </TableHead>
-                                            <TableHead className="w-24">
-                                                {t('dialog.world.info.visits')}
-                                            </TableHead>
-                                            <TableHead className="w-28">
-                                                {t(
-                                                    'table.previous_instances.time'
-                                                )}
-                                            </TableHead>
-                                            <TableHead className="w-44">
-                                                {t(
-                                                    'table.previous_instances.date'
-                                                )}
-                                            </TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {infoData.players.length ? (
-                                            infoData.players.map(
-                                                (player, index) => (
-                                                    <TableRow
-                                                        key={`${playerDisplayName(player)}:${playerUserId(player)}:${index}`}
-                                                    >
-                                                        <TableCell className="align-top">
-                                                            {resolvePlayerDisplayName(
-                                                                player
-                                                            )}
-                                                        </TableCell>
-                                                        <TableCell className="text-muted-foreground align-top font-mono text-xs">
-                                                            {playerUserId(
-                                                                player
-                                                            ) || '-'}
-                                                        </TableCell>
-                                                        <TableCell className="align-top text-xs tabular-nums">
-                                                            {player?.count ||
-                                                                '-'}
-                                                        </TableCell>
-                                                        <TableCell className="align-top text-xs tabular-nums">
-                                                            {Number(
-                                                                player?.time ||
-                                                                    0
-                                                            ) > 0
-                                                                ? timeToText(
-                                                                      Number(
-                                                                          player.time
-                                                                      )
-                                                                  )
-                                                                : '-'}
-                                                        </TableCell>
-                                                        <TableCell className="text-muted-foreground align-top text-xs">
-                                                            {formatDate(
-                                                                player?.created_at ||
-                                                                    player?.createdAt
-                                                            )}
-                                                        </TableCell>
-                                                    </TableRow>
-                                                )
-                                            )
-                                        ) : (
+                    {infoData.status === 'running' ? (
+                        <div className="text-muted-foreground flex items-center gap-2 rounded-md border border-dashed p-4 text-sm">
+                            <Spinner className="size-4" />
+                            <span>
+                                {t(
+                                    'dialog.previous_instances.generated.loading_instance_details'
+                                )}
+                            </span>
+                        </div>
+                    ) : null}
+                    {infoData.status === 'error' ? (
+                        <DialogErrorState>{infoData.error}</DialogErrorState>
+                    ) : null}
+                    {infoData.status === 'ready' ? (
+                        <>
+                            <TabsContent
+                                value="players"
+                                className="mt-2 min-h-0"
+                            >
+                                <div className="max-h-[32vh] min-h-0 overflow-auto rounded-md border">
+                                    <Table>
+                                        <TableHeader className="bg-background sticky top-0">
                                             <TableRow>
-                                                <TableCell
-                                                    colSpan={5}
-                                                    className="py-6 text-center"
-                                                >
+                                                <TableHead>
                                                     {t(
-                                                        'dialog.previous_instances.generated.no_player_detail_rows_for_this_instance'
+                                                        'table.previous_instances.display_name'
+                                                    )}
+                                                </TableHead>
+                                                <TableHead className="w-24">
+                                                    {t(
+                                                        'dialog.world.info.visits'
+                                                    )}
+                                                </TableHead>
+                                                <TableHead className="w-28">
+                                                    {t(
+                                                        'table.previous_instances.time'
+                                                    )}
+                                                </TableHead>
+                                                <TableHead className="w-44">
+                                                    {t(
+                                                        'table.previous_instances.date'
+                                                    )}
+                                                </TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {infoData.players.length ? (
+                                                infoData.players.map(
+                                                    (player, index) => (
+                                                        <TableRow
+                                                            key={`${playerDisplayName(player)}:${playerUserId(player)}:${index}`}
+                                                        >
+                                                            <TableCell className="align-top">
+                                                                {resolvePlayerDisplayName(
+                                                                    player
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell className="align-top text-xs tabular-nums">
+                                                                {player?.count ||
+                                                                    '-'}
+                                                            </TableCell>
+                                                            <TableCell className="align-top text-xs tabular-nums">
+                                                                {Number(
+                                                                    player?.time ||
+                                                                        0
+                                                                ) > 0
+                                                                    ? timeToText(
+                                                                          Number(
+                                                                              player.time
+                                                                          )
+                                                                      )
+                                                                    : '-'}
+                                                            </TableCell>
+                                                            <TableCell className="text-muted-foreground align-top text-xs">
+                                                                {formatDate(
+                                                                    player?.created_at ||
+                                                                        player?.createdAt
+                                                                )}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    )
+                                                )
+                                            ) : (
+                                                <TableRow>
+                                                    <TableCell
+                                                        colSpan={4}
+                                                        className="py-6 text-center"
+                                                    >
+                                                        {t(
+                                                            'dialog.previous_instances.generated.no_player_detail_rows_for_this_instance'
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </TabsContent>
+                            <TabsContent
+                                value="timeline"
+                                className="mt-2 max-h-[52vh] overflow-auto rounded-md border p-2"
+                            >
+                                <PreviousInstanceInfoChart
+                                    rows={infoData.details}
+                                />
+                            </TabsContent>
+                        </>
+                    ) : null}
+                </Tabs>
+                {detailsViewMode === 'players' && infoData.details.length ? (
+                    <details className="shrink-0 rounded-md border p-3">
+                        <summary className="cursor-pointer text-sm font-medium">
+                            {t(
+                                'dialog.previous_instances.generated.leave_details_count',
+                                {
+                                    count: infoData.details.length
+                                }
+                            )}
+                        </summary>
+                        <div className="mt-3 max-h-48 overflow-auto">
+                            <Table>
+                                <TableHeader className="bg-background sticky top-0">
+                                    <TableRow>
+                                        <TableHead className="h-8 px-2 py-1 text-xs">
+                                            {t('table.previous_instances.date')}
+                                        </TableHead>
+                                        <TableHead className="h-8 px-2 py-1 text-xs">
+                                            {t(
+                                                'table.previous_instances.display_name'
+                                            )}
+                                        </TableHead>
+                                        <TableHead className="h-8 px-2 py-1 text-xs">
+                                            {t('table.previous_instances.time')}
+                                        </TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {infoData.details.map(
+                                        (detailRow, index) => (
+                                            <TableRow
+                                                key={`${detailRow?.created_at}:${detailRow?.user_id}:${index}`}
+                                            >
+                                                <TableCell className="text-muted-foreground px-2 py-1 text-xs">
+                                                    {formatDate(
+                                                        detailRow?.created_at
                                                     )}
                                                 </TableCell>
+                                                <TableCell className="px-2 py-1 text-xs">
+                                                    {resolvePlayerDisplayName(
+                                                        detailRow
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="px-2 py-1 text-xs tabular-nums">
+                                                    {Number(
+                                                        detailRow?.time || 0
+                                                    ) > 0
+                                                        ? timeToText(
+                                                              Number(
+                                                                  detailRow.time
+                                                              )
+                                                          )
+                                                        : '-'}
+                                                </TableCell>
                                             </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        </TabsContent>
-                        <TabsContent
-                            value="timeline"
-                            className="mt-2 max-h-[52vh] overflow-auto rounded-md border p-2"
-                        >
-                            <PreviousInstanceInfoChart
-                                rows={infoData.details}
-                            />
-                        </TabsContent>
-                    </>
+                                        )
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </details>
                 ) : null}
-            </Tabs>
-            {detailsViewMode === 'players' && infoData.details.length ? (
-                <details className="rounded-md border p-3">
-                    <summary className="cursor-pointer text-sm font-medium">
-                        {t('dialog.previous_instances.generated.leave_details')}{' '}
-                        ({infoData.details.length})
-                    </summary>
-                    <div className="mt-3 max-h-48 overflow-auto">
-                        <Table>
-                            <TableHeader className="bg-background sticky top-0">
-                                <TableRow>
-                                    <TableHead className="h-8 px-2 py-1 text-xs">
-                                        {t('table.previous_instances.date')}
-                                    </TableHead>
-                                    <TableHead className="h-8 px-2 py-1 text-xs">
-                                        {t(
-                                            'table.previous_instances.display_name'
-                                        )}
-                                    </TableHead>
-                                    <TableHead className="h-8 px-2 py-1 text-xs">
-                                        {t('table.previous_instances.time')}
-                                    </TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {infoData.details.map((detailRow, index) => (
-                                    <TableRow
-                                        key={`${detailRow?.created_at}:${detailRow?.user_id}:${index}`}
-                                    >
-                                        <TableCell className="text-muted-foreground px-2 py-1 text-xs">
-                                            {formatDate(detailRow?.created_at)}
-                                        </TableCell>
-                                        <TableCell className="px-2 py-1 text-xs">
-                                            {resolvePlayerDisplayName(
-                                                detailRow
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="px-2 py-1 text-xs tabular-nums">
-                                            {Number(detailRow?.time || 0) > 0
-                                                ? timeToText(
-                                                      Number(detailRow.time)
-                                                  )
-                                                : '-'}
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </details>
-            ) : null}
-            {detailsViewMode === 'players' ? (
-                <pre className="bg-muted/20 max-h-[45vh] overflow-auto rounded-md border p-3 text-xs">
-                    {JSON.stringify(row ?? null, null, 2)}
-                </pre>
-            ) : null}
+            </div>
         </div>
     );
 }

@@ -63,16 +63,10 @@ export function UserDialogTabsSection({ state = {}, actions = {} }) {
         remainingGroupCountText,
         userGroupSections
     } = groups;
-    const {
-        filteredProfileWorlds,
-        profileWorlds,
-        worldOrder,
-        worldSort
-    } = worlds;
-    const {
-        favoriteWorlds: favoriteWorldRows,
-        filteredFavoriteWorlds
-    } = favoriteWorlds;
+    const { filteredProfileWorlds, profileWorlds, worldOrder, worldSort } =
+        worlds;
+    const { favoriteWorlds: favoriteWorldRows, filteredFavoriteWorlds } =
+        favoriteWorlds;
     const {
         avatarReleaseStatus,
         avatarSort,
@@ -221,10 +215,8 @@ export function UserDialogTabsSection({ state = {}, actions = {} }) {
             />
             <UserDialogInstanceHistoryTab
                 title={t('dialog.previous_instances.header')}
-                backLabel={t('dialog.user.info.header')}
                 previousInstances={previousInstances}
                 profile={profile}
-                onBack={!isCurrentUser ? () => changeTab('info') : null}
                 onPreviousInstancesChange={onPreviousInstancesChange}
             />
             <UserDialogActivityTab

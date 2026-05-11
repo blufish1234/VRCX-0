@@ -1,9 +1,7 @@
-import { ChevronLeftIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { UserActivityPanel } from '@/components/dialogs/UserActivityPanel.jsx';
 import { userDialogMutualFriendSortingOptions } from '@/shared/constants/user.js';
-import { Button } from '@/ui/shadcn/button';
 import {
     Select,
     SelectContent,
@@ -315,10 +313,8 @@ export function UserDialogAvatarsTab({
 
 export function UserDialogInstanceHistoryTab({
     title,
-    backLabel = 'Info',
     previousInstances,
     profile,
-    onBack,
     onPreviousInstancesChange
 }) {
     return (
@@ -326,19 +322,6 @@ export function UserDialogInstanceHistoryTab({
             value="instance-history"
             className="flex min-h-0 flex-col"
         >
-            {onBack ? (
-                <div className="pb-2">
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={onBack}
-                    >
-                        <ChevronLeftIcon data-icon="inline-start" />
-                        {backLabel}
-                    </Button>
-                </div>
-            ) : null}
             <PreviousInstancesPanel
                 title={title}
                 instances={previousInstances}

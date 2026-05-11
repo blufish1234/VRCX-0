@@ -3795,18 +3795,24 @@
                 "no_instance_selected": "インスタンス選択済みはありません",
                 "select_an_instance_row_to_view_its_details": "詳細を表示するインスタンス行を選択してください",
                 "back": "戻る",
+                "instance_details": "インスタンス詳細",
                 "loading_instance_details": "インスタンス詳細を読み込み中",
-                "no_player_detail_rows_for_this_instance": "プレイヤー詳細行インスタンスはありません",
+                "failed_to_load_instance_details": "インスタンス詳細の読み込みに失敗しました",
+                "no_player_detail_rows_for_this_instance": "このインスタンスにはプレイヤー詳細行がありません",
                 "leave_details": "退出詳細 (",
+                "leave_details_count": "退出詳細 ({count})",
+                "players_count": "{count} 人",
                 "this_user_instance_row_cannot_be_deleted_without_event_ids": "イベント ID がないため、このユーザーのインスタンス行は削除できません",
                 "instance_record_deleted": "インスタンス記録を削除しました",
                 "recorded_instance_visits": "件のインスタンス訪問記録",
+                "recorded_instance_visits_count": "{count} 件のインスタンス訪問記録",
                 "rows": "行",
                 "location": "場所",
                 "open_instance_details": "インスタンス詳細を開く",
                 "details": "詳細",
                 "no_instance_records": "インスタンス記録がありません",
-                "page": "ページ"
+                "page": "ページ",
+                "none": "なし"
             }
         },
         "group_member_moderation": {

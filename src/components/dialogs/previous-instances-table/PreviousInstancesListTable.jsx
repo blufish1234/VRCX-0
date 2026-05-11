@@ -93,7 +93,6 @@ export function PreviousInstancesListTable({
     onClose,
     currentUserId,
     currentEndpoint,
-    onOpenLocation,
     onOpenDetails,
     onDeleteRow
 }) {
@@ -192,7 +191,7 @@ export function PreviousInstancesListTable({
                                 <TableHead className="w-24">
                                     {t('table.previous_instances.time')}
                                 </TableHead>
-                                <TableHead className="w-80 text-right">
+                                <TableHead className="w-64 text-right">
                                     {t('table.previous_instances.action')}
                                 </TableHead>
                             </TableRow>
@@ -204,13 +203,13 @@ export function PreviousInstancesListTable({
                                     <TableRow
                                         key={`${location}:${row?.id || row?.created_at || row?.createdAt || index}`}
                                     >
-                                        <TableCell className="text-muted-foreground align-top text-xs">
+                                        <TableCell className="text-muted-foreground align-middle text-xs leading-5">
                                             {formatDate(
                                                 row?.created_at ||
                                                     row?.createdAt
                                             )}
                                         </TableCell>
-                                        <TableCell className="relative max-w-[26rem] align-top text-xs">
+                                        <TableCell className="relative max-w-[26rem] align-middle text-xs">
                                             <Button
                                                 type="button"
                                                 variant="ghost"
@@ -225,7 +224,7 @@ export function PreviousInstancesListTable({
                                                     )}
                                                 </span>
                                             </Button>
-                                            <div className="pointer-events-none relative z-10 max-w-full text-left">
+                                            <div className="pointer-events-none relative z-10 flex min-h-9 max-w-full items-center text-left">
                                                 {location
                                                     ? renderLocationCell(row, {
                                                           variant,
@@ -234,23 +233,25 @@ export function PreviousInstancesListTable({
                                                     : '-'}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="text-muted-foreground align-top text-xs">
+                                        <TableCell className="text-muted-foreground align-middle text-xs leading-5">
                                             {[row?.worldName, row?.groupName]
                                                 .filter(Boolean)
                                                 .join(' / ') || '-'}
                                         </TableCell>
-                                        <TableCell className="align-top">
-                                            <InstanceOwnerCell
-                                                userId={rowOwnerUserId(row)}
-                                                location={location}
-                                                endpoint={currentEndpoint}
-                                            />
+                                        <TableCell className="align-middle text-xs">
+                                            <div className="flex min-h-9 items-center">
+                                                <InstanceOwnerCell
+                                                    userId={rowOwnerUserId(row)}
+                                                    location={location}
+                                                    endpoint={currentEndpoint}
+                                                />
+                                            </div>
                                         </TableCell>
-                                        <TableCell className="align-top text-xs tabular-nums">
+                                        <TableCell className="align-middle text-xs tabular-nums">
                                             {rowDuration(row)}
                                         </TableCell>
-                                        <TableCell className="align-top">
-                                            <div className="flex justify-end gap-2">
+                                        <TableCell className="align-middle">
+                                            <div className="flex min-h-9 items-center justify-end gap-2">
                                                 <InstanceActionBar
                                                     target={{
                                                         location,
@@ -260,17 +261,6 @@ export function PreviousInstancesListTable({
                                                     showRefresh={false}
                                                     showInstanceInfo={false}
                                                 />
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    variant="outline"
-                                                    disabled={!location}
-                                                    onClick={() =>
-                                                        onOpenLocation(row)
-                                                    }
-                                                >
-                                                    {t('common.actions.open')}
-                                                </Button>
                                                 <Button
                                                     type="button"
                                                     size="sm"
