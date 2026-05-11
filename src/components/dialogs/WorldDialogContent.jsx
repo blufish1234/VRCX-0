@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { CopyIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -39,6 +40,7 @@ import { useDialogStore } from '@/state/dialogStore.js';
 import { useLaunchStore } from '@/state/launchStore.js';
 import { useModalStore } from '@/state/modalStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
+import { Button } from '@/ui/shadcn/button';
 import { Input } from '@/ui/shadcn/input';
 import { Spinner } from '@/ui/shadcn/spinner';
 
@@ -58,15 +60,46 @@ import {
     WorldTagsDialog
 } from './WorldOwnerEditDialogs.jsx';
 
-function WorldDialogEmptyState({ title, description, loading = false }) {
+function WorldDialogEmptyState({
+    title,
+    description,
+    loading = false,
+    children
+}) {
     return (
         <AppEmptyState
             className="min-h-56"
             title={title}
             description={description}
             icon={loading ? Spinner : undefined}
-        />
+        >
+            {children}
+        </AppEmptyState>
     );
+}
+
+function isWorldNotFoundMessage(message, worldId) {
+    const normalizedMessage = normalizeEntityId(message);
+    const normalizedWorldId = normalizeEntityId(worldId);
+    const match = /^World\s+(.+?)\s+not found\.?$/i.exec(normalizedMessage);
+
+    return (
+        Boolean(normalizedWorldId) &&
+        normalizeEntityId(match?.[1]) === normalizedWorldId
+    );
+}
+
+function worldLoadErrorDescription(error, t, worldId, fallbackKey) {
+    if (error instanceof Error) {
+        if (isWorldNotFoundMessage(error.message, worldId)) {
+            return t('dialog.world.generated.world_not_found_description', {
+                worldId
+            });
+        }
+        return error.message;
+    }
+
+    return t(fallbackKey);
 }
 
 function defaultWorldSideData() {
@@ -361,11 +394,12 @@ export function WorldDialogContent({
                     setWorld(worldProfileRepository.normalize(seedData));
                     setLoadStatus('ready');
                     setDetail(
-                        error instanceof Error
-                            ? error.message
-                            : t(
-                                  'dialog.world.generated.failed_to_refresh_the_remote_world_snapshot'
-                              )
+                        worldLoadErrorDescription(
+                            error,
+                            t,
+                            profileWorldId,
+                            'dialog.world.generated.failed_to_refresh_the_remote_world_snapshot'
+                        )
                     );
                     return;
                 }
@@ -373,11 +407,12 @@ export function WorldDialogContent({
                 setWorld(null);
                 setLoadStatus('error');
                 setDetail(
-                    error instanceof Error
-                        ? error.message
-                        : t(
-                              'dialog.world.generated.failed_to_load_the_world_profile'
-                          )
+                    worldLoadErrorDescription(
+                        error,
+                        t,
+                        profileWorldId,
+                        'dialog.world.generated.failed_to_load_the_world_profile'
+                    )
                 );
             });
 
@@ -521,6 +556,14 @@ export function WorldDialogContent({
     const canManageWorld =
         normalizeEntityId(world?.authorId) === normalizeEntityId(currentUserId);
 
+    async function copyUnavailableWorldId() {
+        if (!profileWorldId) {
+            return;
+        }
+        await copyTextToClipboard(profileWorldId);
+        toast.success(t('message.world.id_copied'));
+    }
+
     function isCurrentWorldTarget(targetWorldId, targetEndpoint) {
         return (
             activeWorldTargetRef.current.worldId ===
@@ -567,7 +610,19 @@ export function WorldDialogContent({
                         'dialog.world.generated.world_snapshot_unavailable_description'
                     )
                 }
-            />
+            >
+                {profileWorldId ? (
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void copyUnavailableWorldId()}
+                    >
+                        <CopyIcon data-icon="inline-start" />
+                        {t('dialog.world.info.copy_id')}
+                    </Button>
+                ) : null}
+            </WorldDialogEmptyState>
         );
     }
 

@@ -99,7 +99,7 @@ export function FavoriteActionMenu({
     kind,
     entityId,
     entity = null,
-    label = 'Favorite',
+    label = '',
     iconOnly = false
 }) {
     const { t } = useTranslation();
@@ -302,7 +302,13 @@ export function FavoriteActionMenu({
         return null;
     }
 
-    const triggerLabel = remoteFavorite ? 'Favorited' : label;
+    const triggerLabel = remoteFavorite
+        ? t('view.favorite.generated.favorited')
+        : label || t('view.favorite.generated.favorite');
+    const localFavoritesLabel =
+        kind === 'avatar'
+            ? t('dialog.favorite.local_avatar_favorites')
+            : t('dialog.favorite.local_favorites');
 
     return (
         <DropdownMenu>
@@ -391,9 +397,7 @@ export function FavoriteActionMenu({
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>
-                    {kind === 'avatar'
-                        ? 'Local avatar favorites'
-                        : 'Local favorites'}
+                    {localFavoritesLabel}
                 </DropdownMenuLabel>
                 {localGroups.length ? (
                     <DropdownMenuGroup>

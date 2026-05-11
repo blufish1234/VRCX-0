@@ -756,6 +756,8 @@
             "private": "非公開",
             "select_avatar_tooltip": "アバターを使用",
             "generated": {
+                "favorite": "お気に入り",
+                "favorited": "お気に入り済み",
                 "favorite_added": "お気に入りを追加しました",
                 "favorite_removed": "お気に入りを削除しました",
                 "local_favorite_added": "ローカルお気に入りを追加しました",
@@ -2780,6 +2782,7 @@
                 "no_world_id_was_provided_for_this_dialog": "このダイアログにはワールド ID が指定されていません",
                 "failed_to_refresh_the_remote_world_snapshot": "リモートワールドスナップショットの更新に失敗しました",
                 "failed_to_load_the_world_profile": "ワールドプロフィールの読み込みに失敗しました",
+                "world_not_found_description": "ワールド {worldId} が見つかりません",
                 "world_snapshot_unavailable_description": "VRCX-0 はこのダイアログのワールドスナップショットを解決できませんでした",
                 "reset_your_vrchat_home_location": "VRChat ホーム位置をリセット",
                 "selected_image_is_too_large": "選択した画像が大きすぎます",

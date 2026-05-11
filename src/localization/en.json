@@ -756,6 +756,8 @@
             "private": "Private",
             "select_avatar_tooltip": "Select Avatar",
             "generated": {
+                "favorite": "Favorite",
+                "favorited": "Favorited",
                 "favorite_added": "Favorite added",
                 "favorite_removed": "Favorite removed",
                 "local_favorite_added": "Local favorite added",
@@ -2780,6 +2782,7 @@
                 "no_world_id_was_provided_for_this_dialog": "No world id was provided for this dialog",
                 "failed_to_refresh_the_remote_world_snapshot": "Failed to refresh the remote world snapshot",
                 "failed_to_load_the_world_profile": "Failed to load the world profile",
+                "world_not_found_description": "World {worldId} was not found",
                 "world_snapshot_unavailable_description": "VRCX-0 could not resolve a world snapshot for this dialog",
                 "reset_your_vrchat_home_location": "Reset your VRChat home location",
                 "selected_image_is_too_large": "Selected image is too large",

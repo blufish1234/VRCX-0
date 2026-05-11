@@ -9,8 +9,10 @@ import {
 } from 'lucide-react';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 
 import { Location } from '@/components/Location.jsx';
+import { copyTextToClipboard } from '@/lib/entityMedia.js';
 import { cn } from '@/lib/utils.js';
 import {
     openAvatarDialog,
@@ -122,12 +124,19 @@ const FavoriteCard = memo(function FavoriteCard({
         item.id !== currentAvatarId &&
         onAvatarSelect
     );
+    const canUseWorldActions = Boolean(
+        item.kind === 'world' && !item.isUnavailable
+    );
+    const canCopyUnavailableWorldId = Boolean(
+        item.kind === 'world' && item.isUnavailable && item.id
+    );
     const hasCardActions = Boolean(
         canRemoveLocal ||
         canRemoveRemote ||
         canSelectAvatar ||
         item.kind === 'friend' ||
-        item.kind === 'world'
+        canUseWorldActions ||
+        canCopyUnavailableWorldId
     );
     const friendLocation =
         item.kind === 'friend'
@@ -141,6 +150,13 @@ const FavoriteCard = memo(function FavoriteCard({
     const cardGap = Math.max(4, Math.round(8 * cardSpacing));
     const mediaSize = Math.max(28, Math.round(48 * cardScale));
     const openCard = () => openHandler?.();
+    const copyWorldId = async () => {
+        if (!item.id) {
+            return;
+        }
+        await copyTextToClipboard(item.id);
+        toast.success(t('message.world.id_copied'));
+    };
     const handleCardKeyDown = (event) => {
         if (!openHandler || (event.key !== 'Enter' && event.key !== ' ')) {
             return;
@@ -151,7 +167,7 @@ const FavoriteCard = memo(function FavoriteCard({
 
     return (
         <div
-            className="hover:bg-muted flex min-w-56 cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-2 text-sm transition-colors"
+            className="hover:bg-muted flex w-full min-w-0 cursor-pointer items-center gap-2 overflow-hidden rounded-lg border px-2.5 py-2 text-sm transition-colors"
             style={{
                 gap: `${cardGap}px`,
                 padding: `${cardPaddingY}px ${cardPaddingX}px`
@@ -336,7 +352,7 @@ const FavoriteCard = memo(function FavoriteCard({
                                 </DropdownMenuGroup>
                             </>
                         ) : null}
-                        {item.kind === 'world' ? (
+                        {canUseWorldActions ? (
                             <DropdownMenuGroup>
                                 <DropdownMenuItem
                                     disabled={!onWorldNewInstance}
@@ -351,6 +367,15 @@ const FavoriteCard = memo(function FavoriteCard({
                                     {t(
                                         'dialog.world.actions.new_instance_and_self_invite'
                                     )}
+                                </DropdownMenuItem>
+                            </DropdownMenuGroup>
+                        ) : null}
+                        {canCopyUnavailableWorldId ? (
+                            <DropdownMenuGroup>
+                                <DropdownMenuItem
+                                    onSelect={() => void copyWorldId()}
+                                >
+                                    {t('dialog.world.info.copy_id')}
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>
                         ) : null}
@@ -378,9 +403,11 @@ const FavoriteCard = memo(function FavoriteCard({
                                             onRemoveRemote(item);
                                         }}
                                     >
-                                        {item.source === 'local'
-                                            ? 'Delete'
-                                            : 'Unfavorite'}
+                                        {canRemoveLocal
+                                            ? t('common.actions.delete')
+                                            : t(
+                                                  'view.favorite.generated.remove_favorite'
+                                              )}
                                     </DropdownMenuItem>
                                 </DropdownMenuGroup>
                             </>

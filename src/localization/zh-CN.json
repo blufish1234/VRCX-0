@@ -756,6 +756,8 @@
             "private": "私人",
             "select_avatar_tooltip": "更换为此模型",
             "generated": {
+                "favorite": "收藏",
+                "favorited": "已收藏",
                 "favorite_added": "收藏已添加",
                 "favorite_removed": "收藏已移除",
                 "local_favorite_added": "本地收藏已添加",
@@ -2780,6 +2782,7 @@
                 "no_world_id_was_provided_for_this_dialog": "这个弹窗没有提供世界 ID",
                 "failed_to_refresh_the_remote_world_snapshot": "刷新远程世界快照失败",
                 "failed_to_load_the_world_profile": "加载世界资料失败",
+                "world_not_found_description": "找不到世界 {worldId}",
                 "world_snapshot_unavailable_description": "VRCX-0 无法解析此弹窗的世界快照",
                 "reset_your_vrchat_home_location": "重置你的 VRChat 主页位置",
                 "selected_image_is_too_large": "所选图片过大",
