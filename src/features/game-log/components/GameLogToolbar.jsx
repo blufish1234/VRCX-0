@@ -21,6 +21,7 @@ import {
 } from '@/ui/shadcn/input-group';
 import { Popover, PopoverContent, PopoverTrigger } from '@/ui/shadcn/popover';
 import { Spinner } from '@/ui/shadcn/spinner';
+import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import { GAME_LOG_SESSION_DATE_RANGE_MAX_DAYS } from '../gameLogDateRange.js';
@@ -34,36 +35,41 @@ function GameLogViewModeToggle({ viewMode, onViewModeChange, t }) {
     const tableLabel = t('view.game_log.generated.table');
 
     return (
-        <div className="flex shrink-0 rounded-md border p-0.5">
+        <ToggleGroup
+            type="single"
+            variant="outline"
+            size="sm"
+            value={viewMode}
+            onValueChange={(nextValue) => {
+                if (nextValue) {
+                    onViewModeChange(nextValue);
+                }
+            }}
+            className="shrink-0"
+        >
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <Button
-                        type="button"
-                        size="icon"
-                        variant={viewMode === 'sessions' ? 'default' : 'ghost'}
+                    <ToggleGroupItem
+                        value="sessions"
                         aria-label={sessionsLabel}
-                        onClick={() => onViewModeChange('sessions')}
                     >
                         <LogsIcon data-icon="inline-start" />
-                    </Button>
+                    </ToggleGroupItem>
                 </TooltipTrigger>
                 <TooltipContent>{sessionsLabel}</TooltipContent>
             </Tooltip>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <Button
-                        type="button"
-                        size="icon"
-                        variant={viewMode === 'table' ? 'default' : 'ghost'}
+                    <ToggleGroupItem
+                        value="table"
                         aria-label={tableLabel}
-                        onClick={() => onViewModeChange('table')}
                     >
                         <Table2Icon data-icon="inline-start" />
-                    </Button>
+                    </ToggleGroupItem>
                 </TooltipTrigger>
                 <TooltipContent>{tableLabel}</TooltipContent>
             </Tooltip>
-        </div>
+        </ToggleGroup>
     );
 }
 
@@ -76,7 +82,7 @@ function GameLogFavoritesToggle({ favoritesOnly, onToggle, t }) {
                 <Button
                     type="button"
                     variant={favoritesOnly ? 'default' : 'outline'}
-                    size="icon"
+                    size="icon-sm"
                     aria-label={label}
                     onClick={onToggle}
                 >
@@ -114,7 +120,7 @@ function GameLogSessionDateFilter({
                             variant="outline"
                             size="sm"
                             className={cn(
-                                'h-8 shrink-0 gap-1.5',
+                                'shrink-0 gap-1.5',
                                 (sessionDateFrom || sessionDateTo) &&
                                     'bg-accent text-accent-foreground'
                             )}
@@ -223,7 +229,7 @@ function GameLogToolbarControls({
                     <Button
                         type="button"
                         variant="outline"
-                        size="icon"
+                        size="icon-sm"
                         aria-label={t('common.actions.refresh')}
                         disabled={!canRefresh || loadStatus === 'running'}
                         onClick={onRefresh}
