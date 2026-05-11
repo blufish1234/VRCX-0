@@ -37,17 +37,9 @@ export function UserDialogContentDialogs({
                 availableLanguageOptions={
                     profileDetailsDialog.availableLanguageOptions
                 }
-                selectedLanguageToAdd={
-                    profileDetailsDialog.selectedLanguageToAdd
-                }
                 languageOptionsStatus={
                     profileDetailsDialog.languageOptionsStatus
                 }
-                onSelectedLanguageChange={
-                    profileDetailsDialog.onSelectedLanguageChange
-                }
-                onAddLanguage={profileDetailsDialog.onAddLanguage}
-                onRemoveLanguage={profileDetailsDialog.onRemoveLanguage}
                 onCancel={profileDetailsDialog.onCancel}
                 onSave={profileDetailsDialog.onSave}
             />

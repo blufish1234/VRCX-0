@@ -132,7 +132,6 @@ export function useUserDialogSelfActions({
     );
     const [languageOptions, setLanguageOptions] = useState([]);
     const [languageOptionsStatus, setLanguageOptionsStatus] = useState('idle');
-    const [selectedLanguageToAdd, setSelectedLanguageToAdd] = useState('');
 
     const selfStatusOptions = useMemo(
         () => {
@@ -207,7 +206,6 @@ export function useUserDialogSelfActions({
     useEffect(() => {
         setLanguageOptions([]);
         setLanguageOptionsStatus('idle');
-        setSelectedLanguageToAdd('');
     }, [currentEndpoint]);
 
     useEffect(() => {
@@ -388,40 +386,7 @@ export function useUserDialogSelfActions({
             bioLinks: bioLinks.length ? bioLinks : [''],
             pronouns: normalizeProfilePronouns(profile)
         });
-        setSelectedLanguageToAdd('');
         setProfileDetailsDialogOpen(true);
-    }
-
-    function addProfileDetailsLanguage(languageKey) {
-        const key = normalizeLanguageKey(languageKey);
-        if (!key) {
-            return;
-        }
-        setProfileDetailsDraft((current) => {
-            const languageKeys = normalizeLanguageKeys(current.languageKeys);
-            if (languageKeys.includes(key) || languageKeys.length >= 3) {
-                return current;
-            }
-            return {
-                ...current,
-                languageKeys: [...languageKeys, key]
-            };
-        });
-        setSelectedLanguageToAdd('');
-    }
-
-    function removeProfileDetailsLanguage(languageKey) {
-        const key = normalizeLanguageKey(languageKey);
-        if (!key) {
-            return;
-        }
-        setProfileDetailsDraft((current) => ({
-            ...current,
-            languageKeys: normalizeLanguageKeys(current.languageKeys).filter(
-                (language) => language !== key
-            )
-        }));
-        setSelectedLanguageToAdd('');
     }
 
     async function saveSelfProfileDetails() {
@@ -505,7 +470,6 @@ export function useUserDialogSelfActions({
 
             toast.success(t('dialog.user.generated.profile_details_updated'));
             setProfileDetailsDialogOpen(false);
-            setSelectedLanguageToAdd('');
         } catch (error) {
             toast.error(
                 userFacingErrorMessage(
@@ -708,11 +672,7 @@ export function useUserDialogSelfActions({
             setDraft: setProfileDetailsDraft,
             languageRows: profileDetailsLanguageRows,
             availableLanguageOptions,
-            selectedLanguageToAdd,
             languageOptionsStatus,
-            onSelectedLanguageChange: setSelectedLanguageToAdd,
-            onAddLanguage: addProfileDetailsLanguage,
-            onRemoveLanguage: removeProfileDetailsLanguage,
             onCancel: closeProfileDetailsDialog,
             onSave: saveSelfProfileDetails
         },

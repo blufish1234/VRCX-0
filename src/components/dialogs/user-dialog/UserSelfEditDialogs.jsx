@@ -7,8 +7,19 @@ import {
 import { useTranslation } from 'react-i18next';
 
 import { userStatusIndicatorClassName } from '@/lib/userStatus.js';
-import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
+import {
+    Combobox,
+    ComboboxChip,
+    ComboboxChips,
+    ComboboxChipsInput,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxItem,
+    ComboboxList,
+    ComboboxValue,
+    useComboboxAnchor
+} from '@/ui/shadcn/combobox';
 import {
     Dialog,
     DialogContent,
@@ -38,23 +49,34 @@ import {
     InputGroupInput
 } from '@/ui/shadcn/input-group';
 import { ScrollArea } from '@/ui/shadcn/scroll-area';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from '@/ui/shadcn/select';
 import { Separator } from '@/ui/shadcn/separator';
 import { Textarea } from '@/ui/shadcn/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import {
     languageOptionLabel,
+    normalizeLanguageKey,
     normalizeSelfStatusInput
 } from './userProfileFields.js';
+
+function normalizeLanguageComboboxValues(values) {
+    const nextKeys = [];
+    const seen = new Set();
+
+    for (const value of values ?? []) {
+        const key = normalizeLanguageKey(value);
+        if (!key || seen.has(key)) {
+            continue;
+        }
+        nextKeys.push(key);
+        seen.add(key);
+        if (nextKeys.length >= 3) {
+            break;
+        }
+    }
+
+    return nextKeys;
+}
 
 export function UserSocialStatusDialog({
     open,
@@ -344,20 +366,44 @@ export function UserProfileDetailsDialog({
     setDraft,
     languageRows,
     availableLanguageOptions,
-    selectedLanguageToAdd,
     languageOptionsStatus,
-    onSelectedLanguageChange,
-    onAddLanguage,
-    onRemoveLanguage,
     onCancel,
     onSave
 }) {
     const { t } = useTranslation();
+    const languageComboboxAnchor = useComboboxAnchor();
 
     const busy = actionStatus !== 'idle';
     const bioLinks = draft.bioLinks?.length ? draft.bioLinks : [''];
     const bioLength = String(draft.bio || '').length;
     const pronounsLength = String(draft.pronouns || '').length;
+    const selectedLanguageKeys = languageRows.map((language) => language.key);
+    const languageLabelByKey = new Map(
+        [...languageRows, ...availableLanguageOptions].map((language) => [
+            language.key,
+            languageOptionLabel(language)
+        ])
+    );
+    const selectableLanguageKeys =
+        selectedLanguageKeys.length >= 3
+            ? []
+            : availableLanguageOptions.map((option) => option.key);
+    const languageInputDisabled =
+        busy ||
+        languageOptionsStatus === 'running' ||
+        selectedLanguageKeys.length >= 3 ||
+        !availableLanguageOptions.length;
+    const languageInputPlaceholder =
+        languageOptionsStatus === 'running'
+            ? t('dialog.user.generated.loading_languages')
+            : t('dialog.user.generated.select_language');
+
+    function handleLanguageValueChange(values) {
+        setDraft((current) => ({
+            ...current,
+            languageKeys: normalizeLanguageComboboxValues(values)
+        }));
+    }
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -382,115 +428,80 @@ export function UserProfileDetailsDialog({
                                         {languageRows.length}/3
                                     </span>
                                 </div>
-                                <div className="flex min-h-8 flex-wrap gap-2">
-                                    {languageRows.length ? (
-                                        languageRows.map((language) => (
-                                            <Tooltip key={language.key}>
-                                                <TooltipTrigger asChild>
-                                                    <Badge
-                                                        variant="outline"
-                                                        className="max-w-full gap-1.5 pr-1"
-                                                    >
-                                                        <span className="truncate">
-                                                            {languageOptionLabel(
-                                                                language
-                                                            )}
-                                                        </span>
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="icon-xs"
-                                                            disabled={busy}
-                                                            aria-label={t(
-                                                                'dialog.user.generated.remove_language'
-                                                            )}
-                                                            onClick={() =>
-                                                                onRemoveLanguage(
-                                                                    language.key
-                                                                )
-                                                            }
+                                <Combobox
+                                    multiple
+                                    autoHighlight
+                                    items={selectableLanguageKeys}
+                                    value={selectedLanguageKeys}
+                                    itemToStringLabel={(key) =>
+                                        languageLabelByKey.get(key) || key
+                                    }
+                                    onValueChange={handleLanguageValueChange}
+                                >
+                                    <ComboboxChips
+                                        ref={languageComboboxAnchor}
+                                        className="w-full"
+                                    >
+                                        <ComboboxValue>
+                                            {(values) => (
+                                                <>
+                                                    {values.map((value) => (
+                                                        <ComboboxChip
+                                                            key={value}
+                                                            showRemove={!busy}
                                                         >
-                                                            <XIcon data-icon="inline-start" />
-                                                        </Button>
-                                                    </Badge>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    {languageOptionLabel(
-                                                        language
-                                                    )}
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        ))
-                                    ) : (
-                                        <div className="text-muted-foreground text-sm">
-                                            {t(
-                                                'dialog.user.generated.no_languages_selected'
+                                                            <span className="max-w-36 truncate">
+                                                                {languageLabelByKey.get(
+                                                                    value
+                                                                ) || value}
+                                                            </span>
+                                                        </ComboboxChip>
+                                                    ))}
+                                                    <ComboboxChipsInput
+                                                        disabled={
+                                                            languageInputDisabled
+                                                        }
+                                                        placeholder={
+                                                            values.length
+                                                                ? ''
+                                                                : languageInputPlaceholder
+                                                        }
+                                                        aria-label={t(
+                                                            'dialog.user.generated.select_language'
+                                                        )}
+                                                    />
+                                                </>
                                             )}
-                                        </div>
-                                    )}
-                                </div>
-                                {languageRows.length < 3 ? (
-                                    <>
-                                        <Select
-                                            value={selectedLanguageToAdd}
-                                            disabled={
-                                                busy ||
-                                                languageOptionsStatus ===
-                                                    'running' ||
-                                                !availableLanguageOptions.length
-                                            }
-                                            onValueChange={(value) => {
-                                                onSelectedLanguageChange(value);
-                                                onAddLanguage(value);
-                                            }}
-                                        >
-                                            <SelectTrigger
-                                                className="w-full"
-                                                size="sm"
-                                            >
-                                                <SelectValue
-                                                    placeholder={
-                                                        languageOptionsStatus ===
-                                                        'running'
-                                                            ? t(
-                                                                  'dialog.user.generated.loading_languages'
-                                                              )
-                                                            : t(
-                                                                  'dialog.user.generated.select_language'
-                                                              )
-                                                    }
-                                                />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectGroup>
-                                                    {availableLanguageOptions.map(
-                                                        (option) => (
-                                                            <SelectItem
-                                                                key={option.key}
-                                                                value={
-                                                                    option.key
-                                                                }
-                                                                textValue={languageOptionLabel(
-                                                                    option
-                                                                )}
-                                                            >
-                                                                {languageOptionLabel(
-                                                                    option
-                                                                )}
-                                                            </SelectItem>
-                                                        )
-                                                    )}
-                                                </SelectGroup>
-                                            </SelectContent>
-                                        </Select>
-                                        {languageOptionsStatus === 'error' ? (
-                                            <FieldDescription>
-                                                {t(
-                                                    'dialog.user.generated.vrchat_language_list_unavailable_using_local_language_codes'
-                                                )}
-                                            </FieldDescription>
-                                        ) : null}
-                                    </>
+                                        </ComboboxValue>
+                                    </ComboboxChips>
+                                    <ComboboxContent
+                                        anchor={languageComboboxAnchor}
+                                    >
+                                        <ComboboxEmpty>
+                                            {t(
+                                                'dialog.user.generated.no_results'
+                                            )}
+                                        </ComboboxEmpty>
+                                        <ComboboxList>
+                                            {(key) => (
+                                                <ComboboxItem
+                                                    key={key}
+                                                    value={key}
+                                                >
+                                                    {languageLabelByKey.get(
+                                                        key
+                                                    ) || key}
+                                                </ComboboxItem>
+                                            )}
+                                        </ComboboxList>
+                                    </ComboboxContent>
+                                </Combobox>
+                                {languageOptionsStatus === 'error' ? (
+                                    <FieldDescription>
+                                        {t(
+                                            'dialog.user.generated.vrchat_language_list_unavailable_using_local_language_codes'
+                                        )}
+                                    </FieldDescription>
                                 ) : null}
                             </Field>
                             <Field>
