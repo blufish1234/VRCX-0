@@ -4,7 +4,9 @@ import {
     CopyIcon,
     MinusIcon,
     PanelLeftIcon,
+    PanelLeftOpenIcon,
     PanelRightIcon,
+    PanelRightOpenIcon,
     SearchIcon,
     SquareIcon,
     XIcon
@@ -33,23 +35,31 @@ import {
     ContextMenuTrigger
 } from '@/ui/shadcn/context-menu';
 import { Kbd, KbdGroup } from '@/ui/shadcn/kbd';
+import { Separator } from '@/ui/shadcn/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import { AppMenuBar } from './AppMenuBar.jsx';
 import { useDirectAccessAction } from './useDirectAccessAction.js';
 import { useRightSidePanelVisibility } from './useRightSidePanelVisibility.js';
 
-function TitleBarButton({ label, className, children, onClick, ...props }) {
+function TitleBarButton({
+    label,
+    className,
+    children,
+    onClick,
+    size = 'icon-sm',
+    ...props
+}) {
     return (
         <Tooltip>
             <TooltipTrigger asChild>
                 <Button
                     type="button"
                     variant="ghost"
-                    size="icon-xs"
+                    size={size}
                     aria-label={label}
                     className={cn(
-                        'h-full w-9 rounded-none border-0',
+                        'text-muted-foreground hover:bg-muted/40 hover:text-foreground',
                         className
                     )}
                     onClick={onClick}
@@ -63,13 +73,25 @@ function TitleBarButton({ label, className, children, onClick, ...props }) {
     );
 }
 
+function TitleBarWindowButton({ className, ...props }) {
+    return (
+        <TitleBarButton
+            className={cn(
+                'text-foreground h-full w-9 rounded-none border-0',
+                className
+            )}
+            {...props}
+        />
+    );
+}
+
 function TitleBarShortcut({ modifierKey, actionKey, className }) {
     return (
         <KbdGroup className={cn('gap-0.5', className)}>
-            <Kbd className="h-4 min-w-4 px-1 text-[10px] leading-4">
+            <Kbd className="bg-background/80 h-4 min-w-4 px-1 text-[10px] leading-4 shadow-none">
                 {modifierKey}
             </Kbd>
-            <Kbd className="h-4 min-w-4 px-1 text-[10px] leading-4">
+            <Kbd className="bg-background/80 h-4 min-w-4 px-1 text-[10px] leading-4 shadow-none">
                 {actionKey}
             </Kbd>
         </KbdGroup>
@@ -86,6 +108,61 @@ function getTitleBarShortcut(isMacHost, actionKey) {
 
 function formatTitleBarShortcutLabel(value, shortcutLabel) {
     return `${value} ${shortcutLabel}`;
+}
+
+function TitleBarCommandGroup({
+    quickSearchLabel,
+    quickSearchShortcut,
+    directAccessLabel,
+    directAccessShortcut,
+    onOpenQuickSearch,
+    onOpenDirectAccess
+}) {
+    return (
+        <div className="border-border/70 bg-muted/60 flex h-6 min-w-0 shrink items-center overflow-hidden rounded-md border shadow-xs">
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-label={formatTitleBarShortcutLabel(
+                            quickSearchLabel,
+                            quickSearchShortcut.label
+                        )}
+                        className="text-muted-foreground hover:text-muted-foreground h-full min-w-7 justify-start rounded-r-none rounded-l-md border-0 bg-transparent pr-1.5 pl-2.5 hover:bg-transparent min-[640px]:w-44 min-[960px]:w-56"
+                        onClick={onOpenQuickSearch}
+                    >
+                        <SearchIcon data-icon="inline-start" />
+                        <span className="hidden min-w-0 truncate min-[640px]:block">
+                            {quickSearchLabel}
+                        </span>
+                        <TitleBarShortcut
+                            {...quickSearchShortcut}
+                            className="ml-auto hidden min-[760px]:inline-flex"
+                        />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                    {formatTitleBarShortcutLabel(
+                        quickSearchLabel,
+                        quickSearchShortcut.label
+                    )}
+                </TooltipContent>
+            </Tooltip>
+            <Separator orientation="vertical" className="bg-border/50 h-3.5" />
+            <TitleBarButton
+                label={formatTitleBarShortcutLabel(
+                    directAccessLabel,
+                    directAccessShortcut.label
+                )}
+                className="text-muted-foreground hover:bg-transparent hover:text-muted-foreground h-full rounded-l-none rounded-r-md border-0 bg-transparent"
+                onClick={onOpenDirectAccess}
+            >
+                <CompassIcon data-icon="icon" />
+            </TitleBarButton>
+        </div>
+    );
 }
 
 export function AppTitleBar() {
@@ -198,6 +275,8 @@ export function AppTitleBar() {
     const isMacHost = hostPlatform === 'macos';
     const quickSearchShortcut = getTitleBarShortcut(isMacHost, 'K');
     const directAccessShortcut = getTitleBarShortcut(isMacHost, 'D');
+    const quickSearchLabel = t('app_menu.quick_search');
+    const directAccessLabel = t('prompt.direct_access_omni.header');
 
     async function markAllNotificationsRead() {
         const store = useVrcNotificationStore.getState();
@@ -227,8 +306,20 @@ export function AppTitleBar() {
     const notificationButton = (
         <TitleBarButton
             label={t('side_panel.notification_center.title')}
-            className="relative h-full w-9 rounded-none"
+            className="relative size-7 min-w-7 rounded-md px-0"
             onClick={toggleVrcNotificationCenter}
+            onContextMenu={
+                vrcUnseenNotificationCount > 0
+                    ? undefined
+                    : (event) => {
+                          event.preventDefault();
+                          toast.info(
+                              t(
+                                  'side_panel.notification_center.no_unseen_notifications'
+                              )
+                          );
+                      }
+            }
         >
             <BellIcon data-icon="icon" />
             {vrcUnseenNotificationCount > 0 ? (
@@ -289,14 +380,15 @@ export function AppTitleBar() {
                     />
                 </div>
                 {titleBarActionsVisible ? (
-                    <div className="flex h-full shrink-0 items-center">
+                    <div className="flex h-full min-w-0 shrink-0 items-center gap-1 px-1">
                         {hasAvailableUpdate ? (
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button
                                         type="button"
+                                        variant="secondary"
                                         size="sm"
-                                        className="mx-1 h-6 gap-1.5 rounded-sm px-2 text-xs"
+                                        className="h-6 gap-1.5 rounded-md px-2 text-xs shadow-none"
                                         onClick={() =>
                                             setSystemHostOpen(
                                                 'updaterOpen',
@@ -312,34 +404,16 @@ export function AppTitleBar() {
                                 </TooltipContent>
                             </Tooltip>
                         ) : null}
-                        <TitleBarButton
-                            label={formatTitleBarShortcutLabel(
-                                t('side_panel.search_placeholder'),
-                                quickSearchShortcut.label
-                            )}
-                            className="w-auto gap-1.5 px-2"
-                            onClick={() => setQuickSearchOpen(true)}
-                        >
-                            <SearchIcon data-icon="inline-start" />
-                            <TitleBarShortcut
-                                {...quickSearchShortcut}
-                                className="hidden min-[520px]:inline-flex"
-                            />
-                        </TitleBarButton>
-                        <TitleBarButton
-                            label={formatTitleBarShortcutLabel(
-                                t('prompt.direct_access_omni.header'),
-                                directAccessShortcut.label
-                            )}
-                            className="w-auto gap-1.5 px-2"
-                            onClick={() => void openDirectAccessFromClipboard()}
-                        >
-                            <CompassIcon data-icon="inline-start" />
-                            <TitleBarShortcut
-                                {...directAccessShortcut}
-                                className="hidden min-[520px]:inline-flex"
-                            />
-                        </TitleBarButton>
+                        <TitleBarCommandGroup
+                            quickSearchLabel={quickSearchLabel}
+                            quickSearchShortcut={quickSearchShortcut}
+                            directAccessLabel={directAccessLabel}
+                            directAccessShortcut={directAccessShortcut}
+                            onOpenQuickSearch={() => setQuickSearchOpen(true)}
+                            onOpenDirectAccess={() =>
+                                void openDirectAccessFromClipboard()
+                            }
+                        />
                         {notificationActionVisible ? (
                             vrcUnseenNotificationCount > 0 ? (
                                 <ContextMenu>
@@ -359,39 +433,37 @@ export function AppTitleBar() {
                                     </ContextMenuContent>
                                 </ContextMenu>
                             ) : (
-                                <div
-                                    className="h-full"
-                                    onContextMenu={(event) => {
-                                        event.preventDefault();
-                                        toast.info(
-                                            t(
-                                                'side_panel.notification_center.no_unseen_notifications'
-                                            )
-                                        );
-                                    }}
-                                >
-                                    {notificationButton}
-                                </div>
+                                notificationButton
                             )
                         ) : null}
                         <TitleBarButton
                             label={leftSidebarLabel}
+                            className="size-7 min-w-7 rounded-md px-0"
                             onClick={() =>
                                 void setSidebarCollapsedPreference(sidebarOpen)
                             }
                         >
-                            <PanelLeftIcon data-icon="icon" />
+                            {sidebarOpen ? (
+                                <PanelLeftIcon data-icon="icon" />
+                            ) : (
+                                <PanelLeftOpenIcon data-icon="icon" />
+                            )}
                         </TitleBarButton>
                         <TitleBarButton
                             label={rightSidebarLabel}
+                            className="size-7 min-w-7 rounded-md px-0"
                             onClick={toggleRightSidebar}
                         >
-                            <PanelRightIcon data-icon="icon" />
+                            {rightSidebarOpen ? (
+                                <PanelRightIcon data-icon="icon" />
+                            ) : (
+                                <PanelRightOpenIcon data-icon="icon" />
+                            )}
                         </TitleBarButton>
                     </div>
                 ) : null}
                 <div className="flex h-full shrink-0 items-center">
-                    <TitleBarButton
+                    <TitleBarWindowButton
                         label={t('app_menu.generated.minimize_window')}
                         onClick={() =>
                             void runWindowAction(
@@ -401,8 +473,8 @@ export function AppTitleBar() {
                         }
                     >
                         <MinusIcon data-icon="inline-start" />
-                    </TitleBarButton>
-                    <TitleBarButton
+                    </TitleBarWindowButton>
+                    <TitleBarWindowButton
                         label={maximizeLabel}
                         onClick={() =>
                             void runWindowAction(
@@ -411,8 +483,8 @@ export function AppTitleBar() {
                         }
                     >
                         <MaximizeIcon data-icon="inline-start" />
-                    </TitleBarButton>
-                    <TitleBarButton
+                    </TitleBarWindowButton>
+                    <TitleBarWindowButton
                         label={t('app_menu.generated.close_window')}
                         className="hover:bg-destructive hover:text-destructive-foreground"
                         onClick={() =>
@@ -423,7 +495,7 @@ export function AppTitleBar() {
                         }
                     >
                         <XIcon data-icon="inline-start" />
-                    </TitleBarButton>
+                    </TitleBarWindowButton>
                 </div>
             </header>
             {titleBarActionsVisible ? (
