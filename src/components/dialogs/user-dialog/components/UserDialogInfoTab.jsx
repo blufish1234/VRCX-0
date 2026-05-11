@@ -4,6 +4,7 @@ import {
     LanguagesIcon,
     UserIcon
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { InstanceActionBar } from '@/components/instances/InstanceActionBar.jsx';
 import { Location } from '@/components/Location.jsx';
@@ -146,7 +147,8 @@ function handlePanelKeyDown(event, onClick) {
     onClick?.();
 }
 
-function UserDialogPresenceSection({ presence, presenceActions, profile, t }) {
+function UserDialogPresenceSection({ presence, presenceActions, profile }) {
+    const { t } = useTranslation();
     const {
         visiblePresenceLocation = '',
         locationInstance = null,
@@ -239,9 +241,9 @@ function UserDialogNotesPanel({
     hideUserNotes,
     memo,
     hideUserMemos,
-    onEditMemo,
-    t
+    onEditMemo
 }) {
+    const { t } = useTranslation();
     const showNote = Boolean(profile.note && !hideUserNotes);
     const showMemo = Boolean(memo && !hideUserMemos);
 
@@ -323,9 +325,10 @@ function UserDialogProfileLinksPanel({
     representedGroup,
     openGroupDialog,
     profile,
-    visibleHomeLocationTarget,
-    t
+    visibleHomeLocationTarget
 }) {
+    const { t } = useTranslation();
+
     return (
         <InfoPanel title={t('dialog.user.info.profile_details')}>
             <InfoStat label={t('dialog.user.info.avatar_info')}>
@@ -426,9 +429,9 @@ function UserDialogBioPanel({
     visibleBio,
     bioTranslationLoading,
     translatedBioActive,
-    toggleBioTranslation,
-    t
+    toggleBioTranslation
 }) {
+    const { t } = useTranslation();
     const translateBioLabel = t('dialog.user.info.translate_bio');
     const showOriginalBioLabel = t('dialog.user.info.show_original_bio');
     const bioActionLabel = translatedBioActive
@@ -498,9 +501,9 @@ function UserDialogActivitySummaryPanel({
     profile,
     userTimeSpent,
     userJoinCount,
-    previousInstances,
-    t
+    previousInstances
 }) {
+    const { t } = useTranslation();
     const openHistory = previousInstances.length
         ? onOpenInstanceHistory
         : undefined;
@@ -586,15 +589,14 @@ export function UserDialogInfoTab({
     lastSeen,
     userTimeSpent,
     userJoinCount,
-    visibleHomeLocationTarget,
-    t
+    visibleHomeLocationTarget
 }) {
     const {
         visibleBio,
         bioTranslationLoading,
         translatedBioActive,
         toggleBioTranslation
-    } = useUserBioTranslation({ profile, t });
+    } = useUserBioTranslation({ profile });
     const previousInstances = presence?.previousInstances || [];
 
     return (
@@ -605,7 +607,6 @@ export function UserDialogInfoTab({
                         presence={presence}
                         presenceActions={presenceActions}
                         profile={profile}
-                        t={t}
                     />
                     <UserDialogNotesPanel
                         profile={profile}
@@ -613,7 +614,6 @@ export function UserDialogInfoTab({
                         memo={memo}
                         hideUserMemos={hideUserMemos}
                         onEditMemo={onEditMemo}
-                        t={t}
                     />
                     <UserDialogBioPanel
                         profile={profile}
@@ -622,7 +622,6 @@ export function UserDialogInfoTab({
                         bioTranslationLoading={bioTranslationLoading}
                         translatedBioActive={translatedBioActive}
                         toggleBioTranslation={toggleBioTranslation}
-                        t={t}
                     />
                 </div>
                 <div className="flex min-w-0 flex-col gap-4">
@@ -636,7 +635,6 @@ export function UserDialogInfoTab({
                         openGroupDialog={openGroupDialog}
                         profile={profile}
                         visibleHomeLocationTarget={visibleHomeLocationTarget}
-                        t={t}
                     />
                     <UserDialogActivitySummaryPanel
                         isCurrentUser={isCurrentUser}
@@ -646,7 +644,6 @@ export function UserDialogInfoTab({
                         userTimeSpent={userTimeSpent}
                         userJoinCount={userJoinCount}
                         previousInstances={previousInstances}
-                        t={t}
                     />
                 </div>
             </div>

@@ -620,7 +620,6 @@ export function UserDialogTabbedView({
                     <UserDialogHeaderSection
                         state={headerState}
                         actions={headerActions}
-                        t={t}
                     />
                 }
             >
@@ -632,13 +631,11 @@ export function UserDialogTabbedView({
                         actionStatus={actionStatus}
                         onBack={() => setSelfPanel('')}
                         onSetProfileMediaField={onSetSelfProfileMediaField}
-                        t={t}
                     />
                 ) : (
                     <UserDialogTabsSection
                         state={tabsState}
                         actions={tabsActions}
-                        t={t}
                     />
                 )}
             </EntityDialogTwoColumnLayout>

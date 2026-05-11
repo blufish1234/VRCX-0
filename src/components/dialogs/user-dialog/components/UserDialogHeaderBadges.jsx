@@ -1,4 +1,5 @@
 import { ShieldCheckIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { convertFileUrlToImageUrl } from '@/lib/entityMedia.js';
 import { cn } from '@/lib/utils.js';
@@ -51,9 +52,10 @@ export function UserDialogHeaderBadges({
     friendNumber,
     platform,
     PlatformIcon,
-    onOpenDiscordProfile,
-    t
+    onOpenDiscordProfile
 }) {
+    const { t } = useTranslation();
+
     return (
         <>
             {profile.$isModerator ? (
@@ -137,9 +139,9 @@ export function UserDialogHeaderMediaBadges({
     isCurrentUser,
     onOpenImagePreview,
     onToggleBadgeVisibility,
-    onToggleBadgeShowcased,
-    t
+    onToggleBadgeShowcased
 }) {
+    const { t } = useTranslation();
     const hiddenLabel = t('dialog.user.badges.hidden');
     const showcasedLabel = t('dialog.user.badges.showcased');
     const assignedLabel = t('dialog.user.badges.assigned');

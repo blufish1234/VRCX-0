@@ -1,4 +1,5 @@
 import { UserIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { getNameColour, userImage } from '@/lib/entityMedia.js';
 import { TRUST_COLOR_DEFAULTS } from '@/lib/trustColors.js';
@@ -39,10 +40,8 @@ export function FriendRow({
     canBoop,
     canUseFriendInstance,
     actions,
-    t,
     randomUserColours = false,
     isDarkMode = false,
-    timeUnitLabels,
     trustColor = TRUST_COLOR_DEFAULTS,
     currentUserSnapshot = null,
     recentActionVersion = 0,
@@ -50,6 +49,7 @@ export function FriendRow({
     showInstanceIdInLocation = false,
     ageGatedInstancesVisible = false
 }) {
+    const { t } = useTranslation();
     const displaySource = readFriendRef(friend);
     const imageUrl = userImage(displaySource, true, '64');
     const displayName =
@@ -161,7 +161,6 @@ export function FriendRow({
                                 <FriendInstanceTimer
                                     epoch={groupByInstanceEpoch}
                                     traveling={isTraveling}
-                                    timeUnitLabels={timeUnitLabels}
                                 />
                             ) : showLocationSubline ? (
                                 <StaticSidebarLocation
@@ -169,7 +168,6 @@ export function FriendRow({
                                     traveling={displayTraveling}
                                     hint={metadataHint}
                                     metadata={locationMetadata}
-                                    t={t}
                                     tooltips={false}
                                     showInstanceIdInLocation={
                                         showInstanceIdInLocation
@@ -190,7 +188,6 @@ export function FriendRow({
                     <CurrentUserActionItems
                         friend={friend}
                         actions={actions}
-                        t={t}
                         MenuItem={ContextMenuItem}
                         CheckboxItem={ContextMenuCheckboxItem}
                         Group={ContextMenuGroup}
@@ -206,7 +203,6 @@ export function FriendRow({
                         canRequestInvite={canRequestInvite}
                         canBoop={canBoop}
                         actions={actions}
-                        t={t}
                         MenuItem={ContextMenuItem}
                         Group={ContextMenuGroup}
                         Separator={ContextMenuSeparator}

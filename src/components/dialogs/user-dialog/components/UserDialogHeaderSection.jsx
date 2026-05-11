@@ -5,6 +5,7 @@ import {
     UsersIcon
 } from 'lucide-react';
 import { isValidElement } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { userImage } from '@/lib/entityMedia.js';
 import { userFacingErrorMessage } from '@/lib/errorDisplay.js';
@@ -46,7 +47,8 @@ function HeaderFactRow({ label, value, children }) {
     );
 }
 
-function HeaderPreferenceRow({ checked, disabled, label, onToggle, t }) {
+function HeaderPreferenceRow({ checked, disabled, label, onToggle }) {
+    const { t } = useTranslation();
     const value = preferenceLabel(checked, t);
 
     if (!onToggle) {
@@ -90,7 +92,8 @@ function compactUrl(url) {
     return `${displayUrl.slice(0, 12)}\u2026${displayUrl.slice(-4)}`;
 }
 
-function UserDialogHeaderFacts({ state = {}, actions = {}, t }) {
+function UserDialogHeaderFacts({ state = {}, actions = {} }) {
+    const { t } = useTranslation();
     const {
         actionStatus = 'idle',
         isCurrentUser,
@@ -115,7 +118,6 @@ function UserDialogHeaderFacts({ state = {}, actions = {}, t }) {
                 checked={Boolean(profile.allowAvatarCopying)}
                 disabled={actionsDisabled}
                 onToggle={isCurrentUser ? onToggleSelfAvatarCopying : undefined}
-                t={t}
             />
             {isCurrentUser ? (
                 <>
@@ -124,21 +126,18 @@ function UserDialogHeaderFacts({ state = {}, actions = {}, t }) {
                         checked={profile.isBoopingEnabled !== false}
                         disabled={actionsDisabled}
                         onToggle={onToggleSelfBooping}
-                        t={t}
                     />
                     <HeaderPreferenceRow
                         label={t('dialog.user.info.show_mutual_friends')}
                         checked={!profile.hasSharedConnectionsOptOut}
                         disabled={actionsDisabled}
                         onToggle={onToggleSelfSharedConnections}
-                        t={t}
                     />
                     <HeaderPreferenceRow
                         label={t('dialog.user.info.show_discord_connections')}
                         checked={!profile.hasDiscordFriendsOptOut}
                         disabled={actionsDisabled}
                         onToggle={onToggleSelfDiscordConnections}
-                        t={t}
                     />
                 </>
             ) : null}
@@ -200,7 +199,8 @@ function UserDialogHeaderFacts({ state = {}, actions = {}, t }) {
     );
 }
 
-export function UserDialogHeaderSection({ state = {}, actions = {}, t }) {
+export function UserDialogHeaderSection({ state = {}, actions = {} }) {
+    const { t } = useTranslation();
     const {
         actionStatus = 'idle',
         avatarOverrideState = {},
@@ -442,7 +442,6 @@ export function UserDialogHeaderSection({ state = {}, actions = {}, t }) {
                     <UserDialogHeaderActions
                         state={actionMenuState}
                         actions={actionMenuActions}
-                        t={t}
                     />
                 </div>
             </div>
@@ -455,7 +454,6 @@ export function UserDialogHeaderSection({ state = {}, actions = {}, t }) {
                     platform={platform}
                     PlatformIcon={PlatformIcon}
                     onOpenDiscordProfile={onOpenDiscordProfile}
-                    t={t}
                 />
             </div>
 
@@ -471,7 +469,6 @@ export function UserDialogHeaderSection({ state = {}, actions = {}, t }) {
                             onOpenImagePreview={onOpenImagePreview}
                             onToggleBadgeVisibility={onToggleBadgeVisibility}
                             onToggleBadgeShowcased={onToggleBadgeShowcased}
-                            t={t}
                         />
                     </div>
                 </>
@@ -526,7 +523,6 @@ export function UserDialogHeaderSection({ state = {}, actions = {}, t }) {
             <UserDialogHeaderFacts
                 state={factsState}
                 actions={factsActions}
-                t={t}
             />
         </EntityOverviewCard>
     );

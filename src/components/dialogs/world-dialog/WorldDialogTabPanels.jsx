@@ -1,4 +1,5 @@
 import { UserIcon, UsersIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { InstanceActionBar } from '@/components/instances/InstanceActionBar.jsx';
 import { LocationWorld } from '@/components/LocationWorld.jsx';
@@ -31,7 +32,8 @@ function firstKnownValue(...values) {
     return undefined;
 }
 
-export function WorldDialogTabPanels({ handlers, helpers, state, t }) {
+export function WorldDialogTabPanels({ handlers, helpers, state }) {
+    const { t } = useTranslation();
     const {
         activeTab,
         authorTags,

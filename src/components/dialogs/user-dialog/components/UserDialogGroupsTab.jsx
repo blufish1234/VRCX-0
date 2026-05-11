@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import { userDialogGroupSortingOptions } from '@/shared/constants/user.js';
 import {
     Select,
@@ -29,9 +31,10 @@ export function UserDialogGroupsTab({
     groupSearchActive,
     userGroupSections,
     ownGroupCountText,
-    remainingGroupCountText,
-    t
+    remainingGroupCountText
 }) {
+    const { t } = useTranslation();
+
     return (
         <EntityDialogTabContent value="groups" className="flex flex-col gap-2">
             <UserDialogSearchHeader
@@ -44,7 +47,6 @@ export function UserDialogGroupsTab({
                 loadTab={loadTab}
                 search={search}
                 setSearch={setSearch}
-                t={t}
             >
                 <span className="text-muted-foreground text-sm">
                     {t('dialog.user.groups.sort_by')}

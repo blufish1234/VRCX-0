@@ -45,7 +45,6 @@ export function FriendsSidebar({
 }) {
     const { t } = useTranslation();
     const themeMode = useShellStore((state) => state.themeMode);
-    const timeUnitLabels = useShellStore((state) => state.timeUnitLabels);
     const currentUser = useRuntimeStore(
         (state) => state.auth.currentUserSnapshot
     );
@@ -673,7 +672,6 @@ export function FriendsSidebar({
         recentActionVersion,
         showInstanceIdInLocation,
         statusPresets,
-        timeUnitLabels,
         trustColor
     };
 
@@ -700,7 +698,6 @@ export function FriendsSidebar({
                                 rowActions={rowActions}
                                 onOpenFriend={openFriend}
                                 onToggleSection={toggleSection}
-                                t={t}
                             />
                         </div>
                     ))}

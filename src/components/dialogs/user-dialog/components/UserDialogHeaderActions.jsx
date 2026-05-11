@@ -27,6 +27,7 @@ import {
     VolumeXIcon,
     XIcon
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { FavoriteActionMenu } from '@/components/favorites/FavoriteActionMenu.jsx';
 
@@ -37,7 +38,8 @@ import {
     EntityActionSub
 } from '../../EntityDialogScaffold.jsx';
 
-export function UserDialogHeaderActions({ state = {}, actions = {}, t }) {
+export function UserDialogHeaderActions({ state = {}, actions = {} }) {
+    const { t } = useTranslation();
     const {
         profile = {},
         loadStatus,

@@ -5,6 +5,7 @@ import {
     SlidersHorizontalIcon
 } from 'lucide-react';
 import { cloneElement, isValidElement } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/utils.js';
 import { Button } from '@/ui/shadcn/button';
@@ -66,7 +67,9 @@ function SettingRow({ id, label, children }) {
     );
 }
 
-function SortSelect({ value, disabled, onChange, placeholder = 'None', t }) {
+function SortSelect({ value, disabled, onChange, placeholder = 'None' }) {
+    const { t } = useTranslation();
+
     return (
         <Select
             value={value || '__none__'}
@@ -111,9 +114,10 @@ export function SidePanelSettingsPopover({
     onToggleFavoriteGroup,
     orderedFavoriteGroupItemsLength,
     onOpenFavoriteGroupOrderDialog,
-    onOpenCustomTabsDialog,
-    t
+    onOpenCustomTabsDialog
 }) {
+    const { t } = useTranslation();
+
     return (
         <Popover open={open} onOpenChange={onOpenChange}>
             <PopoverTrigger asChild>
@@ -267,7 +271,6 @@ export function SidePanelSettingsPopover({
                                 placeholder={t(
                                     'view.settings.appearance.side_panel.sorting.placeholder'
                                 )}
-                                t={t}
                             />
                             <SortSelect
                                 value={prefs.sidebarSortMethod2}
@@ -281,7 +284,6 @@ export function SidePanelSettingsPopover({
                                 placeholder={t(
                                     'side_panel.settings.sort_secondary'
                                 )}
-                                t={t}
                             />
                             <SortSelect
                                 value={prefs.sidebarSortMethod3}
@@ -295,7 +297,6 @@ export function SidePanelSettingsPopover({
                                 placeholder={t(
                                     'side_panel.settings.sort_tertiary'
                                 )}
-                                t={t}
                             />
                             <Separator />
                             <span className="text-muted-foreground/70 text-xs font-medium tracking-wide uppercase">

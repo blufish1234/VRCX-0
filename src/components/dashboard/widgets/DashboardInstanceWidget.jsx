@@ -179,9 +179,10 @@ function getNextColumnConfig(config, activeColumns, columnKey) {
 function DashboardInstanceSettingsMenu({
     config,
     configUpdater,
-    activeColumns,
-    t
+    activeColumns
 }) {
+    const { t } = useTranslation();
+
     if (!configUpdater) {
         return null;
     }
@@ -230,7 +231,9 @@ function DashboardInstanceSettingsMenu({
     );
 }
 
-function DashboardInstanceWidgetShell({ children, settingsMenu, t }) {
+function DashboardInstanceWidgetShell({ children, settingsMenu }) {
+    const { t } = useTranslation();
+
     return (
         <div className="flex h-full min-h-0 flex-col">
             <DashboardWidgetHeader
@@ -249,9 +252,9 @@ function DashboardInstanceSummary({
     context,
     currentUserId,
     enrichedRows,
-    parsedLocation,
-    t
+    parsedLocation
 }) {
+    const { t } = useTranslation();
     const sourceText = joinCompactParts([
         context.source === 'database' ? 'Local game log' : 'Runtime fallback',
         context.createdAt || ''
@@ -577,13 +580,12 @@ export function DashboardInstanceWidget({ config = {}, configUpdater = null }) {
             activeColumns={activeColumns}
             config={config}
             configUpdater={configUpdater}
-            t={t}
         />
     );
 
     if (!isGameRunning) {
         return (
-            <DashboardInstanceWidgetShell settingsMenu={settingsMenu} t={t}>
+            <DashboardInstanceWidgetShell settingsMenu={settingsMenu}>
                 <DashboardWidgetEmptyState
                     title={t('view.dashboard.generated.instance_widget_idle')}
                     description={t(
@@ -596,7 +598,7 @@ export function DashboardInstanceWidget({ config = {}, configUpdater = null }) {
 
     if (loadStatus === 'error') {
         return (
-            <DashboardInstanceWidgetShell settingsMenu={settingsMenu} t={t}>
+            <DashboardInstanceWidgetShell settingsMenu={settingsMenu}>
                 <DashboardWidgetEmptyState
                     title={t('view.dashboard.generated.instance_widget_failed')}
                     description={userFacingErrorMessage(
@@ -610,7 +612,7 @@ export function DashboardInstanceWidget({ config = {}, configUpdater = null }) {
 
     if (loadStatus === 'running' && enrichedRows.length === 0) {
         return (
-            <DashboardInstanceWidgetShell settingsMenu={settingsMenu} t={t}>
+            <DashboardInstanceWidgetShell settingsMenu={settingsMenu}>
                 <div className="text-muted-foreground flex min-h-[180px] flex-1 items-center justify-center gap-2 text-sm">
                     <Spinner />
                     {t('view.dashboard.generated.loading_instance_widget')}
@@ -621,7 +623,7 @@ export function DashboardInstanceWidget({ config = {}, configUpdater = null }) {
 
     if (!enrichedRows.length) {
         return (
-            <DashboardInstanceWidgetShell settingsMenu={settingsMenu} t={t}>
+            <DashboardInstanceWidgetShell settingsMenu={settingsMenu}>
                 <DashboardWidgetEmptyState
                     title={t('view.dashboard.generated.instance_widget_idle')}
                     description={t(
@@ -633,13 +635,12 @@ export function DashboardInstanceWidget({ config = {}, configUpdater = null }) {
     }
 
     return (
-        <DashboardInstanceWidgetShell settingsMenu={settingsMenu} t={t}>
+        <DashboardInstanceWidgetShell settingsMenu={settingsMenu}>
             <DashboardInstanceSummary
                 context={context}
                 currentUserId={currentUserId}
                 enrichedRows={enrichedRows}
                 parsedLocation={parsedLocation}
-                t={t}
             />
             <DashboardInstancePlayersTable
                 activeColumns={activeColumns}

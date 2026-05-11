@@ -73,7 +73,6 @@ export function InstanceHeaderRow({
     location,
     count,
     metadata = null,
-    t,
     showInstanceIdInLocation = false,
     ageGatedInstancesVisible = false
 }) {
@@ -85,7 +84,6 @@ export function InstanceHeaderRow({
                 link
                 showGroupLink
                 metadata={metadata}
-                t={t}
                 showInstanceIdInLocation={showInstanceIdInLocation}
                 ageGatedInstancesVisible={ageGatedInstancesVisible}
             />

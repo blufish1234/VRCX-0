@@ -700,7 +700,6 @@ export const SidePanel = forwardRef(function SidePanel(
                         onOpenCustomTabsDialog={() =>
                             setCustomTabsDialogOpen(true)
                         }
-                        t={t}
                     />
                 </div>
                 <TabsContent
@@ -744,7 +743,6 @@ export const SidePanel = forwardRef(function SidePanel(
                 onMove={moveFavoriteGroupOrder}
                 onReset={resetFavoriteGroupOrder}
                 onConfirm={confirmFavoriteGroupOrder}
-                t={t}
             />
             <SidePanelCustomTabsDialog
                 open={customTabsDialogOpen}
@@ -753,7 +751,6 @@ export const SidePanel = forwardRef(function SidePanel(
                 displayMode={tabDisplayMode}
                 favoriteGroupItems={favoriteGroupItems}
                 onSave={saveCustomTabs}
-                t={t}
             />
         </aside>
     );

@@ -54,8 +54,7 @@ function FriendVirtualRow({
     metadataKey = '',
     context,
     rowActions,
-    onOpenFriend,
-    t
+    onOpenFriend
 }) {
     const source = readFriendStatusSource(friend);
     const state = normalizeLocationStatus(source?.stateBucket || source?.state);
@@ -91,11 +90,9 @@ function FriendVirtualRow({
                 ...rowActions,
                 open: () => onOpenFriend(friend)
             }}
-            t={t}
             statusPresets={isCurrentUser ? context.statusPresets : []}
             randomUserColours={context.randomUserColours}
             isDarkMode={context.isDarkMode}
-            timeUnitLabels={context.timeUnitLabels}
             trustColor={context.trustColor}
             currentUserSnapshot={context.currentUser}
             recentActionVersion={context.recentActionVersion}
@@ -111,8 +108,7 @@ function FriendsSidebarVirtualRow({
     context,
     rowActions,
     onOpenFriend,
-    onToggleSection,
-    t
+    onToggleSection
 }) {
     switch (row?.type) {
         case 'section':
@@ -135,7 +131,6 @@ function FriendsSidebarVirtualRow({
                     location={row.location}
                     count={row.count}
                     metadata={context.locationMetadataByKey.get(row.key)}
-                    t={t}
                     showInstanceIdInLocation={context.showInstanceIdInLocation}
                     ageGatedInstancesVisible={context.ageGatedInstancesVisible}
                 />
@@ -159,7 +154,6 @@ function FriendsSidebarVirtualRow({
                     context={context}
                     rowActions={rowActions}
                     onOpenFriend={onOpenFriend}
-                    t={t}
                 />
             );
     }

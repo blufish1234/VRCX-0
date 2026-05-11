@@ -1,5 +1,6 @@
 import { ImageIcon, XIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import {
@@ -68,9 +69,9 @@ function ProfileMediaThumbnail({
     currentFileId,
     disabled,
     mutatingKey,
-    onUse,
-    t
+    onUse
 }) {
+    const { t } = useTranslation();
     const imageUrl = getLatestFileUrl(file);
     const displayName = getUsefulDisplayName(file);
     const isCurrent = file.id === currentFileId;
@@ -127,9 +128,9 @@ function ProfileMediaSection({
     busy,
     mutatingKey,
     onUse,
-    onClear,
-    t
+    onClear
 }) {
+    const { t } = useTranslation();
     const currentValue = profile?.[section.fieldName] || '';
     const currentFileId = extractFileId(currentValue);
 
@@ -169,7 +170,6 @@ function ProfileMediaSection({
                             }
                             mutatingKey={mutatingKey}
                             onUse={onUse}
-                            t={t}
                         />
                     ))}
                 </div>
@@ -191,9 +191,9 @@ export function UserDialogProfileMediaPanel({
     isVrcPlusSupporter,
     actionStatus,
     onBack,
-    onSetProfileMediaField,
-    t
+    onSetProfileMediaField
 }) {
+    const { t } = useTranslation();
     const [filesBySection, setFilesBySection] = useState({
         gallery: [],
         icons: []
@@ -298,7 +298,6 @@ export function UserDialogProfileMediaPanel({
                             onClear={(fieldName) =>
                                 void clearProfileMedia(fieldName)
                             }
-                            t={t}
                         />
                     ))}
                 </div>

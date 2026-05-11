@@ -748,7 +748,6 @@ export function WorldDialogTabbedView({
                     <WorldDialogOverviewSection
                         handlers={headerHandlers}
                         state={headerState}
-                        t={t}
                     />
                 }
             >
@@ -756,7 +755,6 @@ export function WorldDialogTabbedView({
                     handlers={tabHandlers}
                     helpers={{ formatDate }}
                     state={tabState}
-                    t={t}
                 />
             </EntityDialogTwoColumnLayout>
         </EntityDialogScaffold>

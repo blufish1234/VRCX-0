@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import {
@@ -6,7 +7,8 @@ import {
     translateText
 } from '@/services/translationService.js';
 
-export function useWorldDescriptionTranslation({ world, t }) {
+export function useWorldDescriptionTranslation({ world }) {
+    const { t } = useTranslation();
     const worldId = world?.id || '';
     const source = world?.description || '';
     const [descriptionTranslation, setDescriptionTranslation] = useState({

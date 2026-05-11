@@ -19,6 +19,7 @@ import {
     Trash2Icon
 } from 'lucide-react';
 import { isValidElement } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { FavoriteActionMenu } from '@/components/favorites/FavoriteActionMenu.jsx';
 import { userFacingErrorMessage } from '@/lib/errorDisplay.js';
@@ -99,10 +100,11 @@ function WorldOverviewFacts({
     onCopyWorldId,
     onCopyWorldUrl,
     onOpenWorldPage,
-    t,
     world,
     worldUrl
 }) {
+    const { t } = useTranslation();
+
     if (!world.id && !worldUrl) {
         return null;
     }
@@ -185,7 +187,8 @@ function WorldOverviewFacts({
     );
 }
 
-function WorldOverviewActions({ handlers, state, t }) {
+function WorldOverviewActions({ handlers, state }) {
+    const { t } = useTranslation();
     const {
         actionStatus,
         canManageWorld,
@@ -396,7 +399,8 @@ function WorldOverviewActions({ handlers, state, t }) {
     );
 }
 
-export function WorldDialogOverviewSection({ handlers, state, t }) {
+export function WorldDialogOverviewSection({ handlers, state }) {
+    const { t } = useTranslation();
     const {
         detail,
         favoriteRate,
@@ -422,7 +426,7 @@ export function WorldDialogOverviewSection({ handlers, state, t }) {
         translatedDescriptionActive,
         toggleDescriptionTranslation,
         visibleDescription
-    } = useWorldDescriptionTranslation({ world, t });
+    } = useWorldDescriptionTranslation({ world });
     const descriptionActionLabel = translatedDescriptionActive
         ? t('dialog.world.info.show_original_description', {
               defaultValue: 'Show Original'
@@ -504,7 +508,7 @@ export function WorldDialogOverviewSection({ handlers, state, t }) {
                 ) : null}
             </div>
 
-            <WorldOverviewActions handlers={handlers} state={state} t={t} />
+            <WorldOverviewActions handlers={handlers} state={state} />
 
             <div className="flex flex-wrap gap-1.5">
                 <Badge
@@ -613,7 +617,6 @@ export function WorldDialogOverviewSection({ handlers, state, t }) {
                 onCopyWorldId={onCopyWorldId}
                 onCopyWorldUrl={onCopyWorldUrl}
                 onOpenWorldPage={onOpenWorldPage}
-                t={t}
                 world={world}
                 worldUrl={worldUrl}
             />

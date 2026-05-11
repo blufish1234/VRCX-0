@@ -1,4 +1,5 @@
 import { RefreshCwIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/ui/shadcn/button';
 import { Input } from '@/ui/shadcn/input';
@@ -14,9 +15,9 @@ export function UserDialogSearchHeader({
     remoteStatus,
     loadTab,
     search,
-    setSearch,
-    t
+    setSearch
 }) {
+    const { t } = useTranslation();
     const currentSearch = String(search?.[searchKey] ?? '');
     const hasSearch = currentSearch.trim().length > 0;
     const running = tab ? remoteStatus[tab] === 'running' : false;

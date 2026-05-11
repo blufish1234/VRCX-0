@@ -1,10 +1,12 @@
 import { AlertTriangleIcon, LockIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { RegionCodeBadge } from '@/components/location/RegionCodeBadge.jsx';
 import { timeToText } from '@/lib/dateTime.js';
 import { cn } from '@/lib/utils.js';
 import { openGroupDialog, openWorldDialog } from '@/services/dialogService.js';
+import { useShellStore } from '@/state/shellStore.js';
 import { accessTypeLocaleKeyMap } from '@/shared/constants/accessType.js';
 import {
     getLocationText,
@@ -29,9 +31,9 @@ import {
 
 export function FriendInstanceTimer({
     epoch,
-    traveling = false,
-    timeUnitLabels
+    traveling = false
 }) {
+    const timeUnitLabels = useShellStore((state) => state.timeUnitLabels);
     const [now, setNow] = useState(() => Date.now());
     const normalizedEpoch = timestampMsFromValue(epoch);
     const text = normalizedEpoch
@@ -175,11 +177,11 @@ export function StaticSidebarLocation({
     showGroupLink = false,
     tooltips = true,
     metadata,
-    t,
     showInstanceIdInLocation = false,
     ageGatedInstancesVisible = false,
     className = ''
 }) {
+    const { t } = useTranslation();
     const currentLocation = sidebarLocationTarget(location, traveling);
     const parsedLocation = useMemo(
         () => parseLocation(currentLocation),

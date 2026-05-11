@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import { EntityDialogTabs } from '../../EntityDialogScaffold.jsx';
 import { formatPreviousInstanceCount } from '../../previous-instances-table/previousInstancesRows.js';
 import {
@@ -12,7 +14,8 @@ import {
 import { UserDialogGroupsTab } from './UserDialogGroupsTab.jsx';
 import { UserDialogInfoTab } from './UserDialogInfoTab.jsx';
 
-export function UserDialogTabsSection({ state = {}, actions = {}, t }) {
+export function UserDialogTabsSection({ state = {}, actions = {} }) {
+    const { t } = useTranslation();
     const {
         root = {},
         info = {},
@@ -149,7 +152,6 @@ export function UserDialogTabsSection({ state = {}, actions = {}, t }) {
                 userTimeSpent={userTimeSpent}
                 userJoinCount={userJoinCount}
                 visibleHomeLocationTarget={visibleHomeLocationTarget}
-                t={t}
             />
             <UserDialogMutualTab
                 mutualFriends={mutualFriends}
@@ -162,7 +164,6 @@ export function UserDialogTabsSection({ state = {}, actions = {}, t }) {
                 setSearch={setSearch}
                 mutualSort={mutualSort}
                 setMutualSort={setMutualSort}
-                t={t}
             />
             <UserDialogGroupsTab
                 profileGroups={profileGroups}
@@ -179,7 +180,6 @@ export function UserDialogTabsSection({ state = {}, actions = {}, t }) {
                 userGroupSections={userGroupSections}
                 ownGroupCountText={ownGroupCountText}
                 remainingGroupCountText={remainingGroupCountText}
-                t={t}
             />
             <UserDialogWorldsTab
                 filteredProfileWorlds={filteredProfileWorlds}
@@ -193,7 +193,6 @@ export function UserDialogTabsSection({ state = {}, actions = {}, t }) {
                 changeWorldSort={changeWorldSort}
                 worldOrder={worldOrder}
                 changeWorldOrder={changeWorldOrder}
-                t={t}
             />
             <UserDialogFavoriteWorldsTab
                 remoteData={remoteData}
@@ -204,7 +203,6 @@ export function UserDialogTabsSection({ state = {}, actions = {}, t }) {
                 loadTab={loadTab}
                 search={search}
                 setSearch={setSearch}
-                t={t}
             />
             <UserDialogAvatarsTab
                 visibleProfileAvatars={visibleProfileAvatars}
@@ -220,7 +218,6 @@ export function UserDialogTabsSection({ state = {}, actions = {}, t }) {
                 changeAvatarSort={changeAvatarSort}
                 avatarReleaseStatus={avatarReleaseStatus}
                 changeAvatarReleaseStatus={changeAvatarReleaseStatus}
-                t={t}
             />
             <UserDialogInstanceHistoryTab
                 title={t('dialog.previous_instances.header')}

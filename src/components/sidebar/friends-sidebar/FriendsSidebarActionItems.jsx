@@ -1,4 +1,5 @@
 import { ClockIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { userStatusIndicatorClassName } from '@/lib/userStatus.js';
 import { isActionRecent } from '@/services/recentActionService.js';
@@ -21,13 +22,14 @@ function statusPresetLabel(preset, t) {
 export function CurrentUserActionItems({
     friend,
     actions,
-    t,
     MenuItem,
     CheckboxItem,
     Group,
     Separator,
     statusPresets = []
 }) {
+    const { t } = useTranslation();
+
     return (
         <>
             <Group>
@@ -119,12 +121,12 @@ export function FriendActionItems({
     canRequestInvite,
     canBoop,
     actions,
-    t,
     MenuItem,
     Group,
     Separator,
     recentActionVersion = 0
 }) {
+    const { t } = useTranslation();
     const recentInvite =
         recentActionVersion >= 0 && isActionRecent(friend?.id, 'Invite');
     const recentRequestInvite =

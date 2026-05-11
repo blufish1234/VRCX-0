@@ -1,4 +1,5 @@
 import { ArrowDownIcon, ArrowUpIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/ui/shadcn/button';
 import {
@@ -15,9 +16,10 @@ export function SidePanelFavoriteGroupOrderDialog({
     favoriteGroupOrderDraft,
     onMove,
     onReset,
-    onConfirm,
-    t
+    onConfirm
 }) {
+    const { t } = useTranslation();
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-h-[80vh] sm:max-w-sm">

@@ -23,6 +23,7 @@ import {
     Trash2Icon
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/utils.js';
 import {
@@ -173,14 +174,13 @@ function SortableTabRow({
 function FavoriteSourceChecklist({
     item,
     favoriteGroupItems,
-    onToggleSource,
-    t
+    onToggleSource
 }: {
     item: SidebarFavoriteCollectionTabLayoutItem;
     favoriteGroupItems: FavoriteGroupItem[];
     onToggleSource: (key: string, checked: boolean) => void;
-    t: (key: string) => string;
 }) {
+    const { t } = useTranslation();
     const remoteGroups = favoriteGroupItems.filter(
         (group) => group.source === 'remote'
     );
@@ -250,8 +250,7 @@ export function SidePanelCustomTabsDialog({
     layout,
     displayMode,
     favoriteGroupItems,
-    onSave,
-    t
+    onSave
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -262,8 +261,8 @@ export function SidePanelCustomTabsDialog({
         layout: SidebarTabLayout,
         displayMode: SidebarTabDisplayMode
     ) => void;
-    t: (key: string, params?: Record<string, string>) => string;
 }) {
+    const { t } = useTranslation();
     const [draftLayout, setDraftLayout] = useState<SidebarTabLayout>(() =>
         normalizeSidebarTabLayout(layout)
     );
@@ -650,7 +649,6 @@ export function SidePanelCustomTabsDialog({
                                                                 favoriteGroupItems={
                                                                     favoriteGroupItems
                                                                 }
-                                                                t={t}
                                                                 onToggleSource={(
                                                                     key,
                                                                     checked

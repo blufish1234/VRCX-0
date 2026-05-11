@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import {
@@ -6,7 +7,8 @@ import {
     translateText
 } from '@/services/translationService.js';
 
-export function useUserBioTranslation({ profile, t }) {
+export function useUserBioTranslation({ profile }) {
+    const { t } = useTranslation();
     const userId = profile?.id || '';
     const source = profile?.bio || '';
     const [bioTranslation, setBioTranslation] = useState({

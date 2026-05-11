@@ -1,4 +1,5 @@
 import { ChevronLeftIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { UserActivityPanel } from '@/components/dialogs/UserActivityPanel.jsx';
 import { userDialogMutualFriendSortingOptions } from '@/shared/constants/user.js';
@@ -30,9 +31,10 @@ export function UserDialogMutualTab({
     search,
     setSearch,
     mutualSort,
-    setMutualSort,
-    t
+    setMutualSort
 }) {
+    const { t } = useTranslation();
+
     return (
         <EntityDialogTabContent value="mutual" className="flex flex-col gap-2">
             <UserDialogSearchHeader
@@ -45,7 +47,6 @@ export function UserDialogMutualTab({
                 loadTab={loadTab}
                 search={search}
                 setSearch={setSearch}
-                t={t}
             >
                 <span className="text-muted-foreground text-sm">
                     {t('dialog.user.groups.sort_by')}
@@ -92,9 +93,10 @@ export function UserDialogWorldsTab({
     worldSort,
     changeWorldSort,
     worldOrder,
-    changeWorldOrder,
-    t
+    changeWorldOrder
 }) {
+    const { t } = useTranslation();
+
     return (
         <EntityDialogTabContent value="worlds" className="flex flex-col gap-2">
             <UserDialogSearchHeader
@@ -107,7 +109,6 @@ export function UserDialogWorldsTab({
                 loadTab={loadTab}
                 search={search}
                 setSearch={setSearch}
-                t={t}
             >
                 <span className="text-muted-foreground text-sm">
                     {t('dialog.user.worlds.sort_by')}
@@ -181,9 +182,10 @@ export function UserDialogFavoriteWorldsTab({
     remoteErrors,
     loadTab,
     search,
-    setSearch,
-    t
+    setSearch
 }) {
+    const { t } = useTranslation();
+
     return (
         <EntityDialogTabContent
             value="favorite-worlds"
@@ -199,7 +201,6 @@ export function UserDialogFavoriteWorldsTab({
                 loadTab={loadTab}
                 search={search}
                 setSearch={setSearch}
-                t={t}
             />
             <FavoriteWorldGroups
                 groups={remoteData.favoriteWorldGroups}
@@ -226,9 +227,10 @@ export function UserDialogAvatarsTab({
     avatarSort,
     changeAvatarSort,
     avatarReleaseStatus,
-    changeAvatarReleaseStatus,
-    t
+    changeAvatarReleaseStatus
 }) {
+    const { t } = useTranslation();
+
     return (
         <EntityDialogTabContent value="avatars" className="flex flex-col gap-2">
             <UserDialogSearchHeader
@@ -241,7 +243,6 @@ export function UserDialogAvatarsTab({
                 loadTab={loadTab}
                 search={search}
                 setSearch={setSearch}
-                t={t}
             >
                 {profile.id === currentUserId ? (
                     <>
