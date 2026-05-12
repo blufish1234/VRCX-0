@@ -66,6 +66,7 @@ jobs:
                     - label: macOS DMG (Apple Silicon)
                       os: macos-latest
                       rust_target: aarch64-apple-darwin
+                      dmg_asset_arch: macos_aarch64
                       updater_target: macos-aarch64-stable
                       updater_asset_name: update_macos_aarch64.app.tar.gz
                       build_command: npm run tauri:build -- --target aarch64-apple-darwin --bundles app,dmg
@@ -77,6 +78,7 @@ jobs:
                     - label: macOS DMG (Intel)
                       os: macos-latest
                       rust_target: x86_64-apple-darwin
+                      dmg_asset_arch: macos_x86_64
                       updater_target: macos-x86_64-stable
                       updater_asset_name: update_macos_x86_64.app.tar.gz
                       build_command: npm run tauri:build -- --target x86_64-apple-darwin --bundles app,dmg
@@ -231,9 +233,24 @@ jobs:
                       --base "$manifest_path" \
                       --out "$manifest_path"
 
-            - name: Prepare macOS updater assets
+            - name: Prepare macOS release and updater assets
               if: runner.os == 'macOS'
               run: |
+                  dmg_dir="src-tauri/target/${{ matrix.rust_target }}/release/bundle/dmg"
+                  dmg_path="$(find "$dmg_dir" -maxdepth 1 -name '*.dmg' | sort | head -n 1)"
+                  if [[ -z "$dmg_path" ]]; then
+                      echo "No macOS DMG found in $dmg_dir" >&2
+                      exit 1
+                  fi
+                  renamed_dmg="$dmg_dir/VRCX-0_${{ needs.prepare.outputs.build_version }}_${{ matrix.dmg_asset_arch }}.dmg"
+                  if [[ "$dmg_path" != "$renamed_dmg" ]]; then
+                      if [[ -e "$renamed_dmg" ]]; then
+                          echo "Target macOS DMG already exists: $renamed_dmg" >&2
+                          exit 1
+                      fi
+                      mv "$dmg_path" "$renamed_dmg"
+                  fi
+
                   updater_dir="src-tauri/target/${{ matrix.rust_target }}/release/bundle/macos"
                   archive_path="$(find "$updater_dir" -maxdepth 1 -name '*.app.tar.gz' | sort | head -n 1)"
                   if [[ -z "$archive_path" ]]; then
