@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { useShellStore } from '@/state/shellStore.js';
 
-import { resolveTabValue } from './userDialogRows.js';
 import {
     buildUserDialogListViewData,
     buildUserDialogProfileSummary,

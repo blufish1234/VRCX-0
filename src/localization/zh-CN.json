@@ -1751,6 +1751,8 @@
                     "header": "好友名称显示颜色",
                     "random_colors_from_user_id": "从玩家 ID 随机挑选颜色",
                     "random_colors_from_user_id_description": "根据 ID 为每个玩家分配一个随机颜色。",
+                    "trust_colors": "信任等级颜色",
+                    "trust_colors_description": "调整按信任等级显示的玩家名称颜色。",
                     "trust_levels": {
                         "visitor": "游客",
                         "new_user": "萌新",

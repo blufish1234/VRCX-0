@@ -1751,6 +1751,8 @@
                     "header": "ユーザーの色",
                     "random_colors_from_user_id": "ユーザーIDからランダムに色を生成",
                     "random_colors_from_user_id_description": "ユーザーIDからランダムに色を生成して、ユーザーごとの色を割り当てます。",
+                    "trust_colors": "トラストレベルの色",
+                    "trust_colors_description": "トラストレベル名に使う色を調整します。",
                     "trust_levels": {
                         "visitor": "Visitor",
                         "new_user": "New User",
