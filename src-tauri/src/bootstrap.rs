@@ -108,6 +108,12 @@ pub fn apply_linux_webkit_workaround() {
     #[cfg(target_os = "linux")]
     {
         use webkit2gtk_nvidia_quirk::{apply_workaround_with_options, ApplyWorkaroundOptions};
+
+        if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+            tracing::info!("disabling WebKitGTK DMABUF renderer on Linux");
+            std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+        }
+
         apply_workaround_with_options(ApplyWorkaroundOptions::default());
     }
 }
