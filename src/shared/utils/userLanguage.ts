@@ -1,43 +1,62 @@
 import { languageMappings } from '@/shared/constants/language.js';
 
-function normalizeLanguageText(value) {
+type LanguageOption = {
+    key?: unknown;
+    id?: unknown;
+    value?: unknown;
+    label?: unknown;
+    name?: unknown;
+};
+type ProfileLanguageSource = {
+    $languages?: unknown[];
+    languages?: unknown[];
+    tags?: unknown[];
+};
+
+function normalizeLanguageText(value: unknown): string {
     return typeof value === 'string'
         ? value.trim()
         : String(value ?? '').trim();
 }
 
-export function normalizeLanguageKey(value) {
+export function normalizeLanguageKey(value: unknown): string {
     return normalizeLanguageText(value)
         .toLowerCase()
         .replace(/^language_/, '');
 }
 
-export function languageFlagClassName(languageKey) {
+export function languageFlagClassName(languageKey: unknown): string {
     const key = normalizeLanguageKey(languageKey);
-    return languageMappings[key] || key || 'unknown';
+    return languageMappings[key as keyof typeof languageMappings] || key || 'unknown';
 }
 
-export function languageDisplayName(option) {
+export function languageDisplayName(option: LanguageOption): string {
     const key = normalizeLanguageKey(option?.key || option?.value);
     return normalizeLanguageText(
         option?.value || option?.label || option?.name || key.toUpperCase()
     );
 }
 
-export function languageOptionLabel(option) {
+export function languageOptionLabel(option: LanguageOption): string {
     const key = normalizeLanguageKey(option?.key || option?.value);
     const value = languageDisplayName(option);
     return key ? `${value || key.toUpperCase()} (${key.toUpperCase()})` : value;
 }
 
-export function fallbackLanguageOptions() {
+export function fallbackLanguageOptions(): Array<{ key: string; value: string }> {
     return Object.keys(languageMappings)
         .sort()
         .map((key) => ({ key, value: key.toUpperCase() }));
 }
 
-export function normalizeLanguageOptionsFromConfig(json) {
-    const options = json?.constants?.LANGUAGE?.SPOKEN_LANGUAGE_OPTIONS;
+export function normalizeLanguageOptionsFromConfig(
+    json: unknown
+): Array<{ key: string; value: string }> {
+    const config = json as
+        | { constants?: { LANGUAGE?: { SPOKEN_LANGUAGE_OPTIONS?: unknown } } }
+        | null
+        | undefined;
+    const options = config?.constants?.LANGUAGE?.SPOKEN_LANGUAGE_OPTIONS;
     if (!options || typeof options !== 'object') {
         return [];
     }
@@ -52,32 +71,34 @@ export function normalizeLanguageOptionsFromConfig(json) {
 }
 
 export function normalizeProfileLanguageRows(
-    profile,
+    profile: ProfileLanguageSource | null | undefined,
     languageOptionMap = new Map()
-) {
-    const rows = [];
-    const seen = new Set();
-    const addRow = (entry) => {
+): Array<{ key: string; value: string }> {
+    const rows: Array<{ key: string; value: string }> = [];
+    const seen = new Set<string>();
+    const options = languageOptionMap as Map<string, LanguageOption>;
+    const addRow = (entry: unknown) => {
+        const optionEntry = entry as LanguageOption | null | undefined;
         const key = normalizeLanguageKey(
             typeof entry === 'string'
                 ? entry
-                : entry?.key ||
-                      entry?.id ||
-                      entry?.value ||
-                      entry?.label ||
-                      entry?.name
+                : optionEntry?.key ||
+                      optionEntry?.id ||
+                      optionEntry?.value ||
+                      optionEntry?.label ||
+                      optionEntry?.name
         );
         if (!key || seen.has(key)) {
             return;
         }
-        const option = languageOptionMap.get(key);
+        const option = options.get(key);
         rows.push({
             key,
             value: normalizeLanguageText(
                 option?.value ||
-                    entry?.value ||
-                    entry?.label ||
-                    entry?.name ||
+                    optionEntry?.value ||
+                    optionEntry?.label ||
+                    optionEntry?.name ||
                     key.toUpperCase()
             )
         });

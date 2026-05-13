@@ -1,9 +1,9 @@
 const AUTO_LOGIN_WINDOW_MS = 60 * 60 * 1000;
 const AUTO_LOGIN_MAX_ATTEMPTS = 3;
 
-const attemptTimestampsByKey = new Map();
+const attemptTimestampsByKey = new Map<string, number[]>();
 
-function normalizeThrottleKey(accountKey) {
+function normalizeThrottleKey(accountKey: unknown): string {
     if (typeof accountKey !== 'string' || !accountKey.trim()) {
         return '__global__';
     }
@@ -11,7 +11,7 @@ function normalizeThrottleKey(accountKey) {
     return accountKey.trim();
 }
 
-function getAttemptBucket(accountKey) {
+function getAttemptBucket(accountKey: unknown): number[] {
     const normalizedKey = normalizeThrottleKey(accountKey);
     if (!attemptTimestampsByKey.has(normalizedKey)) {
         attemptTimestampsByKey.set(normalizedKey, []);
@@ -20,7 +20,7 @@ function getAttemptBucket(accountKey) {
     return attemptTimestampsByKey.get(normalizedKey);
 }
 
-function pruneAttempts(accountKey, now = Date.now()) {
+function pruneAttempts(accountKey: unknown, now = Date.now()): void {
     const normalizedKey = normalizeThrottleKey(accountKey);
     const bucket = attemptTimestampsByKey.get(normalizedKey);
     if (!bucket) {
@@ -36,7 +36,10 @@ function pruneAttempts(accountKey, now = Date.now()) {
     }
 }
 
-export function getReactAutoLoginAttemptCount(accountKey, now = Date.now()) {
+export function getReactAutoLoginAttemptCount(
+    accountKey: unknown,
+    now = Date.now()
+): number {
     pruneAttempts(accountKey, now);
     return (
         attemptTimestampsByKey.get(normalizeThrottleKey(accountKey))?.length ??
@@ -44,20 +47,26 @@ export function getReactAutoLoginAttemptCount(accountKey, now = Date.now()) {
     );
 }
 
-export function canAttemptReactAutoLogin(accountKey, now = Date.now()) {
+export function canAttemptReactAutoLogin(
+    accountKey: unknown,
+    now = Date.now()
+): boolean {
     return (
         getReactAutoLoginAttemptCount(accountKey, now) < AUTO_LOGIN_MAX_ATTEMPTS
     );
 }
 
-export function recordReactAutoLoginAttempt(accountKey, now = Date.now()) {
+export function recordReactAutoLoginAttempt(
+    accountKey: unknown,
+    now = Date.now()
+): number {
     pruneAttempts(accountKey, now);
     const bucket = getAttemptBucket(accountKey);
     bucket.push(now);
     return bucket.length;
 }
 
-export function resetReactAutoLoginThrottle(accountKey) {
+export function resetReactAutoLoginThrottle(accountKey?: unknown): void {
     if (accountKey === undefined) {
         attemptTimestampsByKey.clear();
         return;

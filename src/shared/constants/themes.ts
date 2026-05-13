@@ -18,7 +18,19 @@ export const DEFAULT_THEME_COLOR_KEY = 'default';
 const neutralForeground = 'var(--color-neutral-50)';
 const darkForeground = 'var(--color-neutral-950)';
 
-export const THEME_COLOR_CONFIG = {
+type ThemeColorConfig = {
+    key: string;
+    label: string;
+    swatch: string;
+    primary?: string;
+    primaryDark?: string;
+    foreground?: string;
+    foregroundDark?: string;
+    ring?: string;
+    ringDark?: string;
+};
+
+export const THEME_COLOR_CONFIG: Record<string, ThemeColorConfig> = {
     default: {
         key: 'default',
         label: 'Neutral',

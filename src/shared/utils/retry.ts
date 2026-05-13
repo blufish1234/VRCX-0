@@ -1,11 +1,20 @@
-export async function executeWithBackoff(fn, options = {}) {
+type BackoffOptions = {
+    maxRetries?: number;
+    baseDelay?: number;
+    shouldRetry?: (error: unknown) => boolean;
+};
+
+export async function executeWithBackoff<T>(
+    fn: () => Promise<T> | T,
+    options: BackoffOptions = {}
+): Promise<T> {
     const {
         maxRetries = 5,
         baseDelay = 1000,
         shouldRetry = () => true
     } = options;
 
-    async function attempt(remaining) {
+    async function attempt(remaining: number): Promise<T> {
         try {
             return await fn();
         } catch (err) {

@@ -1,10 +1,47 @@
 import { create } from 'zustand';
 
+type FavoriteImportType = 'avatar' | 'world' | 'friend';
+type FavoriteImportRow = {
+    id: string;
+    [key: string]: unknown;
+};
+type FavoriteImportStore = {
+    open: boolean;
+    type: FavoriteImportType;
+    input: string;
+    rows: FavoriteImportRow[];
+    loading: boolean;
+    progress: number;
+    progressTotal: number;
+    importProgress: number;
+    importProgressTotal: number;
+    errors: string;
+    remoteGroupName: string;
+    localGroupName: string;
+    sessionId: number;
+    openDialog(options?: { type?: unknown; input?: unknown }): void;
+    closeDialog(): void;
+    cancelActiveWork(): void;
+    setInput(input: unknown): void;
+    setLoading(loading: unknown): void;
+    setProgress(progress: number, progressTotal: number): void;
+    setImportProgress(importProgress: number, importProgressTotal: number): void;
+    setErrors(errors: unknown): void;
+    appendError(error: unknown): void;
+    setRows(rows: unknown): void;
+    addRow(row: FavoriteImportRow | null | undefined): void;
+    removeRow(id: string): void;
+    clearRows(): void;
+    setRemoteGroupName(remoteGroupName: string): void;
+    setLocalGroupName(localGroupName: string): void;
+    resetImportState(): void;
+};
+
 const initialState = {
     open: false,
-    type: 'avatar',
+    type: 'avatar' as FavoriteImportType,
     input: '',
-    rows: [],
+    rows: [] as FavoriteImportRow[],
     loading: false,
     progress: 0,
     progressTotal: 0,
@@ -16,11 +53,13 @@ const initialState = {
     sessionId: 0
 };
 
-function normalizeType(value) {
-    return ['avatar', 'world', 'friend'].includes(value) ? value : 'avatar';
+function normalizeType(value: unknown): FavoriteImportType {
+    return value === 'avatar' || value === 'world' || value === 'friend'
+        ? value
+        : 'avatar';
 }
 
-export const useFavoriteImportStore = create((set) => ({
+export const useFavoriteImportStore = create<FavoriteImportStore>((set) => ({
     ...initialState,
     openDialog({ type, input = '' } = {}) {
         set((state) => ({

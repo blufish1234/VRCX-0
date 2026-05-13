@@ -1,9 +1,25 @@
-/**
- *
- * @param {object} print
- * @returns
- */
-function getPrintFileName(print) {
+type GalleryPrint = {
+    authorName?: string;
+    createdAt?: string | number | Date;
+    timestamp?: string | number | Date;
+    id?: string;
+};
+
+type GalleryEmoji = {
+    name?: string;
+    animationStyle?: string;
+    frames?: number | string;
+    framesOverTime?: number | string;
+    loopStyle?: string;
+};
+
+type EmojiFrameLayout = {
+    frameCount: number;
+    framesPerLine: number;
+    frameSize: number;
+};
+
+function getPrintFileName(print: GalleryPrint): string {
     const authorName = print.authorName;
     // fileDate format: 2024-11-03_16-14-25.757
     const createdAt = getPrintLocalDate(print);
@@ -16,12 +32,7 @@ function getPrintFileName(print) {
     return fileName;
 }
 
-/**
- *
- * @param {object} print
- * @returns
- */
-function getPrintLocalDate(print) {
+function getPrintLocalDate(print: GalleryPrint): Date {
     if (print.createdAt) {
         const createdAt = new Date(print.createdAt);
         // cursed convert to local time
@@ -42,10 +53,7 @@ function getPrintLocalDate(print) {
     return createdAt;
 }
 
-/**
- * @param {object} emoji
- */
-function getEmojiFileName(emoji) {
+function getEmojiFileName(emoji: GalleryEmoji): string {
     if (emoji.frames) {
         const loopStyle = emoji.loopStyle || 'linear';
         return `${emoji.name}_${emoji.animationStyle}animationStyle_${emoji.frames}frames_${emoji.framesOverTime}fps_${loopStyle}loopStyle.png`;
@@ -54,10 +62,7 @@ function getEmojiFileName(emoji) {
     }
 }
 
-/**
- * @param {number} frameCount
- */
-function getEmojiFrameLayout(frameCount) {
+function getEmojiFrameLayout(frameCount: unknown): EmojiFrameLayout {
     const numericFrameCount = Number(frameCount);
     const normalizedFrameCount = Math.min(
         64,
@@ -79,21 +84,15 @@ function getEmojiFrameLayout(frameCount) {
     };
 }
 
-/**
- * @param {number} frameCount
- */
-function getEmojiAnimationName(frameCount) {
+function getEmojiAnimationName(frameCount: unknown): string {
     return `animated-emoji-${getEmojiFrameLayout(frameCount).frameCount}`;
 }
 
-/**
- * @param {number} frameCount
- */
-function buildEmojiKeyframes(frameCount) {
+function buildEmojiKeyframes(frameCount: unknown): string {
     const { frameCount: normalizedFrameCount, framesPerLine } =
         getEmojiFrameLayout(frameCount);
     const maxFrameIndex = framesPerLine - 1;
-    const rules = [];
+    const rules: string[] = [];
     for (let index = 0; index < normalizedFrameCount; index += 1) {
         const percent = (index / normalizedFrameCount) * 100;
         const column = index % framesPerLine;

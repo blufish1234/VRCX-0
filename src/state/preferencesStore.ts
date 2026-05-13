@@ -24,7 +24,28 @@ const DEFAULT_TRANSLATION_ENDPOINT =
     'https://api.openai.com/v1/chat/completions';
 const DEFAULT_TRANSLATION_MODEL = 'gpt-4o-mini';
 
-function normalizeBool(value) {
+type BoundedIntOptions = {
+    min?: number;
+    max?: number;
+    fallback?: number;
+};
+type TableLimits = {
+    maxTableSize?: unknown;
+    searchLimit?: unknown;
+};
+type SharedFeedFilterSnapshot = {
+    noty?: unknown;
+    wrist?: unknown;
+};
+type PreferenceSnapshot = Record<string, unknown>;
+
+function asRecord(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object'
+        ? (value as Record<string, unknown>)
+        : {};
+}
+
+function normalizeBool(value: unknown): boolean {
     if (typeof value === 'boolean') {
         return value;
     }
@@ -35,24 +56,24 @@ function normalizeBool(value) {
 }
 
 function normalizeBoundedInt(
-    value,
+    value: unknown,
     {
         min = Number.MIN_SAFE_INTEGER,
         max = Number.MAX_SAFE_INTEGER,
         fallback = 0
-    } = {}
-) {
-    const parsed = Number.parseInt(value, 10);
+    }: BoundedIntOptions = {}
+): number {
+    const parsed = Number.parseInt(value as string, 10);
     if (!Number.isFinite(parsed)) {
         return fallback;
     }
     return Math.min(max, Math.max(min, parsed));
 }
 
-export function normalizeTablePageSizes(value) {
+export function normalizeTablePageSizes(value: unknown): number[] {
     const source = Array.isArray(value) ? value : DEFAULT_TABLE_PAGE_SIZES;
     const nextSizes = source
-        .map((entry) => Number.parseInt(entry, 10))
+        .map((entry) => Number.parseInt(entry as string, 10))
         .filter(
             (entry) => Number.isFinite(entry) && entry > 0 && entry <= 1000
         );
@@ -63,9 +84,9 @@ export function normalizeTablePageSizes(value) {
 }
 
 export function normalizeTablePageSize(
-    value,
+    value: unknown,
     fallback = DEFAULT_TABLE_PAGE_SIZE
-) {
+): number {
     return normalizeBoundedInt(value, {
         min: 1,
         max: 1000,
@@ -73,14 +94,18 @@ export function normalizeTablePageSize(
     });
 }
 
-export function normalizeTableLimits(value = {}) {
+export function normalizeTableLimits(value: unknown = {}): {
+    maxTableSize: number;
+    searchLimit: number;
+} {
+    const limits = asRecord(value) as TableLimits;
     return {
-        maxTableSize: normalizeBoundedInt(value.maxTableSize, {
+        maxTableSize: normalizeBoundedInt(limits.maxTableSize, {
             min: TABLE_MAX_SIZE_MIN,
             max: TABLE_MAX_SIZE_MAX,
             fallback: DEFAULT_MAX_TABLE_SIZE
         }),
-        searchLimit: normalizeBoundedInt(value.searchLimit, {
+        searchLimit: normalizeBoundedInt(limits.searchLimit, {
             min: SEARCH_LIMIT_MIN,
             max: SEARCH_LIMIT_MAX,
             fallback: DEFAULT_SEARCH_LIMIT
@@ -88,22 +113,23 @@ export function normalizeTableLimits(value = {}) {
     };
 }
 
-export function normalizeSharedFeedFilters(value) {
+export function normalizeSharedFeedFilters(value: unknown = {}) {
+    const filters = asRecord(value) as SharedFeedFilterSnapshot;
+    const noty = asRecord(filters.noty);
+    const wrist = asRecord(filters.wrist);
     return {
         noty: {
             ...sharedFeedFiltersDefaults.noty,
-            ...(value?.noty && typeof value.noty === 'object' ? value.noty : {})
+            ...noty
         },
         wrist: {
             ...sharedFeedFiltersDefaults.wrist,
-            ...(value?.wrist && typeof value.wrist === 'object'
-                ? value.wrist
-                : {})
+            ...wrist
         }
     };
 }
 
-export function parseSharedFeedFilters(value) {
+export function parseSharedFeedFilters(value?: unknown) {
     if (!value) {
         return normalizeSharedFeedFilters();
     }
@@ -111,13 +137,13 @@ export function parseSharedFeedFilters(value) {
         return normalizeSharedFeedFilters(value);
     }
     try {
-        return normalizeSharedFeedFilters(JSON.parse(value));
+        return normalizeSharedFeedFilters(JSON.parse(String(value)));
     } catch {
         return normalizeSharedFeedFilters();
     }
 }
 
-export const DEFAULT_PREFERENCES = Object.freeze({
+export const DEFAULT_PREFERENCES: PreferenceSnapshot = Object.freeze({
     notificationLayout: 'notification-center',
     dataTableStriped: false,
     tableDensity: 'standard',
@@ -198,7 +224,7 @@ export const DEFAULT_PREFERENCES = Object.freeze({
     discordWorldNameAsDiscordStatus: false
 });
 
-export function normalizePreferenceSnapshot(snapshot = {}) {
+export function normalizePreferenceSnapshot(snapshot: PreferenceSnapshot = {}) {
     const next = {
         ...DEFAULT_PREFERENCES,
         ...snapshot

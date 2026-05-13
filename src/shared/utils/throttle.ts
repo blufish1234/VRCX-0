@@ -1,7 +1,15 @@
-export function createRateLimiter({ limitPerInterval, intervalMs }) {
-    const stamps = [];
+type RateLimiterOptions = {
+    limitPerInterval: number;
+    intervalMs: number;
+};
 
-    async function throttle() {
+export function createRateLimiter({
+    limitPerInterval,
+    intervalMs
+}: RateLimiterOptions) {
+    const stamps: number[] = [];
+
+    async function throttle(): Promise<void> {
         let now = Date.now();
         while (stamps.length && now - stamps[0] >= intervalMs) {
             stamps.shift();
@@ -18,7 +26,7 @@ export function createRateLimiter({ limitPerInterval, intervalMs }) {
     }
 
     return {
-        async schedule(fn) {
+        async schedule<T>(fn: () => T | Promise<T>): Promise<T> {
             await throttle();
             return fn();
         },

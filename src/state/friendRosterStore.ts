@@ -5,13 +5,57 @@ import {
     computeUserPlatform
 } from '@/shared/utils/userTransforms.js';
 
-function normalizeUserId(value) {
+type FriendRosterBucket = 'online' | 'active' | 'offline';
+type FriendRecord = Record<string, unknown> & {
+    id?: unknown;
+    userId?: unknown;
+    displayName?: unknown;
+    username?: unknown;
+    tags?: unknown;
+    developerType?: unknown;
+    platform?: unknown;
+    last_platform?: unknown;
+    state?: unknown;
+    stateBucket?: unknown;
+    friendNumber?: unknown;
+    $friendNumber?: unknown;
+};
+type FriendRosterOrdering = {
+    onlineIds: string[];
+    activeIds: string[];
+    offlineIds: string[];
+    orderedFriendIds: string[];
+};
+type FriendRosterSnapshot = FriendRosterOrdering & {
+    currentUserId: string | null;
+    friendsById: Record<string, FriendRecord>;
+    detail?: string;
+};
+type FriendPatchEntry = {
+    userId?: unknown;
+    patch?: FriendRecord;
+    stateBucket?: unknown;
+};
+type FriendRosterStore = FriendRosterSnapshot & {
+    loadStatus: 'idle' | 'running' | 'ready' | 'error';
+    detail: string;
+    lastLoadedAt: string | null;
+    setRosterLoading(currentUserId: unknown, detail?: string): void;
+    setRosterSnapshot(snapshot: FriendRosterSnapshot): void;
+    setRosterError(detail: string): void;
+    applyFriendPatch(entry: FriendPatchEntry & { detail?: string }): void;
+    applyFriendPatches(patches?: FriendPatchEntry[], detail?: string): void;
+    removeFriend(userId: unknown, detail?: string): void;
+    resetRoster(): void;
+};
+
+function normalizeUserId(value: unknown): string {
     return typeof value === 'string'
         ? value.trim()
         : String(value ?? '').trim();
 }
 
-function normalizeStateBucket(value) {
+function normalizeStateBucket(value: unknown): FriendRosterBucket | '' {
     const normalized = normalizeUserId(value).toLowerCase();
     if (
         normalized === 'online' ||
@@ -23,11 +67,14 @@ function normalizeStateBucket(value) {
     return '';
 }
 
-function getDisplayName(user) {
+function getDisplayName(user: FriendRecord | null | undefined): unknown {
     return user?.displayName || user?.username || user?.id || '';
 }
 
-function createFallbackFriendUser(userId, existingRow) {
+function createFallbackFriendUser(
+    userId: string,
+    existingRow?: FriendRecord | null
+): FriendRecord {
     return {
         id: userId,
         displayName: existingRow?.displayName || userId,
@@ -41,21 +88,25 @@ function createFallbackFriendUser(userId, existingRow) {
     };
 }
 
-function normalizeFriendEntry(friend, stateBucket, existingRow) {
+function normalizeFriendEntry(
+    friend: FriendRecord | null | undefined,
+    stateBucket: FriendRosterBucket,
+    existingRow?: FriendRecord | null
+): FriendRecord {
     const fallbackUserId = normalizeUserId(
         existingRow?.id || existingRow?.userId
     );
     const source =
         friend ?? createFallbackFriendUser(fallbackUserId, existingRow);
     const tags = Array.isArray(source.tags) ? source.tags : [];
-    const trust = computeTrustLevel(tags, source.developerType || '');
+    const trust = computeTrustLevel(tags, String(source.developerType || ''));
     const friendNumber =
         Number.parseInt(
-            source?.friendNumber ??
+            (source?.friendNumber ??
                 source?.$friendNumber ??
                 existingRow?.friendNumber ??
                 existingRow?.$friendNumber ??
-                0,
+                0) as string,
             10
         ) || 0;
     const displayName =
@@ -76,16 +127,28 @@ function normalizeFriendEntry(friend, stateBucket, existingRow) {
         $isModerator: trust.isModerator,
         $isTroll: trust.isTroll,
         $isProbableTroll: trust.isProbableTroll,
-        $platform: computeUserPlatform(source.platform, source.last_platform)
+        $platform: computeUserPlatform(
+            source.platform as string,
+            source.last_platform as string
+        )
     };
 }
 
-function compareFriendEntries(left, right) {
+function compareFriendEntries(
+    left: FriendRecord | null | undefined,
+    right: FriendRecord | null | undefined
+): number {
     const leftNumber =
-        Number.parseInt(left?.friendNumber ?? left?.$friendNumber ?? 0, 10) ||
+        Number.parseInt(
+            (left?.friendNumber ?? left?.$friendNumber ?? 0) as string,
+            10
+        ) ||
         0;
     const rightNumber =
-        Number.parseInt(right?.friendNumber ?? right?.$friendNumber ?? 0, 10) ||
+        Number.parseInt(
+            (right?.friendNumber ?? right?.$friendNumber ?? 0) as string,
+            10
+        ) ||
         0;
     const leftHasNumber = leftNumber > 0;
     const rightHasNumber = rightNumber > 0;
@@ -110,7 +173,11 @@ function compareFriendEntries(left, right) {
     return String(left?.id || '').localeCompare(String(right?.id || ''));
 }
 
-function buildBucketIds(friendIds, friendsById, stateBucket) {
+function buildBucketIds(
+    friendIds: string[],
+    friendsById: Record<string, FriendRecord>,
+    stateBucket: FriendRosterBucket
+): string[] {
     return friendIds
         .filter(
             (friendId) => friendsById[friendId]?.stateBucket === stateBucket
@@ -120,7 +187,9 @@ function buildBucketIds(friendIds, friendsById, stateBucket) {
         );
 }
 
-function buildRosterOrdering(friendsById) {
+function buildRosterOrdering(
+    friendsById: Record<string, FriendRecord>
+): FriendRosterOrdering {
     const friendIds = Object.keys(friendsById);
     const onlineIds = buildBucketIds(friendIds, friendsById, 'online');
     const activeIds = buildBucketIds(friendIds, friendsById, 'active');
@@ -134,7 +203,10 @@ function buildRosterOrdering(friendsById) {
     };
 }
 
-function friendEntryNeedsOrderingUpdate(existingEntry, nextEntry) {
+function friendEntryNeedsOrderingUpdate(
+    existingEntry: FriendRecord | null | undefined,
+    nextEntry: FriendRecord
+): boolean {
     if (!existingEntry) {
         return true;
     }
@@ -154,19 +226,30 @@ function friendEntryNeedsOrderingUpdate(existingEntry, nextEntry) {
     return compareFriendEntries(existingEntry, nextEntry) !== 0;
 }
 
-const initialState = {
+const initialState: Pick<
+    FriendRosterStore,
+    | 'currentUserId'
+    | 'loadStatus'
+    | 'detail'
+    | 'lastLoadedAt'
+    | 'friendsById'
+    | 'orderedFriendIds'
+    | 'onlineIds'
+    | 'activeIds'
+    | 'offlineIds'
+> = {
     currentUserId: null,
     loadStatus: 'idle',
     detail: '',
     lastLoadedAt: null,
-    friendsById: {},
-    orderedFriendIds: [],
-    onlineIds: [],
-    activeIds: [],
-    offlineIds: []
+    friendsById: {} as Record<string, FriendRecord>,
+    orderedFriendIds: [] as string[],
+    onlineIds: [] as string[],
+    activeIds: [] as string[],
+    offlineIds: [] as string[]
 };
 
-export const useFriendRosterStore = create((set) => ({
+export const useFriendRosterStore = create<FriendRosterStore>((set) => ({
     ...initialState,
     setRosterLoading(currentUserId, detail = '') {
         set((state) => {

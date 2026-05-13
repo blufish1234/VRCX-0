@@ -9,21 +9,26 @@ const TRACKED_ACTIONS = new Set([
 
 let cooldownEnabled = false;
 let cooldownMinutes = 60;
-let cachedActions = null;
-const listeners = new Set();
+let cachedActions: Record<string, number> | null = null;
+const listeners = new Set<() => void>();
 
-function normalizeUserId(value) {
+type RecentActionCooldownOptions = {
+    enabled?: boolean;
+    minutes?: unknown;
+};
+
+function normalizeUserId(value: unknown): string {
     return typeof value === 'string'
         ? value.trim()
         : String(value ?? '').trim();
 }
 
-function normalizeMinutes(value) {
-    const parsed = Number.parseInt(value, 10);
+function normalizeMinutes(value: unknown): number {
+    const parsed = Number.parseInt(value as string, 10);
     return Number.isNaN(parsed) ? 60 : Math.min(1440, Math.max(1, parsed));
 }
 
-function readActions() {
+function readActions(): Record<string, number> {
     if (cachedActions) {
         return cachedActions;
     }
@@ -45,7 +50,7 @@ function readActions() {
     return cachedActions;
 }
 
-function writeActions(actions) {
+function writeActions(actions: Record<string, number>): void {
     cachedActions = actions && typeof actions === 'object' ? actions : {};
     if (typeof window === 'undefined' || !window.localStorage) {
         return;
@@ -57,20 +62,28 @@ function writeActions(actions) {
     }
 }
 
-function actionKey(userId, actionType) {
+function actionKey(userId: unknown, actionType: unknown): string {
     const normalizedUserId = normalizeUserId(userId);
-    return normalizedUserId && TRACKED_ACTIONS.has(actionType)
-        ? `${normalizedUserId}:${actionType}`
+    const normalizedActionType =
+        typeof actionType === 'string' ? actionType : '';
+    return normalizedUserId && TRACKED_ACTIONS.has(normalizedActionType)
+        ? `${normalizedUserId}:${normalizedActionType}`
         : '';
 }
 
-function notifyRecentActionListeners() {
+function notifyRecentActionListeners(): void {
     for (const listener of listeners) {
         listener();
     }
 }
 
-export function configureRecentActionCooldown({ enabled, minutes } = {}) {
+export function configureRecentActionCooldown({
+    enabled,
+    minutes
+}: RecentActionCooldownOptions = {}): {
+    enabled: boolean;
+    minutes: number;
+} {
     cooldownEnabled = Boolean(enabled);
     if (minutes !== undefined) {
         cooldownMinutes = normalizeMinutes(minutes);
@@ -79,11 +92,14 @@ export function configureRecentActionCooldown({ enabled, minutes } = {}) {
     return { enabled: cooldownEnabled, minutes: cooldownMinutes };
 }
 
-export function readRecentActionCooldown() {
+export function readRecentActionCooldown(): {
+    enabled: boolean;
+    minutes: number;
+} {
     return { enabled: cooldownEnabled, minutes: cooldownMinutes };
 }
 
-export function recordRecentAction(userId, actionType) {
+export function recordRecentAction(userId: unknown, actionType: unknown): void {
     const key = actionKey(userId, actionType);
     if (!key) {
         return;
@@ -93,7 +109,7 @@ export function recordRecentAction(userId, actionType) {
     notifyRecentActionListeners();
 }
 
-export function isActionRecent(userId, actionType) {
+export function isActionRecent(userId: unknown, actionType: unknown): boolean {
     if (!cooldownEnabled) {
         return false;
     }
@@ -116,17 +132,18 @@ export function isActionRecent(userId, actionType) {
     return false;
 }
 
-export function clearRecentActions() {
+export function clearRecentActions(): void {
     writeActions({});
     notifyRecentActionListeners();
 }
 
-export function subscribeRecentActions(listener) {
+export function subscribeRecentActions(listener: unknown): () => void {
     if (typeof listener !== 'function') {
         return () => {};
     }
-    listeners.add(listener);
+    const callback = listener as () => void;
+    listeners.add(callback);
     return () => {
-        listeners.delete(listener);
+        listeners.delete(callback);
     };
 }

@@ -12,37 +12,78 @@ import { useFriendRosterStore } from '@/state/friendRosterStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
 import { useUserFactsStore } from '@/state/userFactsStore.js';
 
-function text(value) {
+type UserIdentityRecord = Record<string, unknown> & {
+    id?: unknown;
+    userId?: unknown;
+    displayName?: unknown;
+    username?: unknown;
+    name?: unknown;
+    isFriend?: unknown;
+    state?: unknown;
+    stateBucket?: unknown;
+};
+type ResolvedUserSource =
+    | 'currentUser'
+    | 'known'
+    | 'friend'
+    | 'gameLog'
+    | 'search';
+type UserIdentityRepositories = {
+    gameLogRepository?: {
+        getUserIdFromDisplayName?: (displayName: string) => Promise<unknown>;
+    };
+    vrchatSearchRepository?: {
+        getUsers?: (
+            params: { search: string; n: number; offset: number },
+            options: { endpoint: string }
+        ) => Promise<{ json?: unknown }>;
+    };
+};
+
+function asUserRecord(value: unknown): UserIdentityRecord | null {
+    return value && typeof value === 'object'
+        ? (value as UserIdentityRecord)
+        : null;
+}
+
+function text(value: unknown): string {
     return typeof value === 'string'
         ? value.trim()
         : String(value ?? '').trim();
 }
 
-function displayNameOf(user) {
-    return text(user?.displayName || user?.username || user?.name);
+function displayNameOf(user: unknown): string {
+    const record = asUserRecord(user);
+    return text(record?.displayName || record?.username || record?.name);
 }
 
-function titleForUser(user, fallback = '') {
+function titleForUser(user: unknown, fallback = ''): string {
+    const record = asUserRecord(user);
     return (
         displayNameOf(user) ||
         text(fallback) ||
-        normalizeUserId(user?.id || user?.userId)
+        normalizeUserId(record?.id || record?.userId)
     );
 }
 
-function displayNameMatches(user, targetDisplayName) {
+function displayNameMatches(user: unknown, targetDisplayName: string): boolean {
     const name = displayNameOf(user).toLowerCase();
     return Boolean(name && name === targetDisplayName);
 }
 
-function resolvedEndpoint(endpoint) {
+function resolvedEndpoint(endpoint: unknown): string {
     return normalizeEndpoint(
         endpoint || useRuntimeStore.getState().auth.currentUserEndpoint
     );
 }
 
-function resolvedUser(user, source, fallbackTitle = '') {
-    const userId = normalizeUserId(user?.id || user?.userId);
+function resolvedUser(
+    user: unknown,
+    source: ResolvedUserSource,
+    fallbackTitle = ''
+) {
+    const record = asUserRecord(user);
+    const userId = normalizeUserId(record?.id || record?.userId);
     if (!userId) {
         return null;
     }
@@ -55,7 +96,10 @@ function resolvedUser(user, source, fallbackTitle = '') {
     };
 }
 
-function findKnownUserByDisplayName(displayName, { endpoint = '' } = {}) {
+function findKnownUserByDisplayName(
+    displayName: unknown,
+    { endpoint = '' }: { endpoint?: string } = {}
+) {
     const targetDisplayName = text(displayName).toLowerCase();
     if (!targetDisplayName) {
         return null;
@@ -73,7 +117,7 @@ function findKnownUserByDisplayName(displayName, { endpoint = '' } = {}) {
     return null;
 }
 
-function findFriendByDisplayName(displayName) {
+function findFriendByDisplayName(displayName: unknown): UserIdentityRecord | null {
     const targetDisplayName = text(displayName).toLowerCase();
     if (!targetDisplayName) {
         return null;
@@ -83,13 +127,21 @@ function findFriendByDisplayName(displayName) {
     return (
         Object.values(friendsById || {}).find((friend) =>
             displayNameMatches(friend, targetDisplayName)
-        ) || null
-    );
+        ) as UserIdentityRecord | undefined
+    ) || null;
 }
 
 async function resolveUserByDisplayName(
-    displayName,
-    { endpoint = '', repositories = {}, search = true } = {}
+    displayName: unknown,
+    {
+        endpoint = '',
+        repositories = {},
+        search = true
+    }: {
+        endpoint?: string;
+        repositories?: UserIdentityRepositories;
+        search?: boolean;
+    } = {}
 ) {
     const normalizedDisplayName = text(displayName);
     if (!normalizedDisplayName) {
@@ -98,8 +150,10 @@ async function resolveUserByDisplayName(
 
     const normalizedEndpoint = resolvedEndpoint(endpoint);
     const targetDisplayName = normalizedDisplayName.toLowerCase();
-    const runtimeUser = useRuntimeStore.getState().auth.currentUserSnapshot;
-    if (displayNameMatches(runtimeUser, targetDisplayName)) {
+    const runtimeUser = asUserRecord(
+        useRuntimeStore.getState().auth.currentUserSnapshot
+    );
+    if (runtimeUser && displayNameMatches(runtimeUser, targetDisplayName)) {
         recordUserProfile(runtimeUser, {
             endpoint: normalizedEndpoint,
             source: 'currentUser',
@@ -136,8 +190,13 @@ async function resolveUserByDisplayName(
     );
     if (loggedUserId) {
         const user =
+            asUserRecord(
             getKnownUserFact(normalizedEndpoint, loggedUserId) ||
-            useFriendRosterStore.getState().friendsById?.[loggedUserId] || {
+                useFriendRosterStore.getState().friendsById?.[loggedUserId] || {
+                    id: loggedUserId,
+                    displayName: normalizedDisplayName
+                }
+            ) ?? {
                 id: loggedUserId,
                 displayName: normalizedDisplayName
             };
@@ -166,16 +225,21 @@ async function resolveUserByDisplayName(
     const rows = Array.isArray(response?.json) ? response.json : [];
     const match =
         rows.find((user) => displayNameMatches(user, targetDisplayName)) ||
-        rows.find((user) => normalizeUserId(user?.id) === normalizedDisplayName);
-    if (!match?.id) {
+        rows.find(
+            (user) =>
+                normalizeUserId(asUserRecord(user)?.id) ===
+                normalizedDisplayName
+        );
+    const matchRecord = asUserRecord(match);
+    if (!matchRecord?.id) {
         return null;
     }
 
     const recorded =
-        recordUserProfile(match, {
+        recordUserProfile(matchRecord, {
             endpoint: normalizedEndpoint,
             source: 'profile'
-        }) || match;
+        }) || matchRecord;
     return resolvedUser(recorded, 'search', normalizedDisplayName);
 }
 

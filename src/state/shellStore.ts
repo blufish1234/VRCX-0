@@ -17,6 +17,59 @@ const DEFAULT_TIME_UNIT_LABELS = Object.freeze({
 const MIN_NAV_WIDTH = 64;
 const MAX_NAV_WIDTH = 480;
 
+type ThemeMode = 'system' | 'light' | 'dark';
+type TableDensity = 'standard' | 'compact';
+type NotificationLayout = 'notification-center' | 'table';
+type TimeUnitLabels = typeof DEFAULT_TIME_UNIT_LABELS;
+type ShellStore = {
+    sidebarOpen: boolean;
+    rightSidebarOpen: boolean;
+    navWidth: number;
+    locale: string;
+    themeMode: ThemeMode;
+    themeColor: string;
+    tableDensity: TableDensity;
+    notificationLayout: NotificationLayout;
+    notificationIconDot: boolean;
+    displayVRCPlusIconsAsAvatar: boolean;
+    hideNicknames: boolean;
+    zoomLevel: unknown;
+    dateCulture: string;
+    dateIsoFormat: boolean;
+    dateHour12: boolean;
+    timeUnitLabels: TimeUnitLabels;
+    notifiedMenus: string[];
+    vrcUnseenNotificationCount: number;
+    trayIconNotify: boolean;
+    setSidebarOpen(sidebarOpen: unknown): void;
+    setNavWidth(navWidth: unknown): void;
+    toggleSidebar(): void;
+    setRightSidebarOpen(rightSidebarOpen: unknown): void;
+    toggleRightSidebar(): void;
+    setLocale(locale: string): void;
+    setThemeMode(themeMode: unknown): void;
+    setThemeColor(themeColor: unknown): void;
+    setTableDensity(tableDensity: unknown): void;
+    setNotificationLayout(notificationLayout: unknown): void;
+    setNotificationIconDot(notificationIconDot: unknown): void;
+    setAppearancePreferences(options?: {
+        displayVRCPlusIconsAsAvatar?: unknown;
+        hideNicknames?: unknown;
+    }): void;
+    setZoomLevel(zoomLevel: unknown): void;
+    setDatePreferences(options: {
+        dateCulture?: string;
+        dateIsoFormat?: unknown;
+        dateHour12?: unknown;
+    }): void;
+    setTimeUnitLabels(labels: unknown): void;
+    setVrcUnseenNotificationCount(unseenCount: unknown): void;
+    updateTrayIconNotification(force?: boolean): void;
+    notifyMenu(index: string): void;
+    removeNotify(index: string): void;
+    clearAllNotifications(): void;
+};
+
 const initialState = {
     sidebarOpen: true,
     rightSidebarOpen: true,
@@ -37,20 +90,42 @@ const initialState = {
     notifiedMenus: [],
     vrcUnseenNotificationCount: 0,
     trayIconNotify: false
-};
+} satisfies Omit<
+    ShellStore,
+    | 'setSidebarOpen'
+    | 'setNavWidth'
+    | 'toggleSidebar'
+    | 'setRightSidebarOpen'
+    | 'toggleRightSidebar'
+    | 'setLocale'
+    | 'setThemeMode'
+    | 'setThemeColor'
+    | 'setTableDensity'
+    | 'setNotificationLayout'
+    | 'setNotificationIconDot'
+    | 'setAppearancePreferences'
+    | 'setZoomLevel'
+    | 'setDatePreferences'
+    | 'setTimeUnitLabels'
+    | 'setVrcUnseenNotificationCount'
+    | 'updateTrayIconNotification'
+    | 'notifyMenu'
+    | 'removeNotify'
+    | 'clearAllNotifications'
+>;
 
-const themeModeValues = new Set(['system', 'light', 'dark']);
+const themeModeValues = new Set<unknown>(['system', 'light', 'dark']);
 const themeColorValues = new Set(Object.keys(THEME_COLOR_CONFIG));
-const tableDensityValues = new Set(['standard', 'compact']);
+const tableDensityValues = new Set<unknown>(['standard', 'compact']);
 
-function normalizeThemeMode(value) {
+function normalizeThemeMode(value: unknown): ThemeMode {
     if (value === 'midnight') {
         return 'dark';
     }
-    return themeModeValues.has(value) ? value : 'system';
+    return themeModeValues.has(value) ? (value as ThemeMode) : 'system';
 }
 
-function normalizeThemeColor(value) {
+function normalizeThemeColor(value: unknown): string {
     const normalized = String(value || '')
         .trim()
         .toLowerCase();
@@ -59,15 +134,15 @@ function normalizeThemeColor(value) {
         : DEFAULT_THEME_COLOR_KEY;
 }
 
-export function normalizeTableDensity(value) {
+export function normalizeTableDensity(value: unknown): TableDensity {
     if (value === 'comfortable') {
         return 'standard';
     }
-    return tableDensityValues.has(value) ? value : 'standard';
+    return tableDensityValues.has(value) ? (value as TableDensity) : 'standard';
 }
 
-export function normalizeNavWidth(value) {
-    const width = Number.parseInt(value, 10);
+export function normalizeNavWidth(value: unknown): number {
+    const width = Number.parseInt(value as string, 10);
     if (!Number.isFinite(width)) {
         return 240;
     }
@@ -79,7 +154,7 @@ const routePathByMenuKey = Object.freeze({
     'friend-log': '/social/friend-log'
 });
 
-function getCurrentHashRoutePath() {
+function getCurrentHashRoutePath(): string {
     if (typeof window === 'undefined') {
         return '';
     }
@@ -89,12 +164,12 @@ function getCurrentHashRoutePath() {
     return (hashPath || '').split('?')[0].split('#')[0] || '/';
 }
 
-function isCurrentMenuRoute(index) {
+function isCurrentMenuRoute(index: string): boolean {
     const path = routePathByMenuKey[index];
     return Boolean(path && getCurrentHashRoutePath() === path);
 }
 
-function resolveTrayIconNotify(state) {
+function resolveTrayIconNotify(state: ShellStore): boolean {
     if (!state.notificationIconDot) {
         return false;
     }
@@ -112,7 +187,7 @@ function resolveTrayIconNotify(state) {
     );
 }
 
-export const useShellStore = create((set, get) => ({
+export const useShellStore = create<ShellStore>((set, get) => ({
     ...initialState,
     setSidebarOpen(sidebarOpen) {
         set({ sidebarOpen: Boolean(sidebarOpen) });
@@ -186,7 +261,7 @@ export const useShellStore = create((set, get) => ({
         });
     },
     setVrcUnseenNotificationCount(unseenCount) {
-        const nextCount = Number.parseInt(unseenCount, 10);
+        const nextCount = Number.parseInt(unseenCount as string, 10);
         set({
             vrcUnseenNotificationCount: Number.isFinite(nextCount)
                 ? nextCount

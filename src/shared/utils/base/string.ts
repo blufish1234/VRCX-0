@@ -1,23 +1,13 @@
-/**
- *
- * @param {string} tag
- * @returns {string}
- */
-function escapeTag(tag) {
+function escapeTag(tag: unknown): string {
     const s = String(tag);
     return s.replace(/["&'<>]/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
-/**
- *
- * @param {object} obj
- * @returns {object}
- */
-function escapeTagRecursive(obj) {
+function escapeTagRecursive<T>(obj: T): T {
     if (typeof obj === 'string') {
-        return escapeTag(obj);
+        return escapeTag(obj) as T;
     }
-    if (typeof obj === 'object') {
+    if (obj && typeof obj === 'object') {
         for (const key in obj) {
             obj[key] = escapeTagRecursive(obj[key]);
         }
@@ -25,12 +15,7 @@ function escapeTagRecursive(obj) {
     return obj;
 }
 
-/**
- *
- * @param {string} text
- * @returns {string}
- */
-function textToHex(text) {
+function textToHex(text: unknown): string {
     const s = String(text);
     return s
         .split('')
@@ -38,12 +23,7 @@ function textToHex(text) {
         .join(' ');
 }
 
-/**
- *
- * @param {number} num
- * @returns {string}
- */
-function commaNumber(num) {
+function commaNumber(num: unknown): string {
     if (!num) {
         return '0';
     }
@@ -55,14 +35,11 @@ function commaNumber(num) {
     return s.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,');
 }
 
-/**
- *
- * @param {string} str
- * @param {string} search
- * @param {object} comparer
- * @returns {boolean}
- */
-function localeIncludes(str, search, comparer) {
+function localeIncludes(
+    str: unknown,
+    search: unknown,
+    comparer: Pick<Intl.Collator, 'compare'>
+): boolean {
     // These checks are stolen from https://stackoverflow.com/a/69623589/11030436
     if (search === '') {
         return true;
@@ -81,7 +58,7 @@ function localeIncludes(str, search, comparer) {
     }
 
     // Now simply loop through each substring and compare them
-    for (let i = 0; i < str.length - searchObj.length + 1; i++) {
+    for (let i = 0; i < strObj.length - searchObj.length + 1; i++) {
         const substr = strObj.substring(i, i + searchObj.length);
         if (comparer.compare(substr, searchObj) === 0) {
             return true;
@@ -90,16 +67,11 @@ function localeIncludes(str, search, comparer) {
     return false;
 }
 
-/**
- *
- * @param {string} text
- * @returns {string}
- */
-function replaceBioSymbols(text) {
+function replaceBioSymbols(text: unknown): string {
     if (typeof text !== 'string') {
         return '';
     }
-    const symbolList = {
+    const symbolList: Record<string, string> = {
         '@': '＠',
         '#': '＃',
         $: '＄',
@@ -136,15 +108,11 @@ function replaceBioSymbols(text) {
     return newText.replace(/ {1,}/g, ' ').trimRight();
 }
 
-/**
- * @param {string} text
- * @returns {string}
- */
-function removeEmojis(text) {
+function removeEmojis(text: unknown): string {
     if (!text) {
         return '';
     }
-    return text
+    return String(text)
         .replace(
             /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g,
             ''

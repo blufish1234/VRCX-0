@@ -1,13 +1,9 @@
-/**
- * @param {string} resource
- * @returns {string}
- */
-function getFaviconUrl(resource) {
+function getFaviconUrl(resource: unknown): string {
     if (!resource) {
         return '';
     }
     try {
-        const url = new URL(resource);
+        const url = new URL(String(resource));
         return `https://icons.duckduckgo.com/ip2/${url.host}.ico`;
     } catch (err) {
         console.error('Invalid URL:', resource, err);
@@ -15,15 +11,14 @@ function getFaviconUrl(resource) {
     }
 }
 
-/**
- * @param {string} url
- * @returns {string}
- */
-function replaceVrcPackageUrl(url) {
+function replaceVrcPackageUrl(url: unknown): string {
     if (!url) {
         return '';
     }
-    return url.replace('https://api.vrchat.cloud/', 'https://vrchat.com/');
+    return String(url).replace(
+        'https://api.vrchat.cloud/',
+        'https://vrchat.com/'
+    );
 }
 
 export { getFaviconUrl, replaceVrcPackageUrl };

@@ -2,19 +2,35 @@ import sqliteRepository from './sqliteRepository.js';
 import { normalizeUserTablePrefix } from './userSessionRepository.js';
 import vrchatFriendRepository from './vrchatFriendRepository.js';
 
-function readColumn(row, index, key) {
+type SQLiteNamedRow = Record<string, unknown>;
+type MutualGraphEntryMap = Map<string, string[] | Set<string>>;
+type MutualGraphMeta = {
+    lastFetchedAt: string | null;
+    optedOut: boolean;
+};
+type MutualGraphMetaInput = Partial<MutualGraphMeta>;
+type MutualGraphMetaMap = Map<string, MutualGraphMetaInput>;
+type MutualGraphOptions = {
+    friendId?: unknown;
+    offset?: number;
+    n?: number;
+};
+type MutualGraphTx = Pick<typeof sqliteRepository, 'executeNonQuery'>;
+
+function readColumn(row: unknown, index: number, key: string): unknown {
     if (Array.isArray(row)) {
         return row[index];
     }
 
     if (row && typeof row === 'object') {
-        return row[key] ?? row[index];
+        const record = row as SQLiteNamedRow;
+        return record[key] ?? record[index];
     }
 
     return null;
 }
 
-function createTableStatements(userPrefix) {
+function createTableStatements(userPrefix: string): string[] {
     return [
         `CREATE TABLE IF NOT EXISTS ${userPrefix}_mutual_graph_friends (friend_id TEXT PRIMARY KEY)`,
         `CREATE TABLE IF NOT EXISTS ${userPrefix}_mutual_graph_links (friend_id TEXT NOT NULL, mutual_id TEXT NOT NULL, PRIMARY KEY(friend_id, mutual_id))`,
@@ -22,7 +38,7 @@ function createTableStatements(userPrefix) {
     ];
 }
 
-async function ensureTables(userId) {
+async function ensureTables(userId: unknown): Promise<string> {
     const userPrefix = normalizeUserTablePrefix(userId);
     for (const sql of createTableStatements(userPrefix)) {
         await sqliteRepository.executeNonQuery(sql);
@@ -30,7 +46,10 @@ async function ensureTables(userId) {
     return userPrefix;
 }
 
-async function getSnapshot(userId) {
+async function getSnapshot(userId: unknown): Promise<{
+    snapshot: Map<string, string[]>;
+    meta: Map<string, MutualGraphMeta>;
+}> {
     const userPrefix = await ensureTables(userId);
     const friendTable = `${userPrefix}_mutual_graph_friends`;
     const linkTable = `${userPrefix}_mutual_graph_links`;
@@ -50,7 +69,7 @@ async function getSnapshot(userId) {
     for (const row of friendRows ?? []) {
         const friendId = readColumn(row, 0, 'friend_id');
         if (friendId && !snapshot.has(friendId)) {
-            snapshot.set(friendId, []);
+            snapshot.set(String(friendId), []);
         }
     }
 
@@ -61,9 +80,10 @@ async function getSnapshot(userId) {
             continue;
         }
 
-        const links = snapshot.get(friendId) ?? [];
-        links.push(mutualId);
-        snapshot.set(friendId, links);
+        const normalizedFriendId = String(friendId);
+        const links = snapshot.get(normalizedFriendId) ?? [];
+        links.push(String(mutualId));
+        snapshot.set(normalizedFriendId, links);
     }
 
     for (const row of metaRows ?? []) {
@@ -72,8 +92,9 @@ async function getSnapshot(userId) {
             continue;
         }
 
-        meta.set(friendId, {
-            lastFetchedAt: readColumn(row, 1, 'last_fetched_at') || null,
+        meta.set(String(friendId), {
+            lastFetchedAt:
+                String(readColumn(row, 1, 'last_fetched_at') || '') || null,
             optedOut: Number(readColumn(row, 2, 'opted_out')) === 1
         });
     }
@@ -84,7 +105,11 @@ async function getSnapshot(userId) {
     };
 }
 
-async function getMutualFriends({ friendId, offset = 0, n = 100 } = {}) {
+async function getMutualFriends({
+    friendId,
+    offset = 0,
+    n = 100
+}: MutualGraphOptions = {}) {
     const normalizedFriendId =
         typeof friendId === 'string'
             ? friendId.trim()
@@ -105,7 +130,7 @@ async function getMutualFriends({ friendId, offset = 0, n = 100 } = {}) {
     );
 }
 
-async function saveSnapshot(userId, entries) {
+async function saveSnapshot(userId: unknown, entries: MutualGraphEntryMap) {
     const userPrefix = await ensureTables(userId);
     const friendTable = `${userPrefix}_mutual_graph_friends`;
     const linkTable = `${userPrefix}_mutual_graph_links`;
@@ -155,7 +180,11 @@ async function saveSnapshot(userId, entries) {
     });
 }
 
-async function updateMutualsForFriend(userId, friendId, mutualIds) {
+async function updateMutualsForFriend(
+    userId: unknown,
+    friendId: unknown,
+    mutualIds: unknown[] = []
+) {
     const normalizedFriendId =
         typeof friendId === 'string'
             ? friendId.trim()
@@ -187,7 +216,11 @@ async function updateMutualsForFriend(userId, friendId, mutualIds) {
     });
 }
 
-async function upsertMeta(userId, friendId, { lastFetchedAt, optedOut } = {}) {
+async function upsertMeta(
+    userId: unknown,
+    friendId: unknown,
+    { lastFetchedAt, optedOut }: MutualGraphMetaInput = {}
+) {
     const normalizedFriendId =
         typeof friendId === 'string'
             ? friendId.trim()
@@ -208,7 +241,7 @@ async function upsertMeta(userId, friendId, { lastFetchedAt, optedOut } = {}) {
     );
 }
 
-async function bulkUpsertMeta(userId, entries) {
+async function bulkUpsertMeta(userId: unknown, entries: MutualGraphMetaMap) {
     if (!(entries instanceof Map) || entries.size === 0) {
         return;
     }
@@ -250,7 +283,11 @@ export {
 };
 export default mutualGraphRepository;
 
-async function insertFriendRows(tx, friendTable, friendIds) {
+async function insertFriendRows(
+    tx: MutualGraphTx,
+    friendTable: string,
+    friendIds: unknown[] = []
+) {
     const normalizedFriendIds = Array.from(
         new Set((friendIds || []).map(String).filter(Boolean))
     );
@@ -263,7 +300,7 @@ async function insertFriendRows(tx, friendTable, friendIds) {
         if (!chunk.length) {
             continue;
         }
-        const args = {};
+        const args: Record<string, string> = {};
         const values = chunk.map((friendId, index) => {
             const key = `@friendId${chunkStart + index}`;
             args[key] = friendId;
@@ -276,9 +313,13 @@ async function insertFriendRows(tx, friendTable, friendIds) {
     }
 }
 
-async function insertEdgeRows(tx, linkTable, edgeRows) {
-    const uniqueRows = [];
-    const seen = new Set();
+async function insertEdgeRows(
+    tx: MutualGraphTx,
+    linkTable: string,
+    edgeRows: Array<[string, string]> = []
+) {
+    const uniqueRows: Array<[string, string]> = [];
+    const seen = new Set<string>();
     for (const [friendId, mutualId] of edgeRows || []) {
         const key = `${friendId}\u0000${mutualId}`;
         if (!friendId || !mutualId || seen.has(key)) {
@@ -297,7 +338,7 @@ async function insertEdgeRows(tx, linkTable, edgeRows) {
         if (!chunk.length) {
             continue;
         }
-        const args = {};
+        const args: Record<string, string> = {};
         const values = chunk.map(([friendId, mutualId], index) => {
             const friendKey = `@friendId${chunkStart + index}`;
             const mutualKey = `@mutualId${chunkStart + index}`;
@@ -312,13 +353,17 @@ async function insertEdgeRows(tx, linkTable, edgeRows) {
     }
 }
 
-async function insertMetaRows(tx, metaTable, rows) {
+async function insertMetaRows(
+    tx: MutualGraphTx,
+    metaTable: string,
+    rows: Array<[string, string, number]>
+) {
     for (let chunkStart = 0; chunkStart < rows.length; chunkStart += 200) {
         const chunk = rows.slice(chunkStart, chunkStart + 200);
         if (!chunk.length) {
             continue;
         }
-        const args = {};
+        const args: Record<string, string | number> = {};
         const values = chunk.map(
             ([friendId, lastFetchedAt, optedOut], index) => {
                 const friendKey = `@friendId${chunkStart + index}`;

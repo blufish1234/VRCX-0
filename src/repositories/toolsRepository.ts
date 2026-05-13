@@ -5,12 +5,42 @@ import {
     queryKeys
 } from '@/lib/entityQueryCache.js';
 
-import { executeVrchatRequest } from './vrchatRequest.js';
+import { executeVrchatRequest, type QueryParams } from './vrchatRequest.js';
 
 const PAGE_SIZE = 100;
 
-async function processAllPages(fetchPage, { pageSize = PAGE_SIZE } = {}) {
-    const results = [];
+type PageParams = {
+    offset: number;
+    n: number;
+};
+type PageResponse = {
+    results?: unknown[];
+    json?: unknown[];
+    hasNext?: boolean;
+};
+type CalendarListParams = QueryParams & {
+    n?: number;
+};
+type RepositoryOptions = {
+    endpoint?: string;
+    force?: boolean;
+};
+type ExecuteOptions = RepositoryOptions & {
+    method?: string;
+    params?: QueryParams | null;
+};
+type GroupCalendarIdentity = {
+    groupId: string;
+};
+type GroupCalendarEventIdentity = GroupCalendarIdentity & {
+    eventId: string;
+};
+
+async function processAllPages(
+    fetchPage: (params: PageParams) => Promise<PageResponse | unknown[]>,
+    { pageSize = PAGE_SIZE }: { pageSize?: number } = {}
+) {
+    const results: unknown[] = [];
     for (let offset = 0; ; offset += pageSize) {
         const page = await fetchPage({ offset, n: pageSize });
         const rows = Array.isArray(page)
@@ -20,10 +50,11 @@ async function processAllPages(fetchPage, { pageSize = PAGE_SIZE } = {}) {
               : Array.isArray(page?.json)
                 ? page.json
                 : [];
+        const pageInfo = Array.isArray(page) ? null : page;
         results.push(...rows);
         if (
             rows.length === 0 ||
-            page?.hasNext === false ||
+            pageInfo?.hasNext === false ||
             rows.length < pageSize
         ) {
             break;
@@ -33,8 +64,8 @@ async function processAllPages(fetchPage, { pageSize = PAGE_SIZE } = {}) {
 }
 
 async function execute(
-    path,
-    { endpoint = '', method = 'GET', params = null } = {}
+    path: string,
+    { endpoint = '', method = 'GET', params = null }: ExecuteOptions = {}
 ) {
     return executeVrchatRequest(path, {
         endpoint,
@@ -47,8 +78,8 @@ async function execute(
 }
 
 async function getGroupCalendars(
-    params = {},
-    { endpoint = '', force = false } = {}
+    params: CalendarListParams = {},
+    { endpoint = '', force = false }: RepositoryOptions = {}
 ) {
     return fetchCachedData({
         queryKey: queryKeys.groupCalendarList('all', params, endpoint),
@@ -66,8 +97,8 @@ async function getGroupCalendars(
 }
 
 async function getGroupCalendar(
-    { groupId },
-    { endpoint = '', force = false } = {}
+    { groupId }: GroupCalendarIdentity,
+    { endpoint = '', force = false }: RepositoryOptions = {}
 ) {
     return fetchCachedData({
         queryKey: queryKeys.groupCalendarList('group', { groupId }, endpoint),
@@ -87,8 +118,8 @@ async function getGroupCalendar(
 }
 
 async function getFollowingGroupCalendars(
-    params = {},
-    { endpoint = '', force = false } = {}
+    params: CalendarListParams = {},
+    { endpoint = '', force = false }: RepositoryOptions = {}
 ) {
     return fetchCachedData({
         queryKey: queryKeys.groupCalendarList('following', params, endpoint),
@@ -106,8 +137,8 @@ async function getFollowingGroupCalendars(
 }
 
 async function getFeaturedGroupCalendars(
-    params = {},
-    { endpoint = '', force = false } = {}
+    params: CalendarListParams = {},
+    { endpoint = '', force = false }: RepositoryOptions = {}
 ) {
     return fetchCachedData({
         queryKey: queryKeys.groupCalendarList('featured', params, endpoint),
@@ -124,7 +155,10 @@ async function getFeaturedGroupCalendars(
     });
 }
 
-async function getAllGroupCalendars(params = {}, options = {}) {
+async function getAllGroupCalendars(
+    params: CalendarListParams = {},
+    options: RepositoryOptions = {}
+) {
     return processAllPages(
         (pageParams) =>
             getGroupCalendars({ ...params, ...pageParams }, options),
@@ -132,7 +166,10 @@ async function getAllGroupCalendars(params = {}, options = {}) {
     );
 }
 
-async function getAllFollowingGroupCalendars(params = {}, options = {}) {
+async function getAllFollowingGroupCalendars(
+    params: CalendarListParams = {},
+    options: RepositoryOptions = {}
+) {
     return processAllPages(
         (pageParams) =>
             getFollowingGroupCalendars({ ...params, ...pageParams }, options),
@@ -140,7 +177,10 @@ async function getAllFollowingGroupCalendars(params = {}, options = {}) {
     );
 }
 
-async function getAllFeaturedGroupCalendars(params = {}, options = {}) {
+async function getAllFeaturedGroupCalendars(
+    params: CalendarListParams = {},
+    options: RepositoryOptions = {}
+) {
     return processAllPages(
         (pageParams) =>
             getFeaturedGroupCalendars({ ...params, ...pageParams }, options),
@@ -149,8 +189,12 @@ async function getAllFeaturedGroupCalendars(params = {}, options = {}) {
 }
 
 async function followGroupEvent(
-    { groupId, eventId, isFollowing },
-    { endpoint = '' } = {}
+    {
+        groupId,
+        eventId,
+        isFollowing
+    }: GroupCalendarEventIdentity & { isFollowing: boolean },
+    { endpoint = '' }: RepositoryOptions = {}
 ) {
     const response = await execute(
         `calendar/${encodeURIComponent(groupId)}/${encodeURIComponent(eventId)}/follow`,
@@ -165,8 +209,8 @@ async function followGroupEvent(
 }
 
 async function getGroupCalendarIcs(
-    { groupId, eventId },
-    { endpoint = '', force = false } = {}
+    { groupId, eventId }: GroupCalendarEventIdentity,
+    { endpoint = '', force = false }: RepositoryOptions = {}
 ) {
     return fetchCachedData({
         queryKey: queryKeys.groupCalendarEvent({ groupId, eventId }, endpoint),
@@ -185,7 +229,10 @@ async function getGroupCalendarIcs(
     });
 }
 
-async function saveUserNote({ targetUserId, note }, { endpoint = '' } = {}) {
+async function saveUserNote(
+    { targetUserId, note }: { targetUserId: string; note: string },
+    { endpoint = '' }: RepositoryOptions = {}
+) {
     const response = await execute('userNotes', {
         endpoint,
         method: 'POST',
@@ -195,8 +242,18 @@ async function saveUserNote({ targetUserId, note }, { endpoint = '' } = {}) {
 }
 
 async function reportUser(
-    { userId, contentType = 'user', reason, type = 'report' },
-    { endpoint = '' } = {}
+    {
+        userId,
+        contentType = 'user',
+        reason,
+        type = 'report'
+    }: {
+        userId: string;
+        contentType?: string;
+        reason: string;
+        type?: string;
+    },
+    { endpoint = '' }: RepositoryOptions = {}
 ) {
     const response = await execute(
         `feedback/${encodeURIComponent(userId)}/user`,
@@ -210,8 +267,8 @@ async function reportUser(
 }
 
 async function getInviteMessages(
-    { currentUserId, messageType },
-    { endpoint = '' } = {}
+    { currentUserId, messageType }: { currentUserId: string; messageType: string },
+    { endpoint = '' }: RepositoryOptions = {}
 ) {
     const response = await execute(
         `message/${encodeURIComponent(currentUserId)}/${encodeURIComponent(messageType)}`,
@@ -224,8 +281,18 @@ async function getInviteMessages(
 }
 
 async function editInviteMessage(
-    { currentUserId, messageType, slot, message },
-    { endpoint = '' } = {}
+    {
+        currentUserId,
+        messageType,
+        slot,
+        message
+    }: {
+        currentUserId: string;
+        messageType: string;
+        slot: number | string;
+        message: string;
+    },
+    { endpoint = '' }: RepositoryOptions = {}
 ) {
     const response = await execute(
         `message/${encodeURIComponent(currentUserId)}/${encodeURIComponent(messageType)}/${encodeURIComponent(slot)}`,

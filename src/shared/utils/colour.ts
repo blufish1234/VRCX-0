@@ -29,7 +29,7 @@ const K = new Uint32Array([
     0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391
 ]);
 
-function md5(input) {
+function md5(input: string): Uint8Array {
     const encoder = new TextEncoder();
     const msg = encoder.encode(input);
     const bitLen = msg.length * 8;
@@ -61,7 +61,8 @@ function md5(input) {
         let D = d0;
 
         for (let i = 0; i < 64; i++) {
-            let F, g;
+            let F = 0;
+            let g = 0;
             if (i < 16) {
                 F = (B & C) | (~B & D);
                 g = i;
@@ -102,10 +103,9 @@ function md5(input) {
  * Compute a deterministic 16-bit hue value from a VRChat user ID.
  * Matches the C# implementation: MD5(userId) → (byte[3] << 8) | byte[4]
  *
- * @param {string} userId
- * @returns {number} 0–65535
+ * @returns 0-65535
  */
-export function getColourFromUserID(userId) {
+export function getColourFromUserID(userId: string): number {
     const hash = md5(userId);
     return (hash[3] << 8) | hash[4];
 }
@@ -113,11 +113,11 @@ export function getColourFromUserID(userId) {
 /**
  * Batch version: returns a map of userId → hue for each given ID.
  *
- * @param {Iterable<string>} userIds
- * @returns {Record<string, number>}
  */
-export function getColourBulk(userIds) {
-    const output = {};
+export function getColourBulk(
+    userIds: Iterable<string>
+): Record<string, number> {
+    const output: Record<string, number> = {};
     for (const userId of userIds) {
         output[userId] = getColourFromUserID(userId);
     }

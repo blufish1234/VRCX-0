@@ -1,8 +1,4 @@
-/**
- * @param {string} text
- * @returns {boolean}
- */
-export function needsCsvQuotes(text) {
+export function needsCsvQuotes(text: unknown): boolean {
     return (
         String(text).includes(',') ||
         String(text).includes('"') ||
@@ -10,11 +6,7 @@ export function needsCsvQuotes(text) {
     );
 }
 
-/**
- * @param {*} value
- * @returns {string}
- */
-export function formatCsvField(value) {
+export function formatCsvField(value: unknown): string {
     if (value === null || typeof value === 'undefined') {
         return '';
     }
@@ -25,11 +17,9 @@ export function formatCsvField(value) {
     return text;
 }
 
-/**
- * @param {object} obj - The source object
- * @param {string[]} fields - Property names to include
- * @returns {string}
- */
-export function formatCsvRow(obj, fields) {
+export function formatCsvRow(
+    obj: Record<string, unknown> | null | undefined,
+    fields: string[]
+): string {
     return fields.map((field) => formatCsvField(obj?.[field])).join(',');
 }
