@@ -1,6 +1,6 @@
 {
     "i18n-ally.localesPaths": ["src/localization"],
-    "i18n-ally.enabledFrameworks": ["vue"],
+    "i18n-ally.enabledFrameworks": ["react"],
     "i18n-ally.keystyle": "nested",
     "i18n-ally.dirStructure": "file",
     "i18n-ally.namespace": false,
@@ -15,7 +15,10 @@
     "[javascriptreact]": {
         "editor.defaultFormatter": "oxc.oxc-vscode"
     },
-    "[vue]": {
+    "[typescript]": {
+        "editor.defaultFormatter": "oxc.oxc-vscode"
+    },
+    "[typescriptreact]": {
         "editor.defaultFormatter": "oxc.oxc-vscode"
     },
     "[json]": {
