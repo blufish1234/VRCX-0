@@ -39,6 +39,25 @@ function getManualChunk(moduleId) {
 }
 
 const defaultAssetName = '[name][extname]';
+const webview2BuildTarget = {
+    vite: 'edge130',
+    browserslist: 'Edge 130'
+};
+const webkitBuildTarget = {
+    vite: 'safari17.4',
+    browserslist: 'Safari 17.4'
+};
+
+function getPlatformBuildTarget() {
+    switch (process.platform) {
+        case 'darwin':
+        case 'linux':
+            return webkitBuildTarget;
+        case 'win32':
+        default:
+            return webview2BuildTarget;
+    }
+}
 
 /**
  * @param {string} name
@@ -67,6 +86,7 @@ export default defineConfig(() => {
         )
     );
     const version = tauriConf.version;
+    const buildTarget = getPlatformBuildTarget();
 
     return {
         base: '',
@@ -83,7 +103,9 @@ export default defineConfig(() => {
                     customMedia: true
                 },
                 errorRecovery: true,
-                targets: browserslistToTargets(browserslist('Edge 130'))
+                targets: browserslistToTargets(
+                    browserslist(buildTarget.browserslist)
+                )
             }
         },
         optimizeDeps: {
@@ -116,7 +138,7 @@ export default defineConfig(() => {
             strictPort: true
         },
         build: {
-            target: 'edge130',
+            target: buildTarget.vite,
             license: {
                 fileName: 'licenses/frontend-licenses.json'
             },
