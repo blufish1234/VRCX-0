@@ -255,6 +255,7 @@ export function evaluatePresenceRules({ facts, rules }) {
             label: rule.label || rule.id,
             domain,
             priority: rule.priority || 0,
+            restorePreviousState: rule.restorePreviousState !== false,
             ownedFields,
             actions: actionPatch
         });

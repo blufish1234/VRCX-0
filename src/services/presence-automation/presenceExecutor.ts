@@ -83,15 +83,15 @@ function pruneRestoreSnapshotsForScope(scopeKey) {
     }
 }
 
-function getTimeOwnedFields(result) {
-    const fields = new Set();
+function getTimeOwnedFieldRestores(result) {
+    const fields = new Map();
     for (const rule of result?.matchedRules || []) {
         if (rule?.domain !== 'time') {
             continue;
         }
         for (const field of rule.ownedFields || []) {
             if (field === 'status' || field === 'statusDescription') {
-                fields.add(field);
+                fields.set(field, rule.restorePreviousState !== false);
             }
         }
     }
@@ -120,10 +120,16 @@ function hasLocationScopedChanges(result, changedPatch) {
 
 function buildPatchWithTimeRestore(currentUser, result, scopeKey) {
     const patch = { ...(result?.patch || {}) };
-    const timeOwnedFields = getTimeOwnedFields(result);
+    const timeOwnedFieldRestores = getTimeOwnedFieldRestores(result);
+    const timeOwnedFields = new Set(timeOwnedFieldRestores.keys());
     const pendingRestores = [];
+    const pendingSnapshotClears = [];
 
-    for (const field of timeOwnedFields) {
+    for (const [field, restorePreviousState] of timeOwnedFieldRestores) {
+        if (!restorePreviousState) {
+            pendingSnapshotClears.push(field);
+            continue;
+        }
         if (!hasOwn(timeRestoreSnapshots, field)) {
             timeRestoreSnapshots[field] = {
                 scopeKey,
@@ -161,7 +167,7 @@ function buildPatchWithTimeRestore(currentUser, result, scopeKey) {
         }
     }
 
-    return { patch, pendingRestores };
+    return { patch, pendingRestores, pendingSnapshotClears };
 }
 
 function completeTimeRestores(fields) {
@@ -261,11 +267,15 @@ export async function applyPresenceAutomationResult({
     const scopeKey = getAutomationScopeKey(facts);
     const writeState = getWriteState(scopeKey);
     pruneRestoreSnapshotsForScope(scopeKey);
-    const { patch: effectivePatch, pendingRestores } =
+    const { patch: effectivePatch, pendingRestores, pendingSnapshotClears } =
         buildPatchWithTimeRestore(currentUserSnapshot, result, scopeKey);
+    const pendingSnapshotCompletions = [
+        ...pendingRestores,
+        ...pendingSnapshotClears
+    ];
     const changedPatch = getChangedPatch(currentUserSnapshot, effectivePatch);
     if (!Object.keys(changedPatch).length) {
-        completeTimeRestores(pendingRestores);
+        completeTimeRestores(pendingSnapshotCompletions);
         return { applied: false, reason: 'no-change' };
     }
 
@@ -336,7 +346,7 @@ export async function applyPresenceAutomationResult({
                 matchedRules: result?.matchedRules || [],
                 note: 'auth-context-changed-after-write'
             });
-            completeTimeRestores(pendingRestores);
+            completeTimeRestores(pendingSnapshotCompletions);
             return {
                 applied: true,
                 patch: changedPatch,
@@ -363,7 +373,7 @@ export async function applyPresenceAutomationResult({
             patch: changedPatch,
             matchedRules: result?.matchedRules || []
         });
-        completeTimeRestores(pendingRestores);
+        completeTimeRestores(pendingSnapshotCompletions);
         return { applied: true, patch: changedPatch };
     } catch (error) {
         const retryAfterMs = getRetryAfterMs(error);

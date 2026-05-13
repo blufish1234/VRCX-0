@@ -46,6 +46,7 @@ import {
     priorityOptions,
     priorityValueFromNumber,
     setGameRunningCondition,
+    shouldRestorePreviousState,
     updateRule
 } from './presenceAutomationDialogUtils.js';
 
@@ -374,6 +375,39 @@ export function TimeRulesTab({ rules, disabled, onRulesChange }) {
                                     update(selectedRule.id, (current) =>
                                         setGameRunningCondition(current, checked)
                                     )
+                                }
+                            />
+                        </div>
+                    </FieldSet>
+                    <FieldSet
+                        className="rounded-md border p-3"
+                        disabled={disabled}
+                        data-disabled={disabled}
+                    >
+                        <div className="flex min-w-0 items-start justify-between gap-3">
+                            <div className="min-w-0">
+                                <FieldLegend variant="label">
+                                    {t(`${I18N_ROOT}.restore_previous_status`)}
+                                </FieldLegend>
+                                <FieldDescription className="text-xs leading-snug">
+                                    {t(
+                                        `${I18N_ROOT}.restore_previous_status_description`
+                                    )}
+                                </FieldDescription>
+                            </div>
+                            <Switch
+                                checked={shouldRestorePreviousState(
+                                    selectedRule
+                                )}
+                                disabled={disabled}
+                                aria-label={t(
+                                    `${I18N_ROOT}.restore_previous_status`
+                                )}
+                                onCheckedChange={(checked) =>
+                                    update(selectedRule.id, (current) => ({
+                                        ...current,
+                                        restorePreviousState: checked
+                                    }))
                                 }
                             />
                         </div>

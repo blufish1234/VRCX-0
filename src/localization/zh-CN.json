@@ -1303,8 +1303,8 @@
                     "steam_screenshots_description": "打开你的 Steam 截图文件夹"
                 },
                 "header": "相册",
-                "screenshot": "截图管理",
-                "screenshot_description": "管理截图或查看截图元数据",
+                "screenshot": "截图",
+                "screenshot_description": "查看和管理截图",
                 "gallery": "相册",
                 "gallery_description": "管理个人资料图片和拍立得",
                 "inventory": "库存",
@@ -1354,6 +1354,8 @@
                 "run_every_day_hint": "全部不勾选时每天生效。",
                 "only_when_game_running": "仅游戏运行时",
                 "only_when_game_running_description": "VRChat 未运行时跳过这条规则。",
+                "restore_previous_status": "恢复时间段前状态",
+                "restore_previous_status_description": "时间段结束后恢复这条规则修改过的状态和签名。关闭后会保留自动切换后的值。",
                 "status": "状态",
                 "signature": "签名",
                 "change_signature": "修改签名",
@@ -3846,7 +3848,7 @@
             "cancel": "取消"
         },
         "screenshot_metadata": {
-            "header": "截图管理",
+            "header": "截图",
             "drag": "拖放图片到这里",
             "browse": "选择文件",
             "last_screenshot": "上一张图片",
@@ -5439,8 +5441,8 @@
             "gallery_browser_and_media_actions": "图库浏览器和媒体操作。",
             "inventory": "库存",
             "inventory_browser_and_media_actions": "库存浏览器和媒体操作。",
-            "screenshot_metadata": "截图管理",
-            "screenshot_metadata_browser_and_file_actions": "截图元数据浏览器和文件操作。",
+            "screenshot_metadata": "截图",
+            "screenshot_metadata_browser_and_file_actions": "截图浏览器和文件操作。",
             "settings": "设置",
             "settings_and_diagnostics": "设置和诊断。",
             "current_instance_player_roster_rebuilt_from_local_activity_data": "已根据本地活动数据重建当前房间玩家列表。"

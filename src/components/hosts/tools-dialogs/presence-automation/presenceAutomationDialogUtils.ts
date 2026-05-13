@@ -151,6 +151,7 @@ export function createTimeRule(label = '') {
         domain: 'time',
         priority: 700,
         label,
+        restorePreviousState: true,
         conditions: [
             {
                 type: 'timeWindow',
@@ -174,6 +175,10 @@ export function getTimeWindow(rule) {
             timezone: 'local'
         }
     );
+}
+
+export function shouldRestorePreviousState(rule) {
+    return rule?.restorePreviousState !== false;
 }
 
 export function hasGameRunningCondition(rule) {

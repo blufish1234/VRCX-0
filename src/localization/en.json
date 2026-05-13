@@ -1303,8 +1303,8 @@
                     "steam_screenshots_description": "Opens your Steam screenshots folder"
                 },
                 "header": "Pictures",
-                "screenshot": "Screenshot Manager",
-                "screenshot_description": "View and manage screenshot metadata",
+                "screenshot": "Screenshot",
+                "screenshot_description": "View and manage screenshots",
                 "gallery": "Gallery",
                 "gallery_description": "Manage Photo Gallery, Profile Icons, and VRChat prints",
                 "inventory": "Inventory",
@@ -1354,6 +1354,8 @@
                 "run_every_day_hint": "Leave all unchecked to run every day.",
                 "only_when_game_running": "Only while in game",
                 "only_when_game_running_description": "Skip this rule when VRChat is not running.",
+                "restore_previous_status": "Restore previous status",
+                "restore_previous_status_description": "When the time window ends, restore the status and status message this rule changed. Turn this off to keep the scheduled values.",
                 "status": "Status",
                 "signature": "Status message",
                 "change_signature": "Change status message",
@@ -3846,7 +3848,7 @@
             "cancel": "Cancel"
         },
         "screenshot_metadata": {
-            "header": "Screenshot Metadata",
+            "header": "Screenshot",
             "drag": "Drag and drop a screenshot here",
             "browse": "Browse",
             "last_screenshot": "Last Screenshot",
@@ -5439,8 +5441,8 @@
             "gallery_browser_and_media_actions": "Gallery browser and media actions.",
             "inventory": "Inventory",
             "inventory_browser_and_media_actions": "Inventory browser and media actions.",
-            "screenshot_metadata": "Screenshot Metadata",
-            "screenshot_metadata_browser_and_file_actions": "Screenshot metadata browser and file actions.",
+            "screenshot_metadata": "Screenshot",
+            "screenshot_metadata_browser_and_file_actions": "Screenshot browser and file actions.",
             "settings": "Settings",
             "settings_and_diagnostics": "Settings and diagnostics.",
             "current_instance_player_roster_rebuilt_from_local_activity_data": "Current-instance player roster rebuilt from local activity data."
