@@ -109,11 +109,11 @@ describe('userIdentityService', () => {
         });
 
         expect(useUserFactsStore.getState().usersByKey).toMatchObject({
-            'commands::usr_log': {
+            'api::usr_log': {
                 id: 'usr_log',
                 displayName: 'Log User'
             },
-            'commands::usr_search': {
+            'api::usr_search': {
                 id: 'usr_search',
                 displayName: 'Search User'
             }

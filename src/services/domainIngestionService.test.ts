@@ -50,20 +50,20 @@ describe('domainIngestionService', () => {
 
         const facts = useUserFactsStore.getState().usersByKey;
 
-        expect(facts['commands::usr_self']).toMatchObject({
+        expect(facts['api::usr_self']).toMatchObject({
             id: 'usr_self',
             displayName: 'Self',
             isCurrentUser: true,
             isBoopingEnabled: false
         });
-        expect(facts['commands::usr_friend']).toMatchObject({
+        expect(facts['api::usr_friend']).toMatchObject({
             id: 'usr_friend',
             displayName: 'Friend',
             isFriend: true,
             stateBucket: 'online',
             location: 'wrld_live:123'
         });
-        expect(facts['commands::usr_other']).toMatchObject({
+        expect(facts['api::usr_other']).toMatchObject({
             id: 'usr_other',
             displayName: 'Other',
             isFriend: true,
@@ -99,11 +99,11 @@ describe('domainIngestionService', () => {
         });
 
         expect(
-            useUserFactsStore.getState().usersByKey['commands::usr_self'].location
+            useUserFactsStore.getState().usersByKey['api::usr_self'].location
         ).toBe('wrld_game:12345');
         expect(
             useInstancePresenceStore.getState().presenceByKey[
-                'commands::wrld_game:12345'
+                'api::wrld_game:12345'
             ].userIds
         ).toEqual(['usr_friend']);
     });
@@ -128,7 +128,7 @@ describe('domainIngestionService', () => {
         });
 
         expect(
-            useUserFactsStore.getState().usersByKey['commands::usr_self']
+            useUserFactsStore.getState().usersByKey['api::usr_self']
         ).toMatchObject({
             location: 'traveling',
             travelingToLocation: 'wrld_destination:12345'
@@ -158,7 +158,7 @@ describe('domainIngestionService', () => {
 
         expect(
             useLocationHintStore.getState().hintsByKey[
-                'commands::wrld_test:12345~group(grp_test)'
+                'api::wrld_test:12345~group(grp_test)'
             ]
         ).toMatchObject({
             worldName: 'World',
@@ -167,7 +167,7 @@ describe('domainIngestionService', () => {
             isClosed: true
         });
         expect(
-            useUserFactsStore.getState().usersByKey['commands::usr_api']
+            useUserFactsStore.getState().usersByKey['api::usr_api']
         ).toMatchObject({
             id: 'usr_api',
             displayName: 'API User'

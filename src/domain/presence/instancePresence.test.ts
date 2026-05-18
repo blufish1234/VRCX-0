@@ -10,10 +10,10 @@ describe('instancePresence domain model', () => {
     it('keys only real instances by endpoint and normalized location', () => {
         expect(
             instancePresenceKey('api', 'wrld_test:12345~hidden(usr_owner)')
-        ).toBe('commands::wrld_test:12345~hidden(usr_owner)');
+        ).toBe('api::wrld_test:12345~hidden(usr_owner)');
         expect(
             instancePresenceKey('api', 'wrld_test:12345~group(grp_owner)')
-        ).toBe('commands::wrld_test:12345~group(grp_owner)');
+        ).toBe('api::wrld_test:12345~group(grp_owner)');
         expect(instancePresenceKey('api', 'private')).toBe('');
     });
 

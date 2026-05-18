@@ -91,6 +91,12 @@ mod tests {
         detect_process_status_from_names, is_steamvr_process_name, is_vrchat_process_name,
     };
 
+    #[cfg(target_os = "linux")]
+    const STEAMVR_PROCESS_FIXTURE: &str = "vrmonitor";
+
+    #[cfg(not(target_os = "linux"))]
+    const STEAMVR_PROCESS_FIXTURE: &str = "vrserver.exe";
+
     #[test]
     #[cfg(target_os = "linux")]
     fn linux_vrchat_process_name_matches_vue_electron_host() {
@@ -120,7 +126,7 @@ mod tests {
 
     #[test]
     fn detects_combined_status_from_process_names() {
-        let status = detect_process_status_from_names(["VRChat.exe", "vrserver.exe"]);
+        let status = detect_process_status_from_names(["VRChat.exe", STEAMVR_PROCESS_FIXTURE]);
         assert!(status.is_game_running);
         assert!(status.is_steamvr_running);
     }
