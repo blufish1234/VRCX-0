@@ -24,3 +24,19 @@ default-members = [
     "crates/headless",
 ]
 resolver = "2"
+
+[workspace.dependencies]
+base64 = "0.22"
+chrono = "0.4"
+dirs = "6"
+image = "0.25"
+percent-encoding = "2"
+reqwest = "0.13"
+rusqlite = "0.39"
+serde = "1"
+serde_json = "1"
+thiserror = "2"
+tokio = "1"
+tracing = "0.1"
+url = "2"
+walkdir = "2"

@@ -721,20 +721,20 @@ fn tray_labels(state: &AppState) -> TrayLabels {
     if language.starts_with("zh") {
         return TrayLabels {
             open: "打开 VRCX-0",
-            start_background: "开启后台模式",
+            start_background: "切换到后台模式",
             exit: "退出",
         };
     }
     if language.starts_with("ja") {
         return TrayLabels {
             open: "VRCX-0 を開く",
-            start_background: "バックグラウンドモードを開始",
+            start_background: "バックグラウンドモードへ切り替える",
             exit: "終了",
         };
     }
     TrayLabels {
         open: "Open VRCX-0",
-        start_background: "Start Background Mode",
+        start_background: "Switch to Background Mode",
         exit: "Exit",
     }
 }

@@ -5,13 +5,13 @@ edition = "2021"
 
 [dependencies]
 tauri = { version = "2", features = ["tray-icon", "image-ico", "macos-proxy"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-thiserror = "2"
-tracing = "0.1"
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-chrono = "0.4"
-reqwest = { version = "0.13", features = [
+chrono = { workspace = true }
+reqwest = { workspace = true, features = [
     "cookies",
     "gzip",
     "brotli",
@@ -19,9 +19,9 @@ reqwest = { version = "0.13", features = [
     "multipart",
     "socks"
 ] }
-tokio = { version = "1", features = ["sync", "macros", "time", "net", "io-util"] }
+tokio = { workspace = true, features = ["sync", "macros", "time", "net", "io-util"] }
 rustls = { version = "0.23", default-features = false, features = ["aws_lc_rs", "std"] }
-base64 = "0.22"
+base64 = { workspace = true }
 tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-notification = "2"
@@ -29,7 +29,7 @@ tauri-plugin-single-instance = "2"
 tauri-plugin-autostart = "2"
 sys-locale = "0.3"
 tauri-plugin-window-state = "2"
-percent-encoding = "2"
+percent-encoding = { workspace = true }
 tauri-plugin-updater = "2.10.1"
 vrcx-0-core = { path = "../crates/core" }
 vrcx-0-persistence = { path = "../crates/persistence" }
@@ -57,6 +57,6 @@ devtools = ["tauri/devtools"]
 tauri-build = { version = "2", features = [] }
 
 [dev-dependencies]
-image = "0.25"
+image = { workspace = true }
 vrcx-0-application = { path = "../crates/application", features = ["test-utils"] }
 vrcx-0-runtime-host = { path = "../crates/runtime-host", features = ["test-utils"] }

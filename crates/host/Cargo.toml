@@ -5,20 +5,20 @@ edition = "2021"
 
 [dependencies]
 arboard = "3"
-base64 = "0.22"
-chrono = "0.4"
-dirs = "6"
+base64 = { workspace = true }
+chrono = { workspace = true }
+dirs = { workspace = true }
 hex = "0.4"
 open = "5"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
 sha2 = "0.10"
 sysinfo = "0.39"
-thiserror = "2"
-tracing = "0.1"
-url = "2"
+thiserror = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
 vrcx-0-core = { path = "../core" }
-walkdir = "2"
+walkdir = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = [

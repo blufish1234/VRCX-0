@@ -1602,8 +1602,8 @@
                     "startup_system_description": "Creates a desktop autostart entry that launches VRCX-0 with --autostart.",
                     "minimized": "Start Minimized at System Startup",
                     "tray": "Minimize to Tray When Closing",
-                    "background_mode": "Start Background Mode When Minimized to Tray",
-                    "background_mode_description": "When closing VRCX-0 to the system tray, start backend logging and remove the main WebView.",
+                    "background_mode": "Switch to Background Mode When Minimized to Tray",
+                    "background_mode_description": "When closing VRCX-0 to the system tray, switch to Background Mode for ultra-low memory usage, around one-tenth. Some page state may reset after restore.",
                     "disable_vr_overlay_gpu_acceleration": "Disable VR Overlay GPU Acceleration",
                     "proxy": "Proxy Settings",
                     "proxy_description": "Set the proxy server used by VRCX-0. Restart is required to apply a changed proxy.",
@@ -5135,8 +5135,8 @@
         "instance_queue_position": "#{position}",
         "instance_queue_position_label": "Position",
         "instance_queue_ready_to_join": "Instance ready to join {location}",
-        "start_background_mode": "Start Background Mode",
-        "start_background_mode_tooltip": "Start background logging and close the main WebView"
+        "start_background_mode": "Switch to Background Mode",
+        "start_background_mode_tooltip": "Switch to Background Mode"
     },
     "component": {
         "favorite_action_menu": {
@@ -5218,7 +5218,7 @@
                 "failed_to_open_vrchat_status": "Failed to open VRChat status",
                 "failed_to_open_media_link": "Failed to open media link",
                 "failed_to_update_proxy_settings": "Failed to update proxy settings",
-                "failed_to_start_background_mode": "Failed to start background mode"
+                "failed_to_start_background_mode": "Failed to switch to Background Mode"
             },
             "modal": {
                 "proxy_settings": "Proxy Settings",

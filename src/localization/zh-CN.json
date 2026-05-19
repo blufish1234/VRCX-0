@@ -1602,8 +1602,8 @@
                     "startup_system_description": "创建桌面环境自启动项，并使用 --autostart 参数启动 VRCX-0。",
                     "minimized": "以最小化的形式启动",
                     "tray": "最小化到系统托盘",
-                    "background_mode": "最小化到托盘时开启后台模式",
-                    "background_mode_description": "关闭到系统托盘时，启动后端日志记录并移除主 WebView。",
+                    "background_mode": "最小化到托盘时切换到后台模式",
+                    "background_mode_description": "关闭到系统托盘时切换到后台模式，内存占用降至约十分之一；恢复后部分页面状态可能重置。",
                     "disable_vr_overlay_gpu_acceleration": "禁用 VR 叠加界面的GPU加速",
                     "proxy": "代理服务器设置",
                     "proxy_description": "设置 VRCX-0 使用的代理服务器。更改代理后需要重启才能生效。",
@@ -5135,8 +5135,8 @@
         "instance_queue_position": "第 {position} 位",
         "instance_queue_position_label": "队列位置",
         "instance_queue_ready_to_join": "队列已准备好，可以加入 {location}",
-        "start_background_mode": "启动后台模式",
-        "start_background_mode_tooltip": "启动后台日志记录并关闭主 WebView"
+        "start_background_mode": "切换到后台模式",
+        "start_background_mode_tooltip": "切换到后台模式"
     },
     "component": {
         "favorite_action_menu": {
@@ -5218,7 +5218,7 @@
                 "failed_to_open_vrchat_status": "打开 VRChat 状态页失败",
                 "failed_to_open_media_link": "打开媒体链接失败",
                 "failed_to_update_proxy_settings": "更新代理设置失败",
-                "failed_to_start_background_mode": "启动后台模式失败"
+                "failed_to_start_background_mode": "切换到后台模式失败"
             },
             "modal": {
                 "proxy_settings": "代理设置",
