@@ -5,9 +5,13 @@ import {
 } from '@/services/favoriteRemoteDetailsCacheService';
 import { promptLegacyVrcxForceMigration } from '@/services/legacyVrcxMigrationService';
 import {
+    clearAppDataDir,
     deleteAllScreenshotMetadata as deleteAllScreenshotMetadataFromShell,
+    getAppDataDirState,
     openFolderSelectorDialog,
-    restartApplication
+    restartApplication,
+    setAppDataDir,
+    validateAppDataDir
 } from '@/services/shellIntegrationService';
 
 export function useSettingsMaintenanceActions({
@@ -33,6 +37,7 @@ export function useSettingsMaintenanceActions({
     saveStringPreference,
     setCacheStats,
     setCacheStatsVisible,
+    setAppDataDirState,
     setCropInstancePrintsPreference,
     setIntConfigPreference,
     setPrefs,
@@ -88,6 +93,133 @@ export function useSettingsMaintenanceActions({
         }
         await deleteAllScreenshotMetadataFromShell();
         toast.success(t('view.settings.success.screenshot_metadata_removed'));
+    }
+    function appDataDirConfirmDescription(validation: any) {
+        const description = [
+            t(
+                'view.settings.advanced.advanced.data_directory.confirm_description',
+                {
+                    path: validation.path
+                }
+            )
+        ];
+        if (validation.warningKind === 'empty') {
+            description.push(
+                t(
+                    'view.settings.advanced.advanced.data_directory.confirm_empty'
+                )
+            );
+        } else if (validation.warningKind === 'missingProfileFiles') {
+            description.push(
+                t(
+                    'view.settings.advanced.advanced.data_directory.confirm_missing_profile'
+                )
+            );
+        }
+        return description.join(' ');
+    }
+    async function refreshAppDataDirState() {
+        try {
+            const state = await getAppDataDirState();
+            setAppDataDirState(state);
+            return state;
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : String(error));
+            return null;
+        }
+    }
+    async function openAppDataDirSelector() {
+        const state = await refreshAppDataDirState();
+        if (!state) {
+            return;
+        }
+        if (state?.cliOverride) {
+            toast.error(
+                t(
+                    'view.settings.advanced.advanced.data_directory.cli_override'
+                )
+            );
+            return;
+        }
+        const selectedPath = await openFolderSelectorDialog(
+            state?.persistedDir || state?.currentDir || state?.defaultDir || ''
+        ).catch((error: any) => {
+            toast.error(error instanceof Error ? error.message : String(error));
+            return '';
+        });
+        if (!selectedPath) {
+            return;
+        }
+        let validation;
+        try {
+            validation = await validateAppDataDir(selectedPath);
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : String(error));
+            return;
+        }
+        const result = await confirm({
+            title: t(
+                'view.settings.advanced.advanced.data_directory.confirm_title'
+            ),
+            description: appDataDirConfirmDescription(validation),
+            confirmText: t('common.actions.save'),
+            cancelText: t('common.actions.cancel')
+        });
+        if (!result.ok) {
+            return;
+        }
+        try {
+            setAppDataDirState(await setAppDataDir(validation.path));
+            toast.success(
+                t(
+                    'view.settings.advanced.advanced.data_directory.saved_restart_required'
+                )
+            );
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : String(error));
+        }
+    }
+    async function resetAppDataDir() {
+        const state = await refreshAppDataDirState();
+        if (!state) {
+            return;
+        }
+        if (state?.cliOverride) {
+            toast.error(
+                t(
+                    'view.settings.advanced.advanced.data_directory.cli_override'
+                )
+            );
+            return;
+        }
+        const result = await confirm({
+            title: t(
+                'view.settings.advanced.advanced.data_directory.reset_confirm_title'
+            ),
+            description: t(
+                'view.settings.advanced.advanced.data_directory.reset_confirm_description'
+            ),
+            confirmText: t('common.actions.reset'),
+            cancelText: t('common.actions.cancel')
+        });
+        if (!result.ok) {
+            return;
+        }
+        try {
+            setAppDataDirState(await clearAppDataDir());
+            toast.success(
+                t('view.settings.advanced.advanced.data_directory.reset_saved')
+            );
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : String(error));
+        }
+    }
+    async function restartForAppDataDir() {
+        try {
+            await restartApplication();
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : String(error));
+        }
     }
     async function refreshCacheSize() {
         const favoriteStats = getFavoriteRemoteDetailsCacheStats();
@@ -384,6 +516,9 @@ export function useSettingsMaintenanceActions({
         saveNotificationTtsMode,
         saveNotificationTtsVoice,
         deleteAllScreenshotMetadata,
+        openAppDataDirSelector,
+        resetAppDataDir,
+        restartForAppDataDir,
         refreshCacheSize,
         clearVrcxCache,
         promptAutoClearVrcxCacheFrequency,

@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 
 import avatarSearchProviderRepository from '@/repositories/avatarSearchProviderRepository';
 import configRepository from '@/repositories/configRepository';
+import { getAppDataDirState } from '@/services/shellIntegrationService';
 import { loadPreferenceSnapshot } from '@/services/preferencesService';
 import {
     APP_CJK_FONT_PACK_DEFAULT_KEY,
@@ -19,6 +20,7 @@ export function useSettingsEffects({
     applyPreferenceSnapshotToLocalState,
     preferenceState,
     setLoading,
+    setAppDataDirState,
     setPrefs,
     setTtsVoices,
     setZoomInput,
@@ -91,6 +93,27 @@ export function useSettingsEffects({
                 });
             })
             .catch(() => {});
+        return () => {
+            active = false;
+        };
+    }, []);
+    useEffect(() => {
+        let active = true;
+        getAppDataDirState()
+            .then((state) => {
+                if (active) {
+                    setAppDataDirState(state);
+                }
+            })
+            .catch((error: any) => {
+                toast.error(
+                    error instanceof Error
+                        ? error.message
+                        : t(
+                              'view.settings.advanced.advanced.data_directory.failed_to_load'
+                          )
+                );
+            });
         return () => {
             active = false;
         };

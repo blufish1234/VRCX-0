@@ -5,6 +5,7 @@ use std::sync::Mutex;
 use crate::adapters::ipc::{IpcEventSink, IpcServer};
 use crate::adapters::log_watcher::LogWatcherCompatBridge;
 use crate::error::AppError;
+use vrcx_0_host::app_paths::AppDataDirResolution;
 use vrcx_0_runtime_host::{RuntimeHostOptions, RuntimeHostState};
 
 pub const BACKGROUND_MODE_RESUME_ROUTE_STORAGE_KEY: &str = "VRCX_BackgroundModeResumeRoute";
@@ -17,11 +18,12 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new() -> Result<Self, AppError> {
+    pub fn new(app_data_dir: AppDataDirResolution) -> Result<Self, AppError> {
         let launched_from_autostart = std::env::args().any(|arg| arg == "--autostart");
         let runtime = RuntimeHostState::new(RuntimeHostOptions {
             realtime_origin: realtime_origin(),
             launched_from_autostart,
+            app_data_dir,
         })?;
         let ipc_sink: Arc<dyn IpcEventSink> = runtime.game_client_runtime.clone();
         let ipc = IpcServer::new(Some(ipc_sink));

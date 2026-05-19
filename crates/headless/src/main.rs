@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -16,6 +16,7 @@ use vrcx_0_application::{
     format_runtime_output_event, BackendRuntimeMode, RuntimeEventSink, RuntimeOutputLevel,
     RuntimeOutputLine, RuntimeOutputMode, RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle,
 };
+use vrcx_0_host::app_paths::resolve_app_data_dir;
 use vrcx_0_host::error_log::{
     append_headless_error_log, default_app_data_dir, ErrorLogWriter, HEADLESS_ERROR_LOG_FILE,
 };
@@ -24,15 +25,33 @@ use vrcx_0_runtime_host::{RuntimeHostOptions, RuntimeHostState};
 #[tokio::main]
 async fn main() -> ExitCode {
     init_tls_crypto_provider();
-    init_tracing();
+
+    let app_data_dir = match resolve_app_data_dir() {
+        Ok(resolution) => {
+            init_tracing(Some(resolution.current_dir.clone()));
+            resolution
+        }
+        Err(error) => {
+            let fallback_app_data = default_app_data_dir();
+            init_tracing(fallback_app_data.clone());
+            report_headless_error(
+                fallback_app_data.as_deref(),
+                "headless:data-dir",
+                format!("headless data directory setup failed: {error}"),
+            );
+            return ExitCode::from(1);
+        }
+    };
 
     let state = match RuntimeHostState::new(RuntimeHostOptions {
         realtime_origin: "http://localhost:9000".into(),
         launched_from_autostart: false,
+        app_data_dir: app_data_dir.clone(),
     }) {
         Ok(state) => state,
         Err(error) => {
             report_headless_error(
+                Some(&app_data_dir.current_dir),
                 "headless:startup",
                 format!("headless startup failed: {error}"),
             );
@@ -41,7 +60,7 @@ async fn main() -> ExitCode {
     };
 
     let (fatal_tx, mut fatal_rx) = mpsc::unbounded_channel();
-    let console_sink = ConsoleRuntimeEventSink::new(fatal_tx);
+    let console_sink = ConsoleRuntimeEventSink::new(fatal_tx, app_data_dir.current_dir.clone());
     state.set_event_sink(console_sink.clone());
     state
         .runtime_context
@@ -54,7 +73,11 @@ async fn main() -> ExitCode {
     {
         Ok(_) => {}
         Err(error) => {
-            report_headless_error("headless:login", format!("headless login failed: {error}"));
+            report_headless_error(
+                Some(&app_data_dir.current_dir),
+                "headless:login",
+                format!("headless login failed: {error}"),
+            );
             return ExitCode::from(1);
         }
     }
@@ -63,7 +86,11 @@ async fn main() -> ExitCode {
     tokio::select! {
         signal = tokio::signal::ctrl_c() => {
             if let Err(error) = signal {
-                report_headless_error("headless:signal", format!("failed to wait for Ctrl+C: {error}"));
+                report_headless_error(
+                    Some(&app_data_dir.current_dir),
+                    "headless:signal",
+                    format!("failed to wait for Ctrl+C: {error}"),
+                );
                 console_sink.begin_shutdown();
                 state.stop_backend_runtime("signal-error");
                 state.runtime_context.tasks.stop_all();
@@ -77,6 +104,7 @@ async fn main() -> ExitCode {
         fatal = fatal_rx.recv() => {
             let reason = fatal.unwrap_or_else(|| "fatal runtime error".into());
             report_headless_error(
+                Some(&app_data_dir.current_dir),
                 "headless:fatal",
                 format!("headless runtime fatal error: {reason}"),
             );
@@ -92,10 +120,10 @@ fn init_tls_crypto_provider() {
     let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
 }
 
-fn init_tracing() {
+fn init_tracing(app_data: Option<PathBuf>) {
     let filter = tracing_subscriber::EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| "vrcx_0=info".into());
-    let Some(app_data) = default_app_data_dir() else {
+    let Some(app_data) = app_data else {
         tracing_subscriber::fmt()
             .with_env_filter(filter)
             .with_target(false)
@@ -124,27 +152,27 @@ fn init_tracing() {
         .init();
 }
 
-fn report_headless_error(source: &str, message: impl AsRef<str>) {
+fn report_headless_error(app_data: Option<&Path>, source: &str, message: impl AsRef<str>) {
     let message = message.as_ref();
     eprintln!("{message}");
-    if let Some(app_data) = default_app_data_dir() {
-        append_headless_error_log(&app_data, source, message);
+    if let Some(app_data) = app_data {
+        append_headless_error_log(app_data, source, message);
     }
 }
 
 #[derive(Clone)]
 struct ConsoleRuntimeEventSink {
     fatal_tx: mpsc::UnboundedSender<String>,
-    app_data: Option<PathBuf>,
+    app_data: PathBuf,
     shutdown_started: Arc<AtomicBool>,
     output_lock: Arc<Mutex<()>>,
 }
 
 impl ConsoleRuntimeEventSink {
-    fn new(fatal_tx: mpsc::UnboundedSender<String>) -> Self {
+    fn new(fatal_tx: mpsc::UnboundedSender<String>, app_data: PathBuf) -> Self {
         Self {
             fatal_tx,
-            app_data: default_app_data_dir(),
+            app_data,
             shutdown_started: Arc::new(AtomicBool::new(false)),
             output_lock: Arc::new(Mutex::new(())),
         }
@@ -198,9 +226,7 @@ impl ConsoleRuntimeEventSink {
     }
 
     fn append_headless_error_log(&self, source: &str, message: &str) {
-        if let Some(app_data) = &self.app_data {
-            append_headless_error_log(app_data, source, message);
-        }
+        append_headless_error_log(&self.app_data, source, message);
     }
 }
 

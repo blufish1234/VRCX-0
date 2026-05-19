@@ -81,10 +81,27 @@ fn start_background_mode_and_hide_window(app: tauri::AppHandle) {
 }
 
 pub fn run() {
-    bootstrap::init_error_logging();
+    let app_data_dir = match vrcx_0_host::app_paths::resolve_app_data_dir() {
+        Ok(resolution) => {
+            bootstrap::init_error_logging(Some(resolution.current_dir.clone()));
+            resolution
+        }
+        Err(error) => {
+            bootstrap::init_error_logging(None);
+            panic!("failed to resolve app data directory: {error}");
+        }
+    };
+
     bootstrap::init_tls_crypto_provider();
     bootstrap::apply_linux_webkit_workaround();
 
+    let protocol_paths = std::sync::Arc::new(vrcx_0_host::app_paths::AppPaths::from_app_data(
+        app_data_dir.current_dir.clone(),
+    ));
+
+    let image_protocol_paths = protocol_paths.clone();
+    let thumbnail_protocol_paths = protocol_paths.clone();
+    let setup_app_data_dir = app_data_dir.clone();
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             if let Some(state) = app.try_state::<AppState>() {
@@ -97,14 +114,22 @@ pub fn run() {
                 tracing::warn!(error = %error, "failed to show main window from single instance");
             }
         }))
-        .register_asynchronous_uri_scheme_protocol("vrcx-0-img", |_ctx, request, responder| {
+        .register_asynchronous_uri_scheme_protocol("vrcx-0-img", move |_ctx, request, responder| {
+            let paths = image_protocol_paths.clone();
             tauri::async_runtime::spawn_blocking(move || {
-                responder.respond(bootstrap::screenshot_protocol_response(request));
+                responder.respond(bootstrap::screenshot_protocol_response(
+                    request,
+                    paths.as_ref(),
+                ));
             });
         })
-        .register_asynchronous_uri_scheme_protocol("vrcx-0-thumb", |_ctx, request, responder| {
+        .register_asynchronous_uri_scheme_protocol("vrcx-0-thumb", move |_ctx, request, responder| {
+            let paths = thumbnail_protocol_paths.clone();
             tauri::async_runtime::spawn_blocking(move || {
-                responder.respond(bootstrap::screenshot_thumbnail_protocol_response(request));
+                responder.respond(bootstrap::screenshot_thumbnail_protocol_response(
+                    request,
+                    paths.as_ref(),
+                ));
             });
         })
         .plugin(tauri_plugin_opener::init())
@@ -186,7 +211,7 @@ pub fn run() {
             }
             _ => {}
         })
-        .setup(bootstrap::setup_app)
+        .setup(move |app| bootstrap::setup_app_with_data_dir(app, setup_app_data_dir.clone()))
         .on_menu_event(|app, event| {
             match event.id().0.as_str() {
                 "tray-open" => {
@@ -373,6 +398,10 @@ pub fn run() {
             commands::host::host_capabilities::app__get_host_capabilities,
             commands::host::paths::app__current_culture,
             commands::host::paths::app__current_language,
+            commands::host::paths::app__get_app_data_dir_state,
+            commands::host::paths::app__validate_app_data_dir,
+            commands::host::paths::app__set_app_data_dir,
+            commands::host::paths::app__clear_app_data_dir,
             commands::application::lifecycle::app__runtime_app_snapshot_get,
             commands::application::lifecycle::app__runtime_frontend_schedule_due_jobs_get,
             commands::application::lifecycle::app__runtime_frontend_schedule_job_due_claim,

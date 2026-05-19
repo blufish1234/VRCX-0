@@ -33,7 +33,7 @@ use vrcx_0_application::{
 };
 use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_core::json::RawJson;
-use vrcx_0_host::app_paths::AppPaths;
+use vrcx_0_host::app_paths::{AppDataDirResolution, AppPaths};
 use vrcx_0_host::auto_launch::AutoAppLaunchManager;
 use vrcx_0_host::discord_rpc::DiscordRpc;
 use vrcx_0_host::host_capabilities::{
@@ -95,6 +95,7 @@ const CURRENT_USER_REFRESH_LOCAL_AUTHORITY_FIELDS: &[&str] = &[
 pub struct RuntimeHostOptions {
     pub realtime_origin: String,
     pub launched_from_autostart: bool,
+    pub app_data_dir: AppDataDirResolution,
 }
 
 #[derive(Clone, Debug, Default, Serialize)]
@@ -109,6 +110,7 @@ pub struct BackendRuntimeFrontendSessionSnapshot {
 }
 
 pub struct RuntimeHostState {
+    pub app_data_dir: AppDataDirResolution,
     pub paths: AppPaths,
     pub storage: StorageService,
     pub db: Arc<DatabaseService>,
@@ -141,7 +143,12 @@ pub struct RuntimeHostState {
 
 impl RuntimeHostState {
     pub fn new(options: RuntimeHostOptions) -> Result<Self> {
-        let paths = AppPaths::resolve()?;
+        let RuntimeHostOptions {
+            realtime_origin,
+            launched_from_autostart,
+            app_data_dir,
+        } = options;
+        let paths = AppPaths::from_app_data(app_data_dir.current_dir.clone());
         cleanup_legacy_updater_files(&paths.app_data);
 
         let profile_lock = ProfileLock::acquire(&paths.app_data)?;
@@ -161,7 +168,7 @@ impl RuntimeHostState {
         let db = Arc::new(DatabaseService::new(&paths.db_file)?);
         let discord_rpc = Arc::new(DiscordRpc::new());
         let process_monitor = ProcessMonitor::new();
-        let web = Arc::new(WebClient::new(&storage, &db, options.realtime_origin)?);
+        let web = Arc::new(WebClient::new(&storage, &db, realtime_origin)?);
         let image_fetcher = web.image_fetcher()?;
         let image_cache = Arc::new(ImageCache::new(paths.image_cache.clone(), image_fetcher)?);
         let host_file_access = HostFileAccess::new();
@@ -205,6 +212,7 @@ impl RuntimeHostState {
         let auto_launch = AutoAppLaunchManager::new(&paths.app_data);
 
         Ok(Self {
+            app_data_dir,
             paths,
             storage,
             db,
@@ -225,7 +233,7 @@ impl RuntimeHostState {
             legacy_vrcx_available,
             legacy_vrcx_source,
             legacy_vrcx_migration_status,
-            launched_from_autostart: options.launched_from_autostart,
+            launched_from_autostart,
             backend_starting: AtomicBool::new(false),
             registry_backup_maintenance_running: Arc::new(AtomicBool::new(false)),
             background_capabilities_running: Arc::new(AtomicBool::new(false)),

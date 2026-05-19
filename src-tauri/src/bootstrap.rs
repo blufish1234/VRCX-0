@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::path::PathBuf;
 use std::time::Duration;
 
 use serde::Serialize;
@@ -339,8 +340,8 @@ fn present_main_window(app: &tauri::AppHandle) {
     }
 }
 
-pub fn init_error_logging() {
-    let Some(app_data) = vrcx_0_host::error_log::default_app_data_dir() else {
+pub fn init_error_logging(app_data: Option<PathBuf>) {
+    let Some(app_data) = app_data.or_else(vrcx_0_host::error_log::default_app_data_dir) else {
         return;
     };
 
@@ -385,7 +386,10 @@ pub fn updater_public_key() -> String {
     }
 }
 
-pub fn screenshot_protocol_response(request: Request<Vec<u8>>) -> Response<Cow<'static, [u8]>> {
+pub fn screenshot_protocol_response(
+    request: Request<Vec<u8>>,
+    paths: &vrcx_0_host::app_paths::AppPaths,
+) -> Response<Cow<'static, [u8]>> {
     let path = match percent_encoding::percent_decode_str(&request.uri().path()[1..]).decode_utf8()
     {
         Ok(path) => path.into_owned(),
@@ -410,14 +414,7 @@ pub fn screenshot_protocol_response(request: Request<Vec<u8>>) -> Response<Cow<'
             .unwrap();
     }
 
-    let Ok(paths) = vrcx_0_host::app_paths::AppPaths::resolve() else {
-        return Response::builder()
-            .status(StatusCode::INTERNAL_SERVER_ERROR)
-            .body(Vec::new().into())
-            .unwrap();
-    };
-
-    if !crate::adapters::host_file_access::is_known_root_path(&path_buf, &paths) {
+    if !crate::adapters::host_file_access::is_known_root_path(&path_buf, paths) {
         return Response::builder()
             .status(StatusCode::NOT_FOUND)
             .body(Vec::new().into())
@@ -438,6 +435,7 @@ pub fn screenshot_protocol_response(request: Request<Vec<u8>>) -> Response<Cow<'
 
 pub fn screenshot_thumbnail_protocol_response(
     request: Request<Vec<u8>>,
+    paths: &vrcx_0_host::app_paths::AppPaths,
 ) -> Response<Cow<'static, [u8]>> {
     let path = match percent_encoding::percent_decode_str(&request.uri().path()[1..]).decode_utf8()
     {
@@ -448,13 +446,6 @@ pub fn screenshot_thumbnail_protocol_response(
                 .body(Vec::new().into())
                 .unwrap();
         }
-    };
-
-    let Ok(paths) = vrcx_0_host::app_paths::AppPaths::resolve() else {
-        return Response::builder()
-            .status(StatusCode::INTERNAL_SERVER_ERROR)
-            .body(Vec::new().into())
-            .unwrap();
     };
 
     let path_buf = std::path::PathBuf::from(&path);
@@ -499,8 +490,11 @@ pub fn apply_linux_webkit_workaround() {
     }
 }
 
-pub fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
-    let app_state = AppState::new().expect("failed to initialize app state");
+pub fn setup_app_with_data_dir(
+    app: &mut tauri::App,
+    app_data_dir: vrcx_0_host::app_paths::AppDataDirResolution,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let app_state = AppState::new(app_data_dir).expect("failed to initialize app state");
     app.manage(app_state);
 
     let state = app.state::<AppState>();

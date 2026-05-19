@@ -1,4 +1,8 @@
-import { tauriClient } from '@/platform/tauri/client';
+import {
+    tauriClient,
+    type AppDataDirState,
+    type AppDataDirValidation
+} from '@/platform/tauri/client';
 
 export async function openExternalLink(url: string): Promise<void> {
     await tauriClient.app.OpenLink(url);
@@ -10,6 +14,24 @@ export async function exitApplication(): Promise<void> {
 
 export async function restartApplication(): Promise<void> {
     await tauriClient.app.RestartApplication();
+}
+
+export async function getAppDataDirState(): Promise<AppDataDirState> {
+    return tauriClient.app.GetAppDataDirState();
+}
+
+export async function validateAppDataDir(
+    path: string
+): Promise<AppDataDirValidation> {
+    return tauriClient.app.ValidateAppDataDir(path);
+}
+
+export async function setAppDataDir(path: string): Promise<AppDataDirState> {
+    return tauriClient.app.SetAppDataDir(path);
+}
+
+export async function clearAppDataDir(): Promise<AppDataDirState> {
+    return tauriClient.app.ClearAppDataDir();
 }
 
 export async function getClipboardText(): Promise<string> {

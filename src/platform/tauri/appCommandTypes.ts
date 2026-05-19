@@ -62,6 +62,27 @@ export interface HostCapabilities {
     screenshotCache: HostCapabilityStatus;
 }
 
+export type AppDataDirSource = 'cli' | 'persisted' | 'default';
+
+export interface AppDataDirState {
+    currentDir: string;
+    defaultDir: string;
+    persistedDir?: string | null;
+    cliDir?: string | null;
+    source: AppDataDirSource;
+    cliOverride: boolean;
+}
+
+export interface AppDataDirValidation {
+    path: string;
+    exists: boolean;
+    isEmpty: boolean;
+    hasDatabase: boolean;
+    hasConfig: boolean;
+    warningKind?: 'empty' | 'missingProfileFiles' | string | null;
+    warning?: string | null;
+}
+
 export interface LegacyVrcxMigrationStatus {
     detected: boolean;
     available: boolean;
@@ -529,6 +550,10 @@ export interface AppTauriCommandNamespace extends TauriCommandNamespace {
     AppendErrorLog(entry: string): Promise<void>;
     ExitApplication(): Promise<void>;
     GetHostCapabilities(): Promise<HostCapabilities>;
+    GetAppDataDirState(): Promise<AppDataDirState>;
+    ValidateAppDataDir(path: string): Promise<AppDataDirValidation>;
+    SetAppDataDir(path: string): Promise<AppDataDirState>;
+    ClearAppDataDir(): Promise<AppDataDirState>;
     RuntimeAppSnapshotGet(): Promise<RuntimeAppSnapshot>;
     RuntimeAuthScopeGet(): Promise<RuntimeAuthScopeSnapshot>;
     RuntimeAuthScopeSet(input: {

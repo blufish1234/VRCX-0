@@ -78,6 +78,7 @@ export function useSettingsPageState() {
     );
     const [prefs, setPrefs] = useState(() => createDefaultSettingsPrefs());
     const [sqliteTableSizes, setSqliteTableSizes] = useState<any>({});
+    const [appDataDirState, setAppDataDirState] = useState<any>(null);
     const [cacheStatsVisible, setCacheStatsVisible] = useState(false);
     const [cacheStats, setCacheStats] = useState<any>({
         queryCache: 0,
@@ -197,6 +198,9 @@ export function useSettingsPageState() {
         handleCropInstancePrintsChange,
         handleGameLogDisabledChange,
         migrateLegacyVrcxData,
+        openAppDataDirSelector,
+        resetAppDataDir,
+        restartForAppDataDir,
         updateSharedFeedFilter,
         resetSharedFeedFilters,
         refreshRuntimeAppSnapshot,
@@ -211,6 +215,7 @@ export function useSettingsPageState() {
         purgePeriod,
         setCacheStats,
         setCacheStatsVisible,
+        setAppDataDirState,
         setConfigTreeData,
         setCustomFontDialogOpen,
         setCustomFontDraft,
@@ -235,6 +240,7 @@ export function useSettingsPageState() {
         applyPreferenceSnapshotToLocalState,
         preferenceState,
         setLoading,
+        setAppDataDirState,
         setPrefs,
         setTtsVoices,
         setZoomInput,
@@ -393,6 +399,7 @@ export function useSettingsPageState() {
             sqliteTableSizeRows,
             onlineVisitCount,
             configTreeData,
+            appDataDirState,
             tauriAppSnapshot,
             saveBoolPreference,
             saveAppLauncherField,
@@ -406,6 +413,9 @@ export function useSettingsPageState() {
             refreshOnlineVisits,
             refreshConfigTreeData,
             refreshRuntimeAppSnapshot,
+            openAppDataDirSelector,
+            resetAppDataDir,
+            restartForAppDataDir,
             setConfigTreeData,
             migrateLegacyVrcxData
         },

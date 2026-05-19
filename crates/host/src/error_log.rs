@@ -10,7 +10,7 @@ const MAX_ERROR_LOG_BYTES: u64 = 10 * 1024 * 1024;
 static ERROR_LOG_MUTEX: OnceLock<Mutex<()>> = OnceLock::new();
 
 pub fn default_app_data_dir() -> Option<PathBuf> {
-    dirs::config_dir().map(|path| path.join("VRCX-0"))
+    crate::app_paths::default_app_data_dir().ok()
 }
 
 fn format_timestamp() -> String {

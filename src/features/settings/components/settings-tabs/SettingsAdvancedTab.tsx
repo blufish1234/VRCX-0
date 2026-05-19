@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { FolderOpenIcon, RefreshCwIcon, RotateCcwIcon } from 'lucide-react';
 
 import { Button } from '@/ui/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/shadcn/card';
@@ -7,6 +8,14 @@ import { Switch } from '@/ui/shadcn/switch';
 import { Field } from '../SettingsField';
 import { SettingsTabContent } from '../SettingsViewParts';
 import { SettingsAdvancedDataCards } from './SettingsAdvancedDataCards';
+
+function DataDirectoryPath({ value }: any) {
+    return (
+        <div className="bg-muted/40 text-muted-foreground w-full min-w-0 rounded-md border px-2 py-1 font-mono text-xs break-all">
+            {value || '-'}
+        </div>
+    );
+}
 
 export function SettingsAdvancedTab({ advanced }: any) {
     const {
@@ -18,6 +27,7 @@ export function SettingsAdvancedTab({ advanced }: any) {
         sqliteTableSizeRows,
         onlineVisitCount,
         configTreeData,
+        appDataDirState,
         tauriAppSnapshot,
         gameLogDisabledLabel,
         onRelaunchVRChatAfterCrashChange,
@@ -41,12 +51,21 @@ export function SettingsAdvancedTab({ advanced }: any) {
         onRefreshOnlineVisits,
         onRefreshConfigTreeData,
         onRefreshRuntimeAppSnapshot,
+        onOpenAppDataDirSelector,
+        onResetAppDataDir,
+        onRestartForAppDataDir,
         onClearConfigTreeData
     } = advanced;
     const { t } = useTranslation();
     const gameLogDisabledDescription = t(
         'view.settings.advanced.advanced.cache_debug.disable_gamelog_notice'
     );
+    const appDataDirSourceLabel = appDataDirState
+        ? t(
+              `view.settings.advanced.advanced.data_directory.source_${appDataDirState.source}`
+          )
+        : t('common.loading');
+    const appDataDirActionsDisabled = Boolean(appDataDirState?.cliOverride);
 
     return (
         <SettingsTabContent value="advanced">
@@ -85,6 +104,105 @@ export function SettingsAdvancedTab({ advanced }: any) {
                             checked={prefs.vrcQuitFix}
                             onCheckedChange={onVrcQuitFixChange}
                         />
+                    </Field>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle>
+                        {t(
+                            'view.settings.advanced.advanced.data_directory.header'
+                        )}
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col">
+                    <Field
+                        label={t(
+                            'view.settings.advanced.advanced.data_directory.current'
+                        )}
+                        description={t(
+                            'view.settings.advanced.advanced.data_directory.description',
+                            {
+                                source: appDataDirSourceLabel
+                            }
+                        )}
+                        controlClassName="lg:max-w-[34rem]"
+                    >
+                        <DataDirectoryPath value={appDataDirState?.currentDir} />
+                    </Field>
+                    <Field
+                        label={t(
+                            'view.settings.advanced.advanced.data_directory.default'
+                        )}
+                        controlClassName="lg:max-w-[34rem]"
+                    >
+                        <DataDirectoryPath value={appDataDirState?.defaultDir} />
+                    </Field>
+                    <Field
+                        label={t(
+                            'view.settings.advanced.advanced.data_directory.persisted'
+                        )}
+                        description={
+                            appDataDirState?.cliOverride
+                                ? t(
+                                      'view.settings.advanced.advanced.data_directory.cli_override'
+                                  )
+                                : undefined
+                        }
+                        controlClassName="lg:max-w-[34rem]"
+                    >
+                        <DataDirectoryPath
+                            value={
+                                appDataDirState?.persistedDir ||
+                                t(
+                                    'view.settings.advanced.advanced.data_directory.not_set'
+                                )
+                            }
+                        />
+                    </Field>
+                    <Field
+                        label={t(
+                            'view.settings.advanced.advanced.data_directory.actions'
+                        )}
+                        description={t(
+                            'view.settings.advanced.advanced.data_directory.restart_hint'
+                        )}
+                        controlClassName="flex-wrap gap-2"
+                    >
+                        <div className="flex flex-wrap justify-end gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={appDataDirActionsDisabled}
+                                onClick={onOpenAppDataDirSelector}
+                            >
+                                <FolderOpenIcon className="size-4" />
+                                {t(
+                                    'view.settings.advanced.advanced.data_directory.choose'
+                                )}
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={appDataDirActionsDisabled}
+                                onClick={onResetAppDataDir}
+                            >
+                                <RotateCcwIcon className="size-4" />
+                                {t(
+                                    'view.settings.advanced.advanced.data_directory.reset'
+                                )}
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={onRestartForAppDataDir}
+                            >
+                                <RefreshCwIcon className="size-4" />
+                                {t(
+                                    'view.settings.advanced.advanced.data_directory.restart'
+                                )}
+                            </Button>
+                        </div>
                     </Field>
                 </CardContent>
             </Card>

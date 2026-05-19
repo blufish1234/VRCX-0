@@ -15,6 +15,7 @@ export function SettingsAdvancedSection({ advanced }: any) {
         sqliteTableSizeRows,
         onlineVisitCount,
         configTreeData,
+        appDataDirState,
         tauriAppSnapshot,
         saveBoolPreference,
         saveAppLauncherField,
@@ -28,6 +29,9 @@ export function SettingsAdvancedSection({ advanced }: any) {
         refreshOnlineVisits,
         refreshConfigTreeData,
         refreshRuntimeAppSnapshot,
+        openAppDataDirSelector,
+        resetAppDataDir,
+        restartForAppDataDir,
         setConfigTreeData,
         migrateLegacyVrcxData
     } = advanced;
@@ -41,6 +45,7 @@ export function SettingsAdvancedSection({ advanced }: any) {
         sqliteTableSizeRows,
         onlineVisitCount,
         configTreeData,
+        appDataDirState,
         tauriAppSnapshot,
         gameLogDisabledLabel: t(
             'view.settings.advanced.advanced.cache_debug.disable_gamelog'
@@ -125,6 +130,15 @@ export function SettingsAdvancedSection({ advanced }: any) {
         },
         onRefreshRuntimeAppSnapshot: () => {
             refreshRuntimeAppSnapshot();
+        },
+        onOpenAppDataDirSelector: () => {
+            openAppDataDirSelector();
+        },
+        onResetAppDataDir: () => {
+            resetAppDataDir();
+        },
+        onRestartForAppDataDir: () => {
+            restartForAppDataDir();
         },
         onClearConfigTreeData: () => setConfigTreeData({})
     };
