@@ -144,6 +144,10 @@ export function normalizeZoomLevel(
     value: unknown,
     fallback: any = DEFAULT_ZOOM_LEVEL
 ): number {
+    if (value === null || value === undefined || value === '') {
+        return fallback;
+    }
+
     const numericZoom = Number(value);
     if (!Number.isFinite(numericZoom)) {
         return fallback;
