@@ -41,7 +41,7 @@ export function LoginPage() {
                     />
                     <div
                         className={cn(
-                            'grid min-h-95 items-stretch gap-2',
+                            'grid items-stretch gap-2',
                             layout.hasSavedAccounts &&
                                 'md:grid-cols-[1fr_auto_1fr]'
                         )}
