@@ -89,6 +89,8 @@ pub fn app__restart_application(app_handle: AppHandle) -> Result<(), AppError> {
 
     #[cfg(not(debug_assertions))]
     {
+        use tauri::Manager;
+
         stop_runtime_services(&app_handle);
         if let Some(state) = app_handle.try_state::<AppState>() {
             state.release_profile_lock();
