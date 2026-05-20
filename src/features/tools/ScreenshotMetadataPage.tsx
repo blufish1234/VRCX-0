@@ -43,6 +43,59 @@ function getFolderLatestModifiedAt(folder: any) {
 }
 
 const SCREENSHOT_GALLERY_FOLDER_CONFIG_KEY = 'screenshotGalleryFolder';
+const SCREENSHOT_GALLERY_SCROLL_CONFIG_KEY = 'screenshotGalleryScrollPositions';
+const SCREENSHOT_GALLERY_SCROLL_SAVE_DELAY_MS = 500;
+const MAX_SCREENSHOT_GALLERY_SCROLL_POSITIONS = 100;
+const MAX_SCREENSHOT_GALLERY_SCROLL_TOP = 50_000_000;
+
+function normalizeGalleryScrollTop(value: any) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+        return 0;
+    }
+    return Math.min(
+        MAX_SCREENSHOT_GALLERY_SCROLL_TOP,
+        Math.max(0, Math.round(numeric))
+    );
+}
+
+function normalizeGalleryScrollPositions(value: any) {
+    const entries =
+        value && typeof value === 'object' && !Array.isArray(value)
+            ? Object.entries(value)
+            : [];
+    const positions = new Map();
+
+    for (const [path, scrollTop] of entries) {
+        if (!path || typeof path !== 'string') {
+            continue;
+        }
+        positions.set(path, normalizeGalleryScrollTop(scrollTop));
+        if (positions.size >= MAX_SCREENSHOT_GALLERY_SCROLL_POSITIONS) {
+            break;
+        }
+    }
+
+    return positions;
+}
+
+function serializeGalleryScrollPositions(positions: any) {
+    const result: Record<string, number> = {};
+    for (const [path, scrollTop] of Array.from(positions.entries())
+        .filter(([path]: any) => Boolean(path))
+        .slice(-MAX_SCREENSHOT_GALLERY_SCROLL_POSITIONS) as any[]) {
+        result[String(path)] = normalizeGalleryScrollTop(scrollTop);
+    }
+    return result;
+}
+
+function getGalleryFolderPathSet(folderTree: any) {
+    return new Set(
+        (Array.isArray(folderTree?.folders) ? folderTree.folders : [])
+            .map((folder: any) => folder?.path)
+            .filter(Boolean)
+    );
+}
 
 function resolveGalleryFolder(folderTree: any, preferredFolders: any) {
     const folders = Array.isArray(folderTree?.folders)
@@ -98,6 +151,7 @@ export function ScreenshotMetadataPage() {
     const galleryRequestRef = useRef(0);
     const selectedGalleryFolderRef = useRef('');
     const galleryScrollPositionsRef = useRef(new Map());
+    const galleryScrollPersistTimerRef = useRef<number | null>(null);
     const routePath = searchParams.get('path') || '';
     const routeFolder = searchParams.get('folder') || '';
     const isGalleryMode = !routePath;
@@ -171,13 +225,17 @@ export function ScreenshotMetadataPage() {
 
     useEffect(() => {
         let active = true;
-        configRepository
-            .getString(SCREENSHOT_GALLERY_FOLDER_CONFIG_KEY, '')
-            .then((value: any) => {
+        Promise.all([
+            configRepository.getString(SCREENSHOT_GALLERY_FOLDER_CONFIG_KEY, ''),
+            configRepository.getObject(SCREENSHOT_GALLERY_SCROLL_CONFIG_KEY, {})
+        ])
+            .then(([folder, scrollPositions]: any) => {
                 if (!active) {
                     return;
                 }
-                setStoredGalleryFolder(value || '');
+                setStoredGalleryFolder(folder || '');
+                galleryScrollPositionsRef.current =
+                    normalizeGalleryScrollPositions(scrollPositions);
             })
             .catch(() => {})
             .finally(() => {
@@ -188,6 +246,18 @@ export function ScreenshotMetadataPage() {
 
         return () => {
             active = false;
+            if (galleryScrollPersistTimerRef.current !== null) {
+                window.clearTimeout(galleryScrollPersistTimerRef.current);
+                galleryScrollPersistTimerRef.current = null;
+                configRepository
+                    .setObject(
+                        SCREENSHOT_GALLERY_SCROLL_CONFIG_KEY,
+                        serializeGalleryScrollPositions(
+                            galleryScrollPositionsRef.current
+                        )
+                    )
+                    .catch(() => {});
+            }
         };
     }, []);
 
@@ -384,6 +454,12 @@ export function ScreenshotMetadataPage() {
             const tree = await mediaRepository.getScreenshotFolderTree();
             setFolderTree(tree || null);
             setGalleryTreeError('');
+            const folderPathSet = getGalleryFolderPathSet(tree);
+            galleryScrollPositionsRef.current = new Map(
+                Array.from(galleryScrollPositionsRef.current.entries()).filter(
+                    ([path]: any) => folderPathSet.has(path)
+                )
+            );
             setSelectedGalleryFolder((current: any) =>
                 resolveGalleryFolder(
                     tree,
@@ -576,13 +652,42 @@ export function ScreenshotMetadataPage() {
             if (!folder) {
                 return;
             }
-            galleryScrollPositionsRef.current.set(
-                folder,
-                Math.max(0, Number(scrollTop) || 0)
-            );
+            const normalizedScrollTop = normalizeGalleryScrollTop(scrollTop);
+            const positions = galleryScrollPositionsRef.current;
+            positions.delete(folder);
+            positions.set(folder, normalizedScrollTop);
+
+            if (galleryScrollPersistTimerRef.current !== null) {
+                window.clearTimeout(galleryScrollPersistTimerRef.current);
+            }
+            galleryScrollPersistTimerRef.current = window.setTimeout(() => {
+                galleryScrollPersistTimerRef.current = null;
+                configRepository
+                    .setObject(
+                        SCREENSHOT_GALLERY_SCROLL_CONFIG_KEY,
+                        serializeGalleryScrollPositions(
+                            galleryScrollPositionsRef.current
+                        )
+                    )
+                    .catch(() => {});
+            }, SCREENSHOT_GALLERY_SCROLL_SAVE_DELAY_MS);
         },
         []
     );
+
+    useEffect(() => {
+        if (!isGalleryFolderPreferenceLoaded || !folderTree) {
+            return;
+        }
+        configRepository
+            .setObject(
+                SCREENSHOT_GALLERY_SCROLL_CONFIG_KEY,
+                serializeGalleryScrollPositions(
+                    galleryScrollPositionsRef.current
+                )
+            )
+            .catch(() => {});
+    }, [folderTree, isGalleryFolderPreferenceLoaded]);
 
     async function browseForScreenshot() {
         try {

@@ -7,10 +7,7 @@ import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import {
     Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle
+    CardContent
 } from '@/ui/shadcn/card';
 
 import {
@@ -31,14 +28,6 @@ export function ScreenshotMetadataDetailsCard({
 
     return (
         <Card className="flex min-h-0 flex-col">
-            <CardHeader>
-                <CardTitle>{t('view.tools.description.details')}</CardTitle>
-                <CardDescription>
-                    {t(
-                        'view.tools.label.metadata_extracted_from_the_selected_vrchat_screenshot'
-                    )}
-                </CardDescription>
-            </CardHeader>
             <CardContent className="flex flex-col gap-6 overflow-y-auto">
                 {searchRowsCount ? (
                     <Button
