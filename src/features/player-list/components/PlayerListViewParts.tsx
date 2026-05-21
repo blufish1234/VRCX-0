@@ -383,6 +383,17 @@ export function PlayerListEmptyRow({ table, title, description }: any) {
     );
 }
 
-export function PlayerListEmptyState({ title, description }: any) {
-    return <EmptyState title={title} description={description} />;
+export function PlayerListEmptyState({
+    title,
+    description,
+    className = ''
+}: any) {
+    return (
+        <EmptyState
+            title={title}
+            description={description}
+            icon={UsersIcon}
+            className={className}
+        />
+    );
 }

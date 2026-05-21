@@ -59,6 +59,19 @@ pub(super) fn build_friend_state_map(snapshot: &Value) -> (HashMap<String, Strin
     let mut state_by_id = HashMap::new();
     let mut ordered_ids = Vec::new();
     let mut seen = HashSet::new();
+    let has_state_bucket_arrays = ["offlineFriends", "activeFriends", "onlineFriends"]
+        .iter()
+        .any(|key| object_field(snapshot, key).is_some_and(Value::is_array));
+    if has_state_bucket_arrays {
+        add_state_bucket_ids(
+            snapshot,
+            "friends",
+            "offline",
+            &mut state_by_id,
+            &mut ordered_ids,
+            &mut seen,
+        );
+    }
     add_state_bucket_ids(
         snapshot,
         "offlineFriends",
@@ -156,10 +169,15 @@ fn profile_state_bucket(friend: &Value) -> Option<String> {
 }
 
 fn fetched_source_state_bucket(profile: &RemoteFriendProfile) -> Option<String> {
-    if profile.source_state_bucket.as_deref() == Some("online")
-        && object_field_string(&profile.raw, &["platform"]).eq_ignore_ascii_case("web")
-    {
-        return Some("active".into());
+    if profile.source_state_bucket.as_deref() == Some("online") {
+        let platform = object_field_string(&profile.raw, &["platform"]);
+        if platform.eq_ignore_ascii_case("web") {
+            return Some("active".into());
+        }
+        if !platform.is_empty() && !platform.eq_ignore_ascii_case("offline") {
+            return Some("online".into());
+        }
+        return Some("offline".into());
     }
     profile.source_state_bucket.clone()
 }

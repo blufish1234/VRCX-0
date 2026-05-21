@@ -17,6 +17,72 @@ import {
     PlayerListTableShell
 } from './PlayerListViewParts';
 
+function resolvePlayerListEmptyCopy({
+    gameLogDisabled,
+    isGameRunning,
+    isPlayerListSourceUnavailable,
+    parsedLocation,
+    t
+}: any) {
+    if (gameLogDisabled) {
+        return {
+            title: t('view.game_log.label.game_log_is_disabled'),
+            description: t(
+                'view.player_list.empty.enable_game_log_ingestion_in_settings_before_current_players_can_be_reconstructed'
+            )
+        };
+    }
+
+    if (!isGameRunning) {
+        return {
+            title: t('status_bar.game_stopped'),
+            description: t(
+                'view.player_list.empty.start_vrchat_and_let_vrcx_receive_game_log_events_before_this_page_can_rebuild_the_current_instance'
+            )
+        };
+    }
+
+    if (isPlayerListSourceUnavailable) {
+        return {
+            title: t(
+                'view.dashboard.error.current_players_are_not_available_yet'
+            ),
+            description: t(
+                'view.player_list.empty.stay_in_the_instance_until_local_join_leave_events_are_recorded'
+            )
+        };
+    }
+
+    if (parsedLocation.isTraveling) {
+        return {
+            title: t(
+                'view.player_list.empty.currently_traveling_between_instances'
+            ),
+            description: t(
+                'view.player_list.empty.current_players_follow_live_instance_locations'
+            )
+        };
+    }
+
+    if (parsedLocation.isOffline) {
+        return {
+            title: t('view.player_list.empty.no_current_instance_detected'),
+            description: t(
+                'view.player_list.empty.local_join_leave_history_has_no_current_players'
+            )
+        };
+    }
+
+    return {
+        title: t(
+            'view.player_list.empty.no_players_reconstructed_for_this_instance_yet'
+        ),
+        description: t(
+            'view.player_list.empty.local_join_leave_history_has_no_current_players'
+        )
+    };
+}
+
 export function PlayerListTableSection({
     detail,
     filteredRows,
@@ -59,15 +125,16 @@ export function PlayerListTableSection({
     const hasRows = filteredRows.length > 0;
     const isLoading = loadStatus === 'running' && playerSourceRows.length === 0;
     const isError = loadStatus === 'error' && playerSourceRows.length === 0;
+    const emptyCopy = resolvePlayerListEmptyCopy({
+        gameLogDisabled,
+        isGameRunning,
+        isPlayerListSourceUnavailable,
+        parsedLocation,
+        t
+    });
 
     return (
         <div className="current-instance-table flex min-h-0 min-w-0 flex-1 flex-col">
-            <div className="mb-2 flex justify-end">
-                <TableColumnVisibilityMenu
-                    table={table}
-                    onResetLayout={tableState.resetLayout}
-                />
-            </div>
             {isLoading ? (
                 <LoadingState
                     label={t(
@@ -84,41 +151,31 @@ export function PlayerListTableSection({
                         'Current players could not be rebuilt for the current instance.'
                     )}
                 />
+            ) : !hasRows ? (
+                <PlayerListEmptyState
+                    title={emptyCopy.title}
+                    description={emptyCopy.description}
+                    className="min-h-0 flex-1"
+                />
             ) : (
-                <PlayerListTableShell
-                    table={table}
-                    onResetLayout={tableState.resetLayout}
-                >
-                    <PlayerListRows
+                <>
+                    <div className="mb-2 flex justify-end">
+                        <TableColumnVisibilityMenu
+                            table={table}
+                            onResetLayout={tableState.resetLayout}
+                        />
+                    </div>
+                    <PlayerListTableShell
                         table={table}
-                        hasRows={hasRows}
-                        onOpenPlayer={onOpenPlayer}
-                        emptyTitle={
-                            gameLogDisabled
-                                ? 'Game log is disabled'
-                                : !isGameRunning
-                                  ? 'VRChat is not running'
-                                  : isPlayerListSourceUnavailable
-                                    ? 'Current players are not available yet'
-                                    : parsedLocation.isTraveling
-                                      ? 'Currently traveling between instances'
-                                      : parsedLocation.isOffline
-                                        ? 'No current instance detected'
-                                        : 'No players reconstructed for this instance yet'
-                        }
-                        emptyDescription={
-                            gameLogDisabled
-                                ? 'Enable game log ingestion in settings before current players can be reconstructed.'
-                                : !isGameRunning
-                                  ? 'Start VRChat and let VRCX-0 receive game-log events before this page can rebuild the current instance.'
-                                  : isPlayerListSourceUnavailable
-                                    ? 'Stay in the instance until local join/leave events are recorded, then this table will populate automatically.'
-                                    : parsedLocation.isTraveling
-                                      ? 'Current players follow live instance locations. They will repopulate after the next location event lands.'
-                                      : 'The local join/leave history does not have any current players for the active location yet.'
-                        }
-                    />
-                </PlayerListTableShell>
+                        onResetLayout={tableState.resetLayout}
+                    >
+                        <PlayerListRows
+                            table={table}
+                            hasRows={hasRows}
+                            onOpenPlayer={onOpenPlayer}
+                        />
+                    </PlayerListTableShell>
+                </>
             )}
         </div>
     );

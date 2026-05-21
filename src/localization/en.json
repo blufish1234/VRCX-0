@@ -2225,7 +2225,15 @@
                 "created": "Created"
             },
             "empty": {
-                "no_user_id_was_found_for_this_player_row": "No user id was found for this player row"
+                "no_user_id_was_found_for_this_player_row": "No user id was found for this player row",
+                "currently_traveling_between_instances": "Currently traveling between instances",
+                "no_current_instance_detected": "No current instance detected",
+                "no_players_reconstructed_for_this_instance_yet": "No players reconstructed for this instance yet",
+                "enable_game_log_ingestion_in_settings_before_current_players_can_be_reconstructed": "Enable game log ingestion in settings before current players can be reconstructed.",
+                "start_vrchat_and_let_vrcx_receive_game_log_events_before_this_page_can_rebuild_the_current_instance": "Start VRChat and let VRCX-0 receive game-log events before this page can rebuild the current instance.",
+                "stay_in_the_instance_until_local_join_leave_events_are_recorded": "Stay in the instance until local join/leave events are recorded, then this table will populate automatically.",
+                "current_players_follow_live_instance_locations": "Current players follow live instance locations. They will repopulate after the next location event lands.",
+                "local_join_leave_history_has_no_current_players": "The local join/leave history does not have any current players for the active location yet."
             },
             "label": {
                 "instance_master": "Instance Master",

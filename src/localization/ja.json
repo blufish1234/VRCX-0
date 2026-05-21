@@ -2225,7 +2225,15 @@
                 "created": "作成日"
             },
             "empty": {
-                "no_user_id_was_found_for_this_player_row": "このプレイヤー行にユーザー ID がありません"
+                "no_user_id_was_found_for_this_player_row": "このプレイヤー行にユーザー ID がありません",
+                "currently_traveling_between_instances": "インスタンス間を移動中です",
+                "no_current_instance_detected": "現在のインスタンスが検出されていません",
+                "no_players_reconstructed_for_this_instance_yet": "このインスタンスのプレイヤーはまだ再構築されていません",
+                "enable_game_log_ingestion_in_settings_before_current_players_can_be_reconstructed": "現在のプレイヤーを再構築するには、設定でゲームログ取り込みを有効にしてください。",
+                "start_vrchat_and_let_vrcx_receive_game_log_events_before_this_page_can_rebuild_the_current_instance": "VRChat を起動し、VRCX-0 がゲームログイベントを受信すると、このページで現在のインスタンスを再構築できます。",
+                "stay_in_the_instance_until_local_join_leave_events_are_recorded": "ローカルの参加/退出イベントが記録されるまでインスタンスに留まると、この一覧は自動的に表示されます。",
+                "current_players_follow_live_instance_locations": "現在のプレイヤーはリアルタイムのインスタンス位置に追従します。次の位置イベント後に再表示されます。",
+                "local_join_leave_history_has_no_current_players": "ローカルの参加/退出履歴には、現在の場所のプレイヤーがまだありません。"
             },
             "label": {
                 "instance_master": "インスタンスマスター",
