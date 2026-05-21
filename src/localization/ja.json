@@ -509,6 +509,7 @@
                 "dense": "高密度"
             },
             "separate_same_instance_friends": "同じインスタンスのフレンドを分けて表示",
+            "show_same_instance_in_online": "オンラインに同じインスタンスを表示",
             "loading_more": "読み込み中...",
             "busy": "取り込み中",
             "local_group": "ローカル: {name}",

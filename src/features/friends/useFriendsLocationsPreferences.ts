@@ -10,7 +10,8 @@ import {
 } from './friendsLocationsDensity';
 
 export function useFriendsLocationsPreferences() {
-    const [showSameInstance, setShowSameInstance] = useState(false);
+    const [showSameInstanceInOnline, setShowSameInstanceInOnline] =
+        useState(false);
     const [density, setDensity] = useState(DEFAULT_FRIENDS_LOCATIONS_DENSITY);
     const [sidebarFavoritePrefs, setSidebarFavoritePrefs] = useState<any>({
         isDivideByGroup: false,
@@ -58,7 +59,7 @@ export function useFriendsLocationsPreferences() {
                     }
 
                     setDensity(sanitizeFriendsLocationsDensity(nextDensity));
-                    setShowSameInstance(Boolean(nextShowSameInstance));
+                    setShowSameInstanceInOnline(Boolean(nextShowSameInstance));
                     setSidebarFavoritePrefs({
                         isDivideByGroup: Boolean(nextDivideByGroup),
                         selectedGroups: parseConfigArray(nextSelectedGroups),
@@ -146,9 +147,9 @@ export function useFriendsLocationsPreferences() {
         };
     }, []);
 
-    function changeShowSameInstance(value: any) {
+    function changeShowSameInstanceInOnline(value: any) {
         const nextValue = Boolean(value);
-        setShowSameInstance(nextValue);
+        setShowSameInstanceInOnline(nextValue);
         configRepository.setBool('FriendLocationShowSameInstance', nextValue);
     }
 
@@ -160,9 +161,9 @@ export function useFriendsLocationsPreferences() {
 
     return {
         changeDensityPreference,
-        changeShowSameInstance,
+        changeShowSameInstanceInOnline,
         density,
-        showSameInstance,
+        showSameInstanceInOnline,
         sidebarFavoritePrefs,
         sidebarSortMethods
     };

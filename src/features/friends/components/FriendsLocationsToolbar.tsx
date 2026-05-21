@@ -20,11 +20,11 @@ export function FriendsLocationsToolbar({
     activeSegment,
     segmentOptions,
     searchQuery,
-    showSameInstance,
+    showSameInstanceInOnline,
     density,
     onActiveSegmentChange,
     onSearchQueryChange,
-    onShowSameInstanceChange,
+    onShowSameInstanceInOnlineChange,
     onDensityChange
 }: any) {
     const { t } = useTranslation();
@@ -87,14 +87,16 @@ export function FriendsLocationsToolbar({
                             <FieldContent>
                                 <FieldLabel htmlFor="friends-locations-same-instance">
                                     {t(
-                                        'view.friends_locations.separate_same_instance_friends'
+                                        'view.friends_locations.show_same_instance_in_online'
                                     )}
                                 </FieldLabel>
                             </FieldContent>
                             <Switch
                                 id="friends-locations-same-instance"
-                                checked={showSameInstance}
-                                onCheckedChange={onShowSameInstanceChange}
+                                checked={showSameInstanceInOnline}
+                                onCheckedChange={
+                                    onShowSameInstanceInOnlineChange
+                                }
                             />
                         </Field>
                         <Field>

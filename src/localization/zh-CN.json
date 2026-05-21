@@ -509,6 +509,7 @@
                 "dense": "紧密"
             },
             "separate_same_instance_friends": "分开显示处于同一房间的好友",
+            "show_same_instance_in_online": "在“在线”中显示同一房间",
             "loading_more": "加载中...",
             "busy": "忙碌",
             "local_group": "本地：{name}",

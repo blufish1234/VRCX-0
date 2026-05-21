@@ -29,11 +29,13 @@ export function FriendsLocationsPage({
                 activeSegment={filters.activeSegment}
                 segmentOptions={derived.segmentOptions}
                 searchQuery={filters.searchQuery}
-                showSameInstance={preferences.showSameInstance}
+                showSameInstanceInOnline={preferences.showSameInstanceInOnline}
                 density={preferences.density}
                 onActiveSegmentChange={filters.setActiveSegment}
                 onSearchQueryChange={filters.setSearchQuery}
-                onShowSameInstanceChange={preferences.changeShowSameInstance}
+                onShowSameInstanceInOnlineChange={
+                    preferences.changeShowSameInstanceInOnline
+                }
                 onDensityChange={preferences.changeDensityPreference}
             />
             <FriendsLocationsVirtualList

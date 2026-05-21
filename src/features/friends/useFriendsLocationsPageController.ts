@@ -18,9 +18,9 @@ export function useFriendsLocationsPageController() {
     );
     const {
         changeDensityPreference,
-        changeShowSameInstance,
+        changeShowSameInstanceInOnline,
         density,
-        showSameInstance,
+        showSameInstanceInOnline,
         sidebarFavoritePrefs,
         sidebarSortMethods
     } = useFriendsLocationsPreferences();
@@ -32,14 +32,13 @@ export function useFriendsLocationsPageController() {
     } = useScrollViewportMetrics();
 
     useEffect(() => {
-        if (!showSameInstance && activeSegment === 'same-instance') {
-            setActiveSegment('online');
-        }
-    }, [activeSegment, setActiveSegment, showSameInstance]);
-
-    useEffect(() => {
         resetScrollTop();
-    }, [activeSegment, deferredSearchQuery, resetScrollTop, showSameInstance]);
+    }, [
+        activeSegment,
+        deferredSearchQuery,
+        resetScrollTop,
+        showSameInstanceInOnline
+    ]);
 
     const derived = useFriendsLocationsPageDerivedState({
         activeIds: roster.activeIds,
@@ -61,7 +60,7 @@ export function useFriendsLocationsPageController() {
         remoteFavoriteFriendIds: roster.remoteFavoriteFriendIds,
         rosterStatus: roster.rosterStatus,
         scrollMetrics,
-        showSameInstance,
+        showSameInstanceInOnline,
         sidebarFavoritePrefs,
         sidebarSortMethods
     });
@@ -85,9 +84,9 @@ export function useFriendsLocationsPageController() {
         },
         preferences: {
             changeDensityPreference,
-            changeShowSameInstance,
+            changeShowSameInstanceInOnline,
             density,
-            showSameInstance
+            showSameInstanceInOnline
         },
         runtime: {
             canBoop: runtime.canBoop,

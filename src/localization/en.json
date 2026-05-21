@@ -509,6 +509,7 @@
                 "dense": "Dense"
             },
             "separate_same_instance_friends": "Separate Same Instance Friends",
+            "show_same_instance_in_online": "Show Same Instance in Online",
             "loading_more": "Loading more...",
             "busy": "Busy",
             "local_group": "Local: {name}",

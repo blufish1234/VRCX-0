@@ -47,7 +47,7 @@ export function useFriendsLocationsPageDerivedState({
     remoteFavoriteFriendIds,
     rosterStatus,
     scrollMetrics,
-    showSameInstance,
+    showSameInstanceInOnline,
     sidebarFavoritePrefs,
     sidebarSortMethods
 }: any) {
@@ -223,14 +223,7 @@ export function useFriendsLocationsPageDerivedState({
             ),
         [onlineNonFavoriteFriends, sameInstanceFriendIds]
     );
-    const segmentOptions = useMemo(
-        () =>
-            SEGMENTS.filter(
-                (segment: any) =>
-                    showSameInstance || segment.value !== 'same-instance'
-            ),
-        [showSameInstance]
-    );
+    const segmentOptions = SEGMENTS;
     const segmentMap = useMemo(
         () => ({
             online: onlineFriends,
@@ -262,7 +255,9 @@ export function useFriendsLocationsPageDerivedState({
         }
         const source =
             activeSegment === 'online'
-                ? onlineNonFavoriteFriends
+                ? showSameInstanceInOnline
+                    ? onlineNonFavoriteFriends
+                    : onlineWithoutSameInstanceFriends
                 : (segmentMap[activeSegment] ?? []);
         return source.filter((friend: any) =>
             matchesSearch(friend, deferredSearchQuery, favoriteIds)
@@ -276,7 +271,9 @@ export function useFriendsLocationsPageDerivedState({
         offlineFriends,
         onlineFriends,
         onlineNonFavoriteFriends,
-        segmentMap
+        onlineWithoutSameInstanceFriends,
+        segmentMap,
+        showSameInstanceInOnline
     ]);
     const favoriteGroupSections = useMemo(() => {
         if (
@@ -439,7 +436,7 @@ export function useFriendsLocationsPageDerivedState({
         if (
             !deferredSearchQuery.trim() &&
             activeSegment === 'online' &&
-            !showSameInstance &&
+            showSameInstanceInOnline &&
             sameInstanceFriends.length
         ) {
             const sameInstanceSections = buildSameInstanceSections({
@@ -463,7 +460,8 @@ export function useFriendsLocationsPageDerivedState({
                               description: '',
                               friends: otherFriends,
                               worldId: '',
-                              groupId: ''
+                              groupId: '',
+                              topDivider: true
                           }
                       ]
                     : [])
@@ -485,7 +483,7 @@ export function useFriendsLocationsPageDerivedState({
         onlineWithoutSameInstanceFriends,
         sameInstanceGroups,
         sameInstanceFriends,
-        showSameInstance,
+        showSameInstanceInOnline,
         visibleFriends,
         t
     ]);
@@ -532,6 +530,13 @@ export function useFriendsLocationsPageDerivedState({
                 if (section.collapsed) {
                     continue;
                 }
+            }
+            if (section.topDivider) {
+                rows.push({
+                    type: 'divider',
+                    key: `divider:${section.key}`,
+                    height: Math.max(12, cardGridGap * 2)
+                });
             }
             const showHeader =
                 section.type !== 'favoriteGroup' &&

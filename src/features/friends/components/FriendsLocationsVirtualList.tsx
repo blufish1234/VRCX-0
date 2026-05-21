@@ -76,6 +76,10 @@ export function FriendsLocationsVirtualList({
                                         locationCommands.toggleFavoriteGroup
                                     }
                                 />
+                            ) : row.type === 'divider' ? (
+                                <div className="flex h-full items-center">
+                                    <div className="border-border w-full border-t" />
+                                </div>
                             ) : (
                                 <div
                                     className="grid overflow-hidden"
