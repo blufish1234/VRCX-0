@@ -59,19 +59,14 @@ pub(super) fn build_friend_state_map(snapshot: &Value) -> (HashMap<String, Strin
     let mut state_by_id = HashMap::new();
     let mut ordered_ids = Vec::new();
     let mut seen = HashSet::new();
-    let has_state_bucket_arrays = ["offlineFriends", "activeFriends", "onlineFriends"]
-        .iter()
-        .any(|key| object_field(snapshot, key).is_some_and(Value::is_array));
-    if has_state_bucket_arrays {
-        add_state_bucket_ids(
-            snapshot,
-            "friends",
-            "offline",
-            &mut state_by_id,
-            &mut ordered_ids,
-            &mut seen,
-        );
-    }
+    add_state_bucket_ids(
+        snapshot,
+        "friends",
+        "offline",
+        &mut state_by_id,
+        &mut ordered_ids,
+        &mut seen,
+    );
     add_state_bucket_ids(
         snapshot,
         "offlineFriends",
@@ -168,47 +163,11 @@ fn profile_state_bucket(friend: &Value) -> Option<String> {
     })
 }
 
-fn is_offline_location_tag(location: &str) -> bool {
-    let normalized = location.trim().to_ascii_lowercase();
-    matches!(normalized.as_str(), "offline" | "offline:offline")
-}
-
-fn presence_location_tags(value: &Value) -> Vec<String> {
-    [
-        object_field_string(value, &["location"]),
-        object_field(value, "$location")
-            .map(|value| object_field_string(value, &["tag"]))
-            .unwrap_or_default(),
-        object_field_string(value, &["$locationTag"]),
-    ]
-    .into_iter()
-    .filter(|value| !value.trim().is_empty())
-    .collect()
-}
-
-fn has_offline_presence_location(value: &Value) -> bool {
-    presence_location_tags(value)
-        .into_iter()
-        .any(|value| is_offline_location_tag(&value))
-}
-
-fn has_presence_location(value: &Value) -> bool {
-    presence_location_tags(value)
-        .into_iter()
-        .any(|value| !value.trim().is_empty())
-}
-
 fn fetched_source_state_bucket(profile: &RemoteFriendProfile) -> Option<String> {
     if profile.source_state_bucket.as_deref() == Some("online") {
-        if has_offline_presence_location(&profile.raw) {
-            return Some("offline".into());
-        }
         let platform = object_field_string(&profile.raw, &["platform"]);
         if platform.eq_ignore_ascii_case("web") {
             return Some("active".into());
-        }
-        if has_presence_location(&profile.raw) {
-            return Some("online".into());
         }
         if !platform.is_empty() && !platform.eq_ignore_ascii_case("offline") {
             return Some("online".into());
@@ -750,6 +709,7 @@ pub async fn build_friend_roster_baseline(
         has_friend_list,
         ..
     } = current_user;
+    let has_snapshot_state_map = has_friend_list || !state_by_id.is_empty();
     let mut expected_ids = Vec::new();
     let mut expected_seen = HashSet::new();
     extend_unique(&mut expected_ids, &mut expected_seen, state_order_ids);
@@ -931,10 +891,13 @@ pub async fn build_friend_roster_baseline(
             .filter(|profile| profile.source_state_bucket.is_none())
             .and_then(|profile| profile_state_bucket(&profile.raw));
         let source_state_bucket = fetched_profile.and_then(fetched_source_state_bucket);
-        let state_bucket = snapshot_state
-            .or(trusted_profile_state)
-            .or(source_state_bucket)
-            .unwrap_or_else(|| "offline".into());
+        let state_bucket = if has_snapshot_state_map {
+            snapshot_state.unwrap_or_else(|| "offline".into())
+        } else {
+            trusted_profile_state
+                .or(source_state_bucket)
+                .unwrap_or_else(|| "offline".into())
+        };
         let normalized_friend = normalize_friend_entry(friend, &state_bucket, &existing_row);
         friends_by_id.insert(friend_id.clone(), normalized_friend.clone());
 
