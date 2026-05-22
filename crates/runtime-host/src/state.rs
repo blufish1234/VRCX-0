@@ -1360,6 +1360,14 @@ fn background_session_matches_auth(
         && normalize_vrchat_api_endpoint(Some(&session.endpoint)) == auth_scope.endpoint
 }
 
+fn gui_maintenance_runtime_mode(backend_runtime: &BackendRuntime) -> &'static str {
+    match backend_runtime.snapshot().mode {
+        BackendRuntimeMode::Foreground => "normal GUI mode",
+        BackendRuntimeMode::Background => "background GUI mode",
+        BackendRuntimeMode::Headless => "headless mode",
+    }
+}
+
 fn emit_background_info(
     runtime_context: &Arc<RuntimeHostContext>,
     backend_runtime: &BackendRuntime,
@@ -1840,7 +1848,11 @@ async fn run_background_current_user_refresh(
             background_jobs.mark_completed(BACKGROUND_FACTS_REFRESH_JOB, detail);
         }
         Err(error) => {
-            tracing::warn!(error = %error, "background current user refresh failed");
+            tracing::warn!(
+                runtime_mode = %gui_maintenance_runtime_mode(backend_runtime),
+                error = %error,
+                "GUI maintenance current user network request failed"
+            );
             emit_background_error(
                 runtime_context,
                 backend_runtime,
@@ -1938,7 +1950,11 @@ async fn run_background_group_instance_refresh(
                 );
                 return;
             }
-            tracing::warn!(error = %error, "background group instance refresh failed");
+            tracing::warn!(
+                runtime_mode = %gui_maintenance_runtime_mode(backend_runtime),
+                error = %error,
+                "GUI maintenance group instance network request failed"
+            );
             runtime_context
                 .event_bus
                 .emit_runtime_group_instances_projection(json!({
@@ -2072,7 +2088,11 @@ async fn run_background_social_baseline_refresh(
             }
         }
         Err(error) => {
-            tracing::warn!(error = %error, "background social baseline refresh failed");
+            tracing::warn!(
+                runtime_mode = %gui_maintenance_runtime_mode(context.backend_runtime),
+                error = %error,
+                "GUI maintenance social baseline network request failed"
+            );
             emit_background_error(
                 context.runtime_context,
                 context.backend_runtime,
@@ -2140,7 +2160,11 @@ async fn run_background_moderation_refresh(
             background_jobs.mark_completed(BACKGROUND_MODERATION_REFRESH_JOB, detail);
         }
         Err(error) => {
-            tracing::warn!(error = %error, "background moderation refresh failed");
+            tracing::warn!(
+                runtime_mode = %gui_maintenance_runtime_mode(backend_runtime),
+                error = %error,
+                "GUI maintenance moderation network request failed"
+            );
             emit_background_error(
                 runtime_context,
                 backend_runtime,
