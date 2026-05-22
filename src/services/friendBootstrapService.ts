@@ -38,6 +38,68 @@ function normalizeStateBucket(value: unknown) {
     return '';
 }
 
+function normalizePresenceText(value: unknown) {
+    return normalizeUserId(value).toLowerCase();
+}
+
+function readFriendStatusSource(friend: Record<string, any> | null | undefined) {
+    const ref = friend?.ref;
+    if (ref && typeof ref === 'object') {
+        return {
+            ...friend,
+            ...ref,
+            pendingOffline: Boolean(friend?.pendingOffline || ref.pendingOffline)
+        };
+    }
+    return friend;
+}
+
+function hasVueOnlineStatusDot(
+    friend: Record<string, any> | null | undefined
+) {
+    const source = readFriendStatusSource(friend);
+    if (!source || source.pendingOffline || source.isFriend === false) {
+        return false;
+    }
+
+    const status = normalizePresenceText(source.status);
+    const location = normalizePresenceText(
+        source.location || source.$location?.tag
+    );
+    const state = normalizePresenceText(source.state);
+    if (state === 'active' || location === 'offline') {
+        return false;
+    }
+
+    return (
+        status === 'active' ||
+        status === 'join me' ||
+        status === 'joinme' ||
+        status === 'ask me' ||
+        status === 'askme' ||
+        status === 'busy'
+    );
+}
+
+function resolveCurrentUserSnapshotPatchState(
+    existingFriend: Record<string, any> | null | undefined,
+    stateBucket: string
+) {
+    if (stateBucket !== 'online') {
+        return stateBucket;
+    }
+    if (!existingFriend) {
+        return '';
+    }
+
+    const source = readFriendStatusSource(existingFriend);
+    if (normalizePresenceText(source?.platform) === 'web') {
+        return 'active';
+    }
+
+    return hasVueOnlineStatusDot(existingFriend) ? 'online' : 'offline';
+}
+
 function getDisplayName(user: Record<string, any> | null | undefined) {
     return user?.displayName || user?.username || user?.id || '';
 }
@@ -342,15 +404,29 @@ export function syncFriendRosterStateFromCurrentUserSnapshot(
     if (!stateById.size) {
         return false;
     }
-    const patchEntries = Array.from(stateById.entries()).map(
-        ([userId, stateBucket]: any) => ({
-            userId,
-            stateBucket,
-            patch: {
-                id: userId,
-                state: stateBucket
+    const friendsById = useFriendRosterStore.getState().friendsById || {};
+    const patchEntries = Array.from(stateById.entries()).flatMap(
+        ([userId, stateBucket]: any) => {
+            const normalizedUserId = normalizeUserId(userId);
+            const existingFriend = friendsById[normalizedUserId];
+            const nextStateBucket = resolveCurrentUserSnapshotPatchState(
+                existingFriend,
+                stateBucket
+            );
+            if (!nextStateBucket) {
+                return [];
             }
-        })
+            return [
+                {
+                    userId: normalizedUserId,
+                    stateBucket: nextStateBucket,
+                    patch: {
+                        id: normalizedUserId,
+                        state: nextStateBucket
+                    }
+                }
+            ];
+        }
     );
     if (!patchEntries.length) {
         return false;

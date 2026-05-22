@@ -163,6 +163,58 @@ fn profile_state_bucket(friend: &Value) -> Option<String> {
     })
 }
 
+fn normalize_presence_text(value: &str) -> String {
+    normalize_text(value).to_ascii_lowercase()
+}
+
+fn profile_location_tag(friend: &Value) -> String {
+    let location = object_field_string(friend, &["location"]);
+    if !location.is_empty() {
+        return normalize_presence_text(&location);
+    }
+    let location = object_field(friend, "$location")
+        .map(|value| object_field_string(value, &["tag"]))
+        .unwrap_or_default();
+    normalize_presence_text(&location)
+}
+
+fn has_vue_online_status_dot(friend: &Value) -> bool {
+    if object_field(friend, "isFriend").and_then(Value::as_bool) == Some(false) {
+        return false;
+    }
+
+    let status = normalize_presence_text(&object_field_string(friend, &["status"]));
+    let state = normalize_presence_text(&object_field_string(friend, &["state"]));
+    let location = profile_location_tag(friend);
+    if state == "active" || location == "offline" {
+        return false;
+    }
+
+    matches!(
+        status.as_str(),
+        "active" | "join me" | "joinme" | "ask me" | "askme" | "busy"
+    )
+}
+
+fn vue_online_snapshot_bucket(friend: &Value) -> String {
+    let platform = normalize_presence_text(&object_field_string(friend, &["platform"]));
+    if platform == "web" {
+        return "active".into();
+    }
+
+    match normalize_presence_text(&object_field_string(friend, &["state"])).as_str() {
+        "active" => return "active".into(),
+        "offline" => return "offline".into(),
+        _ => {}
+    }
+
+    if has_vue_online_status_dot(friend) {
+        "online".into()
+    } else {
+        "offline".into()
+    }
+}
+
 fn fetched_source_state_bucket(profile: &RemoteFriendProfile) -> Option<String> {
     if profile.source_state_bucket.as_deref() == Some("online") {
         let platform = object_field_string(&profile.raw, &["platform"]);
@@ -892,7 +944,13 @@ pub async fn build_friend_roster_baseline(
             .and_then(|profile| profile_state_bucket(&profile.raw));
         let source_state_bucket = fetched_profile.and_then(fetched_source_state_bucket);
         let state_bucket = if has_snapshot_state_map {
-            snapshot_state.unwrap_or_else(|| "offline".into())
+            match snapshot_state.as_deref() {
+                Some("online") => fetched_profile
+                    .map(|profile| vue_online_snapshot_bucket(&profile.raw))
+                    .unwrap_or_else(|| "offline".into()),
+                Some(value) => value.to_string(),
+                None => "offline".into(),
+            }
         } else {
             trusted_profile_state
                 .or(source_state_bucket)

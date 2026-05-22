@@ -243,38 +243,8 @@ function buildRosterOrdering(
     };
 }
 
-function addSnapshotBucketIds(
-    bucketById: Map<string, FriendRosterBucket>,
-    ids: unknown,
-    bucket: FriendRosterBucket
-) {
-    if (!Array.isArray(ids)) {
-        return;
-    }
-
-    for (const value of ids) {
-        const normalizedUserId = normalizeUserId(value);
-        if (normalizedUserId) {
-            bucketById.set(normalizedUserId, bucket);
-        }
-    }
-}
-
-function buildSnapshotBucketMap({
-    offlineIds,
-    activeIds,
-    onlineIds
-}: Partial<FriendRosterSnapshot>) {
-    const bucketById = new Map<string, FriendRosterBucket>();
-    addSnapshotBucketIds(bucketById, offlineIds, 'offline');
-    addSnapshotBucketIds(bucketById, activeIds, 'active');
-    addSnapshotBucketIds(bucketById, onlineIds, 'online');
-    return bucketById;
-}
-
 function normalizeRosterSnapshotFriends(
-    friendsById: Record<string, FriendRecord> | null | undefined,
-    bucketById: Map<string, FriendRosterBucket>
+    friendsById: Record<string, FriendRecord> | null | undefined
 ): Record<string, FriendRecord> {
     const normalizedFriendsById: Record<string, FriendRecord> = {};
     for (const [rawUserId, friend] of Object.entries(friendsById || {})) {
@@ -285,7 +255,6 @@ function normalizeRosterSnapshotFriends(
             continue;
         }
         const stateBucket = resolveFriendStateBucket({
-            stateBucket: bucketById.get(normalizedUserId),
             patch: friend,
             existingEntry: friend
         });
@@ -385,15 +354,10 @@ export const useFriendRosterStore = create<FriendRosterStore>((set: any) => ({
     setRosterSnapshot({
         currentUserId,
         friendsById,
-        onlineIds = [],
-        activeIds = [],
-        offlineIds = [],
         detail = ''
     }: any) {
-        const normalizedFriendsById = normalizeRosterSnapshotFriends(
-            friendsById,
-            buildSnapshotBucketMap({ onlineIds, activeIds, offlineIds })
-        );
+        const normalizedFriendsById =
+            normalizeRosterSnapshotFriends(friendsById);
         const ordering = buildRosterOrdering(normalizedFriendsById);
         set({
             currentUserId,
