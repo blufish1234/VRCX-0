@@ -574,22 +574,11 @@ fn normalize_friend_entry(
         .or_else(|| object.get("lastPlatform"))
         .map(value_as_string)
         .unwrap_or_default();
-    let source_value = Value::Object(object.clone());
-    let effective_state_bucket =
-        if state_bucket == "online" && has_offline_presence_location(&source_value) {
-            "offline"
-        } else {
-            state_bucket
-        };
-
     object.insert("displayName".into(), Value::String(display_name));
-    object.insert(
-        "state".into(),
-        Value::String(effective_state_bucket.to_string()),
-    );
+    object.insert("state".into(), Value::String(state_bucket.to_string()));
     object.insert(
         "stateBucket".into(),
-        Value::String(effective_state_bucket.to_string()),
+        Value::String(state_bucket.to_string()),
     );
     object.insert("friendNumber".into(), number_value(friend_number));
     object.insert("trustLevel".into(), Value::String(trust_level.clone()));
@@ -937,13 +926,14 @@ pub async fn build_friend_roster_baseline(
         }
 
         let snapshot_state_bucket = state_by_id.get(friend_id).map(String::as_str);
+        let snapshot_state = snapshot_state_bucket.map(|value| value.to_string());
         let trusted_profile_state = fetched_profile
             .filter(|profile| profile.source_state_bucket.is_none())
             .and_then(|profile| profile_state_bucket(&profile.raw));
         let source_state_bucket = fetched_profile.and_then(fetched_source_state_bucket);
-        let state_bucket = source_state_bucket
+        let state_bucket = snapshot_state
             .or(trusted_profile_state)
-            .or_else(|| snapshot_state_bucket.map(|value| value.to_string()))
+            .or(source_state_bucket)
             .unwrap_or_else(|| "offline".into());
         let normalized_friend = normalize_friend_entry(friend, &state_bucket, &existing_row);
         friends_by_id.insert(friend_id.clone(), normalized_friend.clone());
