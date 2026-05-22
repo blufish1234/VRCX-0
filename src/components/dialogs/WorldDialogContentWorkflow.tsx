@@ -43,6 +43,13 @@ import { Spinner } from '@/ui/shadcn/spinner';
 import { InstanceInviteDialog } from './InstanceInviteDialog';
 import { useWorldDialogOwnerActions } from './world-dialog/useWorldDialogOwnerActions';
 import { useWorldDialogRuntimeState } from './world-dialog/useWorldDialogRuntimeState';
+import {
+    INSTANCE_DIALOG_DISPLAY_NAME_KEY,
+    INSTANCE_DIALOG_DISPLAY_NAME_PRESETS_KEY,
+    normalizeInstanceDialogDisplayName,
+    normalizeInstanceDialogDisplayNamePresets,
+    prependInstanceDialogDisplayNamePreset
+} from './world-dialog/worldInstanceDisplayNamePresets';
 import { resolveCreatedInstanceDetails } from './world-dialog/worldInstanceResolver';
 import {
     normalizeEntityId,
@@ -897,6 +904,7 @@ export function WorldDialogContentWorkflow({
             ageGate,
             queueEnabled,
             displayName,
+            displayNamePresets,
             instanceName,
             legacyUserId
         ] = await Promise.all([
@@ -906,7 +914,11 @@ export function WorldDialogContentWorkflow({
             configRepository.getString('instanceDialogGroupAccessType', 'plus'),
             configRepository.getBool('instanceDialogAgeGate', false),
             configRepository.getBool('instanceDialogQueueEnabled', true),
-            configRepository.getString('instanceDialogDisplayName', ''),
+            configRepository.getString(INSTANCE_DIALOG_DISPLAY_NAME_KEY, ''),
+            configRepository.getArray(
+                INSTANCE_DIALOG_DISPLAY_NAME_PRESETS_KEY,
+                []
+            ),
             configRepository.getString('instanceDialogInstanceName', ''),
             configRepository.getString('instanceDialogUserId', '')
         ]);
@@ -930,6 +942,11 @@ export function WorldDialogContentWorkflow({
             queueEnabled: Boolean(queueEnabled),
             ageGate: Boolean(ageGate),
             displayName: displayName || '',
+            displayNamePresets:
+                normalizeInstanceDialogDisplayNamePresets(
+                    displayNamePresets,
+                    displayName
+                ),
             roleIds: '',
             instanceName: instanceName || '',
             legacyUserId: legacyUserId || currentUserId || ''
@@ -997,10 +1014,37 @@ export function WorldDialogContentWorkflow({
                 Boolean(form.ageGate)
             ),
             configRepository.setString(
-                'instanceDialogDisplayName',
+                INSTANCE_DIALOG_DISPLAY_NAME_KEY,
                 form.displayName || ''
             )
         ]).catch(() => {});
+    }
+
+    function saveNewInstanceDisplayNamePreset(value: any) {
+        const normalized = normalizeInstanceDialogDisplayName(value);
+        if (!normalized) {
+            return;
+        }
+
+        configRepository
+            .getArray(INSTANCE_DIALOG_DISPLAY_NAME_PRESETS_KEY, [])
+            .then((current: any) => {
+                const next = prependInstanceDialogDisplayNamePreset(
+                    current,
+                    normalized
+                );
+                return Promise.all([
+                    configRepository.setString(
+                        INSTANCE_DIALOG_DISPLAY_NAME_KEY,
+                        normalized
+                    ),
+                    configRepository.setArray(
+                        INSTANCE_DIALOG_DISPLAY_NAME_PRESETS_KEY,
+                        next
+                    )
+                ]);
+            })
+            .catch(() => {});
     }
 
     async function createWorldInstance(form: any) {
@@ -1050,7 +1094,7 @@ export function WorldDialogContentWorkflow({
                     Boolean(form.queueEnabled)
                 ),
                 configRepository.setString(
-                    'instanceDialogDisplayName',
+                    INSTANCE_DIALOG_DISPLAY_NAME_KEY,
                     form.displayName || ''
                 )
             ]);
@@ -1455,6 +1499,7 @@ export function WorldDialogContentWorkflow({
                     }
                 }}
                 onChange={saveNewInstanceDraft}
+                onCommitDisplayName={saveNewInstanceDisplayNamePreset}
                 onSubmit={(form: any) => {
                     createWorldInstance(form);
                 }}

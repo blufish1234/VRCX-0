@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ChevronDownIcon } from 'lucide-react';
 
 import { Button } from '@/ui/shadcn/button';
 import { Checkbox } from '@/ui/shadcn/checkbox';
@@ -14,6 +15,18 @@ import {
 import { Field, FieldGroup, FieldLabel } from '@/ui/shadcn/field';
 import { Input } from '@/ui/shadcn/input';
 import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput
+} from '@/ui/shadcn/input-group';
+import {
+    Popover,
+    PopoverAnchor,
+    PopoverContent,
+    PopoverTrigger
+} from '@/ui/shadcn/popover';
+import {
     Select,
     SelectContent,
     SelectGroup,
@@ -23,6 +36,10 @@ import {
 } from '@/ui/shadcn/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/shadcn/tabs';
 
+import {
+    normalizeInstanceDialogDisplayName,
+    prependInstanceDialogDisplayNamePreset
+} from './worldInstanceDisplayNamePresets';
 import { buildLegacyCreatedInstance } from './worldInstances';
 
 const accessTypeOptions = [
@@ -82,6 +99,7 @@ export function WorldNewInstanceDialog({
     submitting,
     onOpenChange,
     onChange,
+    onCommitDisplayName,
     onSubmit,
     onCopy,
     onSelfInvite,
@@ -100,12 +118,15 @@ export function WorldNewInstanceDialog({
         queueEnabled: true,
         ageGate: false,
         displayName: '',
+        displayNamePresets: [],
         roleIds: '',
         instanceName: '',
         legacyUserId: '',
         strict: false
     });
     const [legacySeed, setLegacySeed] = useState('00001');
+    const [displayNamePresetsOpen, setDisplayNamePresetsOpen] =
+        useState(false);
 
     useEffect(() => {
         if (open && request?.defaults) {
@@ -173,6 +194,42 @@ export function WorldNewInstanceDialog({
             groupName: groupLabel(group) || groupId,
             roleIds: ''
         });
+    }
+
+    const displayNamePresets = Array.isArray(form.displayNamePresets)
+        ? form.displayNamePresets
+        : [];
+
+    function patchDisplayName(value: any) {
+        patchForm({
+            displayName: String(value ?? '')
+        });
+    }
+
+    function commitDisplayNamePreset(value: any = form.displayName) {
+        if (form.selectedTab !== 'Normal') {
+            return;
+        }
+
+        const displayName = normalizeInstanceDialogDisplayName(value);
+        if (!displayName) {
+            return;
+        }
+
+        const nextPresets = prependInstanceDialogDisplayNamePreset(
+            displayNamePresets,
+            displayName
+        );
+        patchForm({
+            displayName,
+            displayNamePresets: nextPresets
+        });
+        onCommitDisplayName?.(displayName);
+    }
+
+    function selectDisplayNamePreset(value: any) {
+        commitDisplayNamePreset(value);
+        setDisplayNamePresetsOpen(false);
     }
 
     function renderGroupPicker(inputId: any, disabled: any = false) {
@@ -436,16 +493,72 @@ export function WorldNewInstanceDialog({
                                 <FieldLabel htmlFor="world-instance-display-name">
                                     {t('dialog.world.label.display_name')}
                                 </FieldLabel>
-                                <Input
-                                    id="world-instance-display-name"
-                                    value={form.displayName}
-                                    disabled={Boolean(request?.created)}
-                                    onChange={(event: any) =>
-                                        patchForm({
-                                            displayName: event.target.value
-                                        })
-                                    }
-                                />
+                                <Popover
+                                    open={displayNamePresetsOpen}
+                                    onOpenChange={setDisplayNamePresetsOpen}
+                                >
+                                    <PopoverAnchor asChild>
+                                        <InputGroup>
+                                            <InputGroupInput
+                                                id="world-instance-display-name"
+                                                value={form.displayName}
+                                                disabled={Boolean(
+                                                    request?.created
+                                                )}
+                                                onChange={(event: any) =>
+                                                    patchDisplayName(
+                                                        event.target.value
+                                                    )
+                                                }
+                                            />
+                                            {displayNamePresets.length ? (
+                                                <InputGroupAddon align="inline-end">
+                                                    <PopoverTrigger asChild>
+                                                        <InputGroupButton
+                                                            size="icon-xs"
+                                                            aria-label={t(
+                                                                'dialog.world.label.display_name'
+                                                            )}
+                                                            disabled={Boolean(
+                                                                request?.created
+                                                            )}
+                                                        >
+                                                            <ChevronDownIcon data-icon="inline-start" />
+                                                        </InputGroupButton>
+                                                    </PopoverTrigger>
+                                                </InputGroupAddon>
+                                            ) : null}
+                                        </InputGroup>
+                                    </PopoverAnchor>
+                                    {displayNamePresets.length ? (
+                                        <PopoverContent
+                                            align="start"
+                                            className="w-80 p-1"
+                                        >
+                                            <div className="flex max-h-64 flex-col gap-1 overflow-y-auto">
+                                                {displayNamePresets.map(
+                                                    (name: any) => (
+                                                        <Button
+                                                            key={name}
+                                                            type="button"
+                                                            variant="ghost"
+                                                            className="h-auto w-full justify-start p-1.5 text-left font-normal"
+                                                            onClick={() =>
+                                                                selectDisplayNamePreset(
+                                                                    name
+                                                                )
+                                                            }
+                                                        >
+                                                            <span className="truncate">
+                                                                {name}
+                                                            </span>
+                                                        </Button>
+                                                    )
+                                                )}
+                                            </div>
+                                        </PopoverContent>
+                                    ) : null}
+                                </Popover>
                             </Field>
                         </FieldGroup>
                     </TabsContent>
@@ -665,7 +778,10 @@ export function WorldNewInstanceDialog({
                             type="button"
                             variant="outline"
                             disabled={submitting}
-                            onClick={() => onCopy?.(activeCreated)}
+                            onClick={() => {
+                                commitDisplayNamePreset();
+                                onCopy?.(activeCreated);
+                            }}
                         >
                             {t('dialog.world.info.copy_url')}
                         </Button>
@@ -673,7 +789,10 @@ export function WorldNewInstanceDialog({
                             type="button"
                             variant="outline"
                             disabled={submitting}
-                            onClick={() => onSelfInvite?.(activeCreated)}
+                            onClick={() => {
+                                commitDisplayNamePreset();
+                                onSelfInvite?.(activeCreated);
+                            }}
                         >
                             {t('dialog.world.label.self_invite')}
                         </Button>
@@ -681,7 +800,10 @@ export function WorldNewInstanceDialog({
                             type="button"
                             variant="outline"
                             disabled={submitting || inviteDisabled}
-                            onClick={() => onInvite?.(activeCreated)}
+                            onClick={() => {
+                                commitDisplayNamePreset();
+                                onInvite?.(activeCreated);
+                            }}
                         >
                             {t('dialog.world.action.invite')}
                         </Button>
@@ -689,14 +811,20 @@ export function WorldNewInstanceDialog({
                             type="button"
                             variant="secondary"
                             disabled={submitting}
-                            onClick={() => onLaunch?.(activeCreated)}
+                            onClick={() => {
+                                commitDisplayNamePreset();
+                                onLaunch?.(activeCreated);
+                            }}
                         >
                             {t('dialog.world.action.launch')}
                         </Button>
                         <Button
                             type="button"
                             disabled={submitting}
-                            onClick={() => onOpenInGame?.(activeCreated)}
+                            onClick={() => {
+                                commitDisplayNamePreset();
+                                onOpenInGame?.(activeCreated);
+                            }}
                         >
                             {t('dialog.world.action.open_in_game')}
                         </Button>
@@ -716,7 +844,10 @@ export function WorldNewInstanceDialog({
                             disabled={
                                 submitting || form.selectedTab === 'Legacy'
                             }
-                            onClick={() => onSubmit(form)}
+                            onClick={() => {
+                                commitDisplayNamePreset();
+                                onSubmit(form);
+                            }}
                         >
                             {request?.selfInvite
                                 ? t('dialog.new_instance.create_and_invite')
