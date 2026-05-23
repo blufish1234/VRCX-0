@@ -415,7 +415,7 @@ export const StatusBarFooter = forwardRef(function StatusBarFooter(
                     {visibility.ws ? (
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <div className="-ml-px flex h-6 items-center gap-1.5 border-x px-2">
+                                <div className="-ml-px flex h-6 shrink-0 items-center gap-1.5 border-x px-2">
                                     <StatusDot
                                         active={Boolean(
                                             runtimeTransport.websocketConnected
@@ -444,6 +444,7 @@ export const StatusBarFooter = forwardRef(function StatusBarFooter(
                         label={t('status_bar.now_playing')}
                         value={nowPlaying.name || nowPlaying.url}
                         onClick={onOpenMediaLink}
+                        className="max-w-96 shrink overflow-hidden"
                     >
                         <NowPlayingProgress
                             formatter={formatDuration}

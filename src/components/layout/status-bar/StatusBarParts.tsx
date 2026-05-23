@@ -36,11 +36,21 @@ export function StatusSegment({
     const content = (
         <>
             {showDot ? <StatusDot active={active} warn={warn} /> : null}
-            <span className={cn('text-muted-foreground text-xs', labelClassName)}>
+            <span
+                className={cn(
+                    'text-muted-foreground shrink-0 text-xs',
+                    labelClassName
+                )}
+            >
                 {label}
             </span>
             {value ? (
-                <span className={cn('text-foreground truncate text-xs', valueClassName)}>
+                <span
+                    className={cn(
+                        'text-foreground min-w-0 truncate text-xs',
+                        valueClassName
+                    )}
+                >
                     {value}
                 </span>
             ) : null}
@@ -55,7 +65,7 @@ export function StatusSegment({
                 variant="ghost"
                 size="sm"
                 className={cn(
-                    'h-6 min-w-0 justify-start gap-1.5 rounded-none border-r px-2 text-left font-normal',
+                    'h-6 min-w-0 shrink-0 justify-start gap-1.5 rounded-none border-r px-2 text-left font-normal',
                     className
                 )}
                 onClick={onClick}
@@ -77,7 +87,7 @@ export function StatusSegment({
     const segment = (
         <div
             className={cn(
-                'flex h-6 min-w-0 items-center gap-1.5 border-r px-2',
+                'flex h-6 min-w-0 shrink-0 items-center gap-1.5 border-r px-2',
                 className
             )}
         >
