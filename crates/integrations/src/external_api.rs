@@ -279,6 +279,18 @@ fn normalize_url_origin(url: &Url) -> Option<String> {
     Some(url_origin(url))
 }
 
+fn url_origin(url: &Url) -> String {
+    match url.port() {
+        Some(port) => format!(
+            "{}://{}:{}",
+            url.scheme(),
+            url.host_str().unwrap_or(""),
+            port
+        ),
+        None => format!("{}://{}", url.scheme(), url.host_str().unwrap_or("")),
+    }
+}
+
 fn is_public_host(url: &Url) -> bool {
     let Some(host) = url.host_str().map(|host| host.trim().to_ascii_lowercase()) else {
         return false;
@@ -537,17 +549,5 @@ mod tests {
             &policy,
         )
         .is_err());
-    }
-}
-
-fn url_origin(url: &Url) -> String {
-    match url.port() {
-        Some(port) => format!(
-            "{}://{}:{}",
-            url.scheme(),
-            url.host_str().unwrap_or(""),
-            port
-        ),
-        None => format!("{}://{}", url.scheme(), url.host_str().unwrap_or("")),
     }
 }

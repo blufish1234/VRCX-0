@@ -239,11 +239,7 @@ pub(super) fn apply_friend_event(
             let previous = get_friend_value(state, &user_id);
             let user_patch =
                 event_user_patch(content, &user_id).unwrap_or_else(|| json!({ "id": user_id }));
-            let Some(state_bucket) =
-                resolve_location_event_state_bucket(content, previous.as_ref())
-            else {
-                return None;
-            };
+            let state_bucket = resolve_location_event_state_bucket(content, previous.as_ref())?;
             let patch = online_patch(content, user_patch, previous.as_ref(), now, &state_bucket);
             if let Some(previous) = previous.as_ref() {
                 add_gps_feed_entry_if_not_repeated(

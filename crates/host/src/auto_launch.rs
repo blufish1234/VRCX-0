@@ -731,11 +731,12 @@ fn shell_execute_local_app(
     use windows_sys::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
 
     let target_wide = wide_null(target);
-    let args_wide = args
-        .trim()
-        .is_empty()
-        .then(|| None)
-        .unwrap_or_else(|| Some(wide_null(args.trim())));
+    let args = args.trim();
+    let args_wide = if args.is_empty() {
+        None
+    } else {
+        Some(wide_null(args))
+    };
     let directory_wide = working_directory
         .map(str::trim)
         .filter(|value| !value.is_empty())
@@ -861,9 +862,9 @@ fn refresh_runs(inner: &mut Inner) {
                 | AppLauncherRunStatus::Failed
                 | AppLauncherRunStatus::Skipped
                 | AppLauncherRunStatus::Stopped
-        ) || run.finished_at.map_or(true, |finished| {
-            now_timestamp().saturating_sub(finished) < 300
-        })
+        ) || run
+            .finished_at
+            .is_none_or(|finished| now_timestamp().saturating_sub(finished) < 300)
     });
 }
 

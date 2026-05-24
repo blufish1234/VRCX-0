@@ -127,9 +127,7 @@ fn insert_fetched_friend(
     friend: Value,
     source_state_bucket: Option<&str>,
 ) -> Option<(String, String)> {
-    let Some(friend) = RemoteFriendProfile::from_raw(friend, source_state_bucket) else {
-        return None;
-    };
+    let friend = RemoteFriendProfile::from_raw(friend, source_state_bucket)?;
     let friend_id = friend.id.clone();
     unique_push(
         fetched_friend_ids_ordered,
@@ -1032,6 +1030,6 @@ mod tests {
         let profile = fetched_friends_by_id
             .get("usr_friend")
             .expect("inserted friend profile");
-        assert!(!fetched_profile_needs_user_refetch(&profile, &state_by_id));
+        assert!(!fetched_profile_needs_user_refetch(profile, &state_by_id));
     }
 }

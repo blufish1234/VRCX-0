@@ -140,11 +140,6 @@ fn insert_portal_spawn_on(
         .map(affected_count)
 }
 
-#[cfg(test)]
-fn insert_video_play(db: &DatabaseService, entry: &GameLogVideoPlayEntry) -> Result<u64, Error> {
-    insert_video_play_on(db, entry)
-}
-
 fn insert_video_play_on(
     target: &impl DbWriteTarget,
     entry: &GameLogVideoPlayEntry,
@@ -227,11 +222,6 @@ fn insert_event_on(target: &impl DbWriteTarget, entry: &GameLogEventEntry) -> Re
             &args,
         )
         .map(affected_count)
-}
-
-#[cfg(test)]
-fn insert_external(db: &DatabaseService, entry: &GameLogExternalEntry) -> Result<u64, Error> {
-    insert_external_on(db, entry)
 }
 
 fn insert_external_on(

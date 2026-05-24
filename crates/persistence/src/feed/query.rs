@@ -55,8 +55,7 @@ fn query_feed_rows(
     } else {
         format!("AND user_id IN ({})", vip_placeholders.join(", "))
     };
-    let excluded_placeholders =
-        add_list_params(&mut params, &query.excluded_user_ids, "excluded");
+    let excluded_placeholders = add_list_params(&mut params, &query.excluded_user_ids, "excluded");
     let excluded_query = if excluded_placeholders.is_empty() {
         String::new()
     } else {
@@ -84,7 +83,6 @@ fn query_feed_rows(
                 FEED_GPS_PROJECTION,
                 FEED_GPS_SOURCE_RANK,
                 &format!("location LIKE @instance_like {user_scope_query}"),
-                "created_at DESC, id DESC",
                 has_cursor,
             );
         }
@@ -112,7 +110,6 @@ fn query_feed_rows(
                 FEED_GPS_PROJECTION,
                 FEED_GPS_SOURCE_RANK,
                 &format!("1=1 {user_scope_query}"),
-                "created_at DESC, id DESC",
                 has_cursor,
             );
         }
@@ -124,7 +121,6 @@ fn query_feed_rows(
                 FEED_STATUS_PROJECTION,
                 FEED_STATUS_SOURCE_RANK,
                 &format!("1=1 {user_scope_query}"),
-                "created_at DESC, id DESC",
                 has_cursor,
             );
         }
@@ -136,7 +132,6 @@ fn query_feed_rows(
                 FEED_BIO_PROJECTION,
                 FEED_BIO_SOURCE_RANK,
                 &format!("1=1 {user_scope_query}"),
-                "created_at DESC, id DESC",
                 has_cursor,
             );
         }
@@ -148,7 +143,6 @@ fn query_feed_rows(
                 FEED_AVATAR_PROJECTION,
                 FEED_AVATAR_SOURCE_RANK,
                 &format!("1=1 {user_scope_query}"),
-                "created_at DESC, id DESC",
                 has_cursor,
             );
         }
@@ -188,7 +182,6 @@ fn query_feed_rows(
                 &format!(
                     "(display_name LIKE @search_like OR world_name LIKE @search_like OR group_name LIKE @search_like) {date_query} {user_scope_query}"
                 ),
-                "created_at DESC, id DESC",
                 has_cursor,
             );
         }
@@ -202,7 +195,6 @@ fn query_feed_rows(
                 &format!(
                     "(display_name LIKE @search_like OR status LIKE @search_like OR status_description LIKE @search_like) {date_query} {user_scope_query}"
                 ),
-                "created_at DESC, id DESC",
                 has_cursor,
             );
         }
@@ -216,7 +208,6 @@ fn query_feed_rows(
                 &format!(
                     "(display_name LIKE @search_like OR bio LIKE @search_like) {date_query} {user_scope_query}"
                 ),
-                "created_at DESC, id DESC",
                 has_cursor,
             );
         }
@@ -237,7 +228,6 @@ fn query_feed_rows(
                 &format!(
                     "(display_name LIKE @search_like OR avatar_name LIKE @search_like) {avatar_query} {date_query} {user_scope_query}"
                 ),
-                "created_at DESC, id DESC",
                 has_cursor,
             );
         }
@@ -358,12 +348,11 @@ fn push_feed_select(
     projection: &str,
     source_rank: i64,
     where_sql: &str,
-    order_by: &str,
     has_cursor: bool,
 ) {
     let cursor_sql = feed_cursor_condition(source_rank, has_cursor);
     selects.push(format!(
-        "SELECT * FROM (SELECT {projection} FROM {user_prefix}_{table_suffix} WHERE {where_sql} {cursor_sql} ORDER BY {order_by} LIMIT @per_table)"
+        "SELECT * FROM (SELECT {projection} FROM {user_prefix}_{table_suffix} WHERE {where_sql} {cursor_sql} ORDER BY created_at DESC, id DESC LIMIT @per_table)"
     ));
 }
 
@@ -462,7 +451,6 @@ fn push_feed_online_offline_select(
         FEED_ONLINE_OFFLINE_PROJECTION,
         FEED_ONLINE_OFFLINE_SOURCE_RANK,
         &format!("{where_sql} {type_filter} {vip_query}"),
-        "created_at DESC, id DESC",
         has_cursor,
     );
 }

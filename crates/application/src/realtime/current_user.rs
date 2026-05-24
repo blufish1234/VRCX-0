@@ -701,6 +701,31 @@ fn parse_location(location: &str) -> ParsedLocation {
     parsed
 }
 
+struct EventTime {
+    iso: String,
+    timestamp_ms: i64,
+}
+
+impl EventTime {
+    fn now() -> Self {
+        let now = Utc::now();
+        Self {
+            iso: now.to_rfc3339(),
+            timestamp_ms: now.timestamp_millis(),
+        }
+    }
+
+    fn from_received_at(received_at: &str) -> Self {
+        let timestamp_ms = DateTime::parse_from_rfc3339(received_at)
+            .map(|value| value.timestamp_millis())
+            .unwrap_or_else(|_| Utc::now().timestamp_millis());
+        Self {
+            iso: received_at.to_string(),
+            timestamp_ms,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -748,30 +773,5 @@ mod tests {
             serialized["gameStatePatch"]["currentLocation"],
             json!("wrld_1:123~group(grp_1)")
         );
-    }
-}
-
-struct EventTime {
-    iso: String,
-    timestamp_ms: i64,
-}
-
-impl EventTime {
-    fn now() -> Self {
-        let now = Utc::now();
-        Self {
-            iso: now.to_rfc3339(),
-            timestamp_ms: now.timestamp_millis(),
-        }
-    }
-
-    fn from_received_at(received_at: &str) -> Self {
-        let timestamp_ms = DateTime::parse_from_rfc3339(received_at)
-            .map(|value| value.timestamp_millis())
-            .unwrap_or_else(|_| Utc::now().timestamp_millis());
-        Self {
-            iso: received_at.to_string(),
-            timestamp_ms,
-        }
     }
 }

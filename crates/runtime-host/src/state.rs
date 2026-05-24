@@ -2532,6 +2532,7 @@ fn open_profile_lock_file(path: &Path) -> Result<File> {
         .read(true)
         .write(true)
         .create(true)
+        .truncate(true)
         .share_mode(0)
         .open(path)
         .map_err(|error| {
