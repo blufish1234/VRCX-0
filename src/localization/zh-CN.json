@@ -1363,8 +1363,8 @@
                 "vrchat_log": "VRChat 日志查看器",
                 "vrchat_log_description": "查看本地 VRChat Output Log",
                 "launch_options_description": "编辑 VRChat 的启动选项",
-                "app_launcher": "VRChat Startup Apps",
-                "app_launcher_description": "VRChat 启动时自动启动选定的应用。",
+                "app_launcher": "应用启动器",
+                "app_launcher_description": "管理会在 VRChat 启动时自动启动的应用和快捷方式。",
                 "registry_backup": "VRChat 设置数据备份工具",
                 "registry_backup_description": "创建或恢复 VRChat 的设置备份"
             },
@@ -2497,11 +2497,11 @@
             "input_invalid": "输入无效"
         },
         "app_launcher": {
-            "header": "VRChat Startup Apps",
+            "header": "应用启动器",
             "global_enabled": "启用",
             "add_app": "添加应用或快捷方式",
             "choose_target": "选择目标",
-            "loading": "正在加载 VRChat Startup Apps",
+            "loading": "正在加载应用启动器",
             "empty": "还没有启动规则",
             "details": "规则详情",
             "no_selection": "选择一条规则",
@@ -2531,8 +2531,8 @@
             "close": "关闭",
             "save": "保存",
             "toast": {
-                "load_failed": "加载 VRChat Startup Apps 失败",
-                "save_failed": "保存 VRChat Startup Apps 失败",
+                "load_failed": "加载应用启动器失败",
+                "save_failed": "保存应用启动器失败",
                 "pick_failed": "选择应用或快捷方式失败",
                 "name_target_required": "名称和目标不能为空"
             }

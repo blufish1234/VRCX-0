@@ -1363,8 +1363,8 @@
                 "vrchat_log": "VRChat ログビューアー",
                 "vrchat_log_description": "ローカルの VRChat Output Log を表示",
                 "launch_options_description": "VRChat の起動オプションを編集する",
-                "app_launcher": "VRChat Startup Apps",
-                "app_launcher_description": "VRChat の起動時に選択したアプリを自動起動します。",
+                "app_launcher": "アプリランチャー",
+                "app_launcher_description": "VRChat 起動時に自動起動するアプリやショートカットを管理します。",
                 "registry_backup": "VRChat レジストリバックアップ",
                 "registry_backup_description": "VRChat のレジストリバックアップを作成または復元"
             },
@@ -2497,11 +2497,11 @@
             "input_invalid": "無効な入力です"
         },
         "app_launcher": {
-            "header": "VRChat Startup Apps",
+            "header": "アプリランチャー",
             "global_enabled": "有効",
             "add_app": "アプリまたはショートカットを追加",
             "choose_target": "ターゲットを選択",
-            "loading": "VRChat Startup Apps を読み込み中",
+            "loading": "アプリランチャーを読み込み中",
             "empty": "起動ルールはありません",
             "details": "ルール詳細",
             "no_selection": "ルールを選択",
@@ -2531,8 +2531,8 @@
             "close": "閉じる",
             "save": "保存",
             "toast": {
-                "load_failed": "VRChat Startup Apps の読み込みに失敗しました",
-                "save_failed": "VRChat Startup Apps の保存に失敗しました",
+                "load_failed": "アプリランチャーの読み込みに失敗しました",
+                "save_failed": "アプリランチャーの保存に失敗しました",
                 "pick_failed": "アプリまたはショートカットの選択に失敗しました",
                 "name_target_required": "名前とターゲットは必須です"
             }

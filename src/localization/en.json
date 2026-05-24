@@ -1363,8 +1363,8 @@
                 "vrchat_log": "VRChat Log Viewer",
                 "vrchat_log_description": "Read local VRChat output logs",
                 "launch_options_description": "Edit VRChat launch options",
-                "app_launcher": "VRChat Startup Apps",
-                "app_launcher_description": "Automatically launch selected apps when VRChat starts.",
+                "app_launcher": "App Launcher",
+                "app_launcher_description": "Manage apps and shortcuts that launch automatically when VRChat starts.",
                 "registry_backup": "VRChat Registry Backup",
                 "registry_backup_description": "Create or restore a VRChat registry backup"
             },
@@ -2497,11 +2497,11 @@
             "input_invalid": "Invalid input"
         },
         "app_launcher": {
-            "header": "VRChat Startup Apps",
+            "header": "App Launcher",
             "global_enabled": "Enabled",
             "add_app": "Add app or shortcut",
             "choose_target": "Choose target",
-            "loading": "Loading VRChat Startup Apps",
+            "loading": "Loading App Launcher",
             "empty": "No launcher entries",
             "details": "Rule details",
             "no_selection": "Select a rule",
@@ -2531,8 +2531,8 @@
             "close": "Close",
             "save": "Save",
             "toast": {
-                "load_failed": "Failed to load VRChat Startup Apps",
-                "save_failed": "Failed to save VRChat Startup Apps",
+                "load_failed": "Failed to load App Launcher",
+                "save_failed": "Failed to save App Launcher",
                 "pick_failed": "Failed to pick app or shortcut",
                 "name_target_required": "Name and target are required"
             }
