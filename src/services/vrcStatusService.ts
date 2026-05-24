@@ -152,6 +152,10 @@ export function handleBrowserFocus(): Promise<void> {
     return refreshVrcStatus().finally(() => deferNextVrcStatusRefresh());
 }
 
+export function refreshVrcStatusNow(): Promise<void> {
+    return refreshVrcStatus().finally(() => deferNextVrcStatusRefresh());
+}
+
 export function startVrcStatusPolling(): () => void {
     if (pollingActive) {
         return stopVrcStatusPolling;

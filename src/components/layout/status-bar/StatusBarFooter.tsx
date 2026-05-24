@@ -403,6 +403,7 @@ export const StatusBarFooter = forwardRef(function StatusBarFooter(
                             vrcStatus.indicator !== 'none'
                         }
                         label={t('status_bar.servers')}
+                        className="cursor-pointer"
                         onClick={() => {
                             onOpenStatusPage();
                         }}

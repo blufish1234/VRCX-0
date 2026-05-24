@@ -18,6 +18,7 @@ import {
     formatZoomPercentage,
     normalizeZoomLevel
 } from '@/services/themeService';
+import { refreshVrcStatusNow } from '@/services/vrcStatusService';
 import {
     queueZoomLevelPreference,
     stepQueuedZoomLevelPreference,
@@ -539,6 +540,12 @@ export function AppStatusBar() {
     }
 
     async function openStatusPage() {
+        const refreshStatusPromise = refreshVrcStatusNow().catch(
+            (error: any) => {
+                console.warn('VRChat status refresh failed:', error);
+            }
+        );
+
         try {
             await openExternalLink(STATUS_PAGE_URL);
         } catch (error) {
@@ -550,6 +557,8 @@ export function AppStatusBar() {
                       )
             );
         }
+
+        await refreshStatusPromise;
     }
 
     async function promptProxySettings() {
