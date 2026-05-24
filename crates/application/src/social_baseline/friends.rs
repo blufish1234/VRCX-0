@@ -126,9 +126,9 @@ fn insert_fetched_friend(
     fetched_friend_ids_seen: &mut HashSet<String>,
     friend: Value,
     source_state_bucket: Option<&str>,
-) {
+) -> Option<(String, String)> {
     let Some(friend) = RemoteFriendProfile::from_raw(friend, source_state_bucket) else {
-        return;
+        return None;
     };
     let friend_id = friend.id.clone();
     unique_push(
@@ -145,8 +145,32 @@ fn insert_fetched_friend(
         })
         .unwrap_or(true);
     if should_replace {
-        fetched_friends_by_id.insert(friend_id, friend);
+        let state_bucket = fetched_friend_state_bucket(&friend);
+        fetched_friends_by_id.insert(friend_id.clone(), friend);
+        return state_bucket.map(|state_bucket| (friend_id, state_bucket));
     }
+    None
+}
+
+fn fetched_friend_state_bucket(profile: &RemoteFriendProfile) -> Option<String> {
+    for key in ["state", "stateBucket"] {
+        let state_bucket = normalize_state_bucket(&object_field_string(&profile.raw, &[key]));
+        if !state_bucket.is_empty() {
+            return Some(state_bucket);
+        }
+    }
+    None
+}
+
+fn apply_fetched_friend_state_bucket(
+    state_by_id: &mut HashMap<String, String>,
+    inserted_state_bucket: Option<(String, String)>,
+) -> bool {
+    let Some((friend_id, state_bucket)) = inserted_state_bucket else {
+        return false;
+    };
+    state_by_id.insert(friend_id, state_bucket);
+    true
 }
 
 fn bulk_friend_state_input(friend: &Value) -> String {
@@ -706,6 +730,7 @@ pub async fn build_friend_roster_baseline(
         has_friend_list,
         ..
     } = current_user;
+    let mut state_by_id = state_by_id;
     if !has_friend_list {
         return Ok(stale_friend_output(
             user_id,
@@ -729,21 +754,27 @@ pub async fn build_friend_roster_baseline(
     let mut fetched_friend_ids_ordered = Vec::new();
     let mut fetched_friend_ids_seen = HashSet::new();
     for friend in online_friends {
-        insert_fetched_friend(
-            &mut fetched_friends_by_id,
-            &mut fetched_friend_ids_ordered,
-            &mut fetched_friend_ids_seen,
-            friend,
-            Some("online"),
+        apply_fetched_friend_state_bucket(
+            &mut state_by_id,
+            insert_fetched_friend(
+                &mut fetched_friends_by_id,
+                &mut fetched_friend_ids_ordered,
+                &mut fetched_friend_ids_seen,
+                friend,
+                Some("online"),
+            ),
         );
     }
     for friend in offline_friends {
-        insert_fetched_friend(
-            &mut fetched_friends_by_id,
-            &mut fetched_friend_ids_ordered,
-            &mut fetched_friend_ids_seen,
-            friend,
-            Some("offline"),
+        apply_fetched_friend_state_bucket(
+            &mut state_by_id,
+            insert_fetched_friend(
+                &mut fetched_friends_by_id,
+                &mut fetched_friend_ids_ordered,
+                &mut fetched_friend_ids_seen,
+                friend,
+                Some("offline"),
+            ),
         );
     }
 
@@ -757,12 +788,15 @@ pub async fn build_friend_roster_baseline(
         Vec::new()
     };
     for friend in fetch_missing_friends(&deps, &input.endpoint, refetch_ids).await {
-        insert_fetched_friend(
-            &mut fetched_friends_by_id,
-            &mut fetched_friend_ids_ordered,
-            &mut fetched_friend_ids_seen,
-            friend,
-            None,
+        apply_fetched_friend_state_bucket(
+            &mut state_by_id,
+            insert_fetched_friend(
+                &mut fetched_friends_by_id,
+                &mut fetched_friend_ids_ordered,
+                &mut fetched_friend_ids_seen,
+                friend,
+                None,
+            ),
         );
     }
 
@@ -772,12 +806,15 @@ pub async fn build_friend_roster_baseline(
         .cloned()
         .collect::<Vec<_>>();
     for friend in fetch_missing_friends(&deps, &input.endpoint, missing_ids).await {
-        insert_fetched_friend(
-            &mut fetched_friends_by_id,
-            &mut fetched_friend_ids_ordered,
-            &mut fetched_friend_ids_seen,
-            friend,
-            None,
+        apply_fetched_friend_state_bucket(
+            &mut state_by_id,
+            insert_fetched_friend(
+                &mut fetched_friends_by_id,
+                &mut fetched_friend_ids_ordered,
+                &mut fetched_friend_ids_seen,
+                friend,
+                None,
+            ),
         );
     }
 
@@ -959,4 +996,42 @@ pub async fn build_friend_roster_baseline(
         detail,
         snapshot: Some(RawJson::from(snapshot)),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fetched_friend_state_updates_snapshot_bucket() {
+        let mut state_by_id = HashMap::from([("usr_friend".to_string(), "offline".to_string())]);
+        let mut fetched_friends_by_id = HashMap::new();
+        let mut fetched_friend_ids_ordered = Vec::new();
+        let mut fetched_friend_ids_seen = HashSet::new();
+
+        let applied = apply_fetched_friend_state_bucket(
+            &mut state_by_id,
+            insert_fetched_friend(
+                &mut fetched_friends_by_id,
+                &mut fetched_friend_ids_ordered,
+                &mut fetched_friend_ids_seen,
+                json!({
+                    "id": "usr_friend",
+                    "state": "online",
+                    "platform": "standalonewindows"
+                }),
+                Some("online"),
+            ),
+        );
+
+        assert!(applied);
+        assert_eq!(
+            state_by_id.get("usr_friend").map(String::as_str),
+            Some("online")
+        );
+        let profile = fetched_friends_by_id
+            .get("usr_friend")
+            .expect("inserted friend profile");
+        assert!(!fetched_profile_needs_user_refetch(&profile, &state_by_id));
+    }
 }
