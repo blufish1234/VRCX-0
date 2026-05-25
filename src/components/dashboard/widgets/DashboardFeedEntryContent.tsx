@@ -88,7 +88,10 @@ function FeedUserName({ row, friend, className = '' }: any) {
     );
 }
 
-function FeedLocation({ row, className = '' }: any) {
+function FeedLocation({
+    row,
+    className = 'text-foreground [&_button:hover]:text-foreground'
+}: any) {
     if (!row?.location) {
         return null;
     }
@@ -143,7 +146,7 @@ export function FeedEntryContent({ row, friend }: any) {
                     <span className="text-muted-foreground mx-1 shrink-0">
                         →
                     </span>
-                    <FeedLocation row={row} className="text-primary" />
+                    <FeedLocation row={row} />
                 </div>
             );
         case 'Online':

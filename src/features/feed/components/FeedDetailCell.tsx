@@ -32,7 +32,6 @@ function FeedDetailCell({
                 onNewInstance={onNewInstance}
                 onOpenPreviousInstances={onOpenPreviousInstances}
                 worldName={row?.worldName}
-                className={type === 'GPS' ? 'text-primary' : undefined}
             />
         );
     }
