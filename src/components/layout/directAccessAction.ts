@@ -15,11 +15,31 @@ export function useDirectAccessAction() {
     );
     const busyRef = useRef(false);
 
+    const tryOpenDirectAccess = useCallback(
+        async (input: any) => {
+            const toastId = toast.loading(
+                t('prompt.direct_access_omni.message.opening')
+            );
+            try {
+                return await directAccessParse(input, currentEndpoint);
+            } catch (error) {
+                console.warn('Direct access failed:', error);
+                return false;
+            } finally {
+                toast.dismiss(toastId);
+            }
+        },
+        [currentEndpoint, t]
+    );
+
     const openPrompt = useCallback(
-        async (inputValue: any = '') => {
+        async (
+            inputValue: any = '',
+            description: any = t('prompt.direct_access_omni.description')
+        ) => {
             const result = await prompt({
                 title: t('prompt.direct_access_omni.header'),
-                description: t('prompt.direct_access_omni.description'),
+                description,
                 confirmText: t('prompt.direct_access_omni.ok'),
                 cancelText: t('prompt.direct_access_omni.cancel'),
                 inputValue,
@@ -30,23 +50,16 @@ export function useDirectAccessAction() {
                 return;
             }
 
-            try {
-                if (await directAccessParse(result.value, currentEndpoint)) {
-                    toast.success(
-                        t('prompt.direct_access_omni.message.opened')
-                    );
-                    return;
-                }
-                toast.error(t('prompt.direct_access_omni.message.error'));
-            } catch (error) {
-                toast.error(
-                    error instanceof Error
-                        ? error.message
-                        : t('prompt.direct_access_omni.message.failed')
-                );
+            if (await tryOpenDirectAccess(result.value)) {
+                return;
             }
+
+            await openPrompt(
+                result.value,
+                t('prompt.direct_access_omni.description_failed')
+            );
         },
-        [currentEndpoint, prompt, t]
+        [prompt, t, tryOpenDirectAccess]
     );
 
     const openFromClipboard = useCallback(async () => {
@@ -56,27 +69,26 @@ export function useDirectAccessAction() {
 
         busyRef.current = true;
         try {
+            const toastId = toast.loading(
+                t('prompt.direct_access_omni.message.opening')
+            );
             const input = (await getClipboardText()).trim();
-            if (input) {
-                try {
-                    if (await directAccessParse(input, currentEndpoint)) {
-                        toast.success(
-                            t(
-                                'prompt.direct_access_omni.message.opened_from_clipboard'
-                            )
-                        );
-                        return;
-                    }
-                } catch (error) {
-                    toast.error(
-                        error instanceof Error
-                            ? error.message
-                            : t('prompt.direct_access_omni.message.failed')
-                    );
+            try {
+                if (input && (await directAccessParse(input, currentEndpoint))) {
                     return;
                 }
+            } catch (error) {
+                console.warn('Direct access failed:', error);
+            } finally {
+                toast.dismiss(toastId);
             }
-            await openPrompt(input);
+
+            await openPrompt(
+                input,
+                input
+                    ? t('prompt.direct_access_omni.description_failed')
+                    : t('prompt.direct_access_omni.description')
+            );
         } finally {
             busyRef.current = false;
         }

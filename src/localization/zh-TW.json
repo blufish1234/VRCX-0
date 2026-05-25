@@ -4572,12 +4572,14 @@
         "direct_access_omni": {
             "header": "直接存取",
             "description": "輸入用戶 / 世界 / 房間 / 角色連結 或 ID (UUID)",
+            "description_failed": "直接存取失敗，請檢查連結或 ID 後再試。",
             "cancel": "取消",
             "ok": "確定",
             "input_error": "需要連結或 ID",
             "message": {
                 "error": "無效的連結或 ID",
                 "failed": "直接訪問失敗",
+                "opening": "正在開啟...",
                 "opened": "已開啟直接訪問目標",
                 "opened_from_clipboard": "從剪貼簿開啟"
             }

@@ -4572,12 +4572,14 @@
         "direct_access_omni": {
             "header": "Direct Access",
             "description": "Enter a User/World/Instance/Avatar/Group URL or ID (UUID)",
+            "description_failed": "Direct access failed. Check the URL or ID and try again.",
             "cancel": "Cancel",
             "ok": "OK",
             "input_error": "URL/ID is required",
             "message": {
                 "error": "Invalid URL/ID",
                 "failed": "Direct access failed",
+                "opening": "Opening...",
                 "opened": "Opened direct access target",
                 "opened_from_clipboard": "Opened from clipboard"
             }

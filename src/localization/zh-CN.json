@@ -4572,12 +4572,14 @@
         "direct_access_omni": {
             "header": "直接打开",
             "description": "输入玩家 / 世界 / 房间 / 模型链接 或 UUID",
+            "description_failed": "直接打开失败，请检查链接或 ID 后重试。",
             "cancel": "取消",
             "ok": "确定",
             "input_error": "请输入链接或 ID",
             "message": {
                 "error": "无效的链接或 ID",
                 "failed": "直接访问失败",
+                "opening": "正在打开...",
                 "opened": "已打开直接访问目标",
                 "opened_from_clipboard": "已自动识别并打开剪贴板内的内容"
             }

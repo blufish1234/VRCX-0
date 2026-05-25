@@ -4572,12 +4572,14 @@
         "direct_access_omni": {
             "header": "ダイレクトアクセス",
             "description": "ユーザーまたはワールド、インスタンス、アバター、グループURLもしくはID (UUID) を入力してください。",
+            "description_failed": "ダイレクトアクセスに失敗しました。URLまたはIDを確認して再試行してください。",
             "cancel": "キャンセル",
             "ok": "OK",
             "input_error": "URLまたはIDが必要です。",
             "message": {
                 "error": "無効なURLまたはIDです",
                 "failed": "直接アクセスに失敗しました",
+                "opening": "開いています...",
                 "opened": "直接アクセスターゲットを開きました",
                 "opened_from_clipboard": "クリップボードから開きました"
             }
