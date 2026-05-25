@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -7,6 +7,7 @@ import { KeyboardShortcut } from '@/components/keyboard/KeyboardShortcut';
 import { OpenSourceNoticeDialog } from '@/features/settings/components/OpenSourceNoticeDialog';
 import { openExternalLink } from '@/services/entityMediaService';
 import { cn } from '@/lib/utils';
+import configRepository from '@/repositories/configRepository';
 import { logoutFromReactShell } from '@/services/authExecutionService';
 import { startBackgroundModeForCurrentSession } from '@/services/backgroundModeService';
 import {
@@ -31,7 +32,10 @@ import {
 import { links } from '@/shared/constants/link';
 import { THEME_COLORS } from '@/shared/constants/themes';
 import {
+    TOOLS_QUICK_ACCESS_UPDATED_EVENT,
     getToolsByCategory,
+    parseQuickAccessToolKeys,
+    quickAccessConfigKey,
     toolCategories
 } from '@/shared/constants/tools';
 import { publishNavCustomizeRequested } from '@/shared/events/navLayoutEvents';
@@ -161,6 +165,7 @@ export function AppMenuBar({
     const navigate = useNavigate();
     const [aboutOpen, setAboutOpen] = useState(false);
     const [openSourceNoticeOpen, setOpenSourceNoticeOpen] = useState(false);
+    const [quickAccessKeys, setQuickAccessKeys] = useState<any[]>([]);
     const zoomLevel = useShellStore((state: any) => state.zoomLevel);
     const sidebarOpen = useShellStore((state: any) => state.sidebarOpen);
     const themeMode = useShellStore((state: any) => state.themeMode);
@@ -208,10 +213,57 @@ export function AppMenuBar({
                 .filter((category: any) => category.tools.length > 0),
         [hostCapabilities]
     );
+    const availableToolMap = useMemo(
+        () =>
+            new Map(
+                availableToolCategories
+                    .flatMap((category: any) => category.tools)
+                    .map((tool: any) => [tool.key, tool])
+            ),
+        [availableToolCategories]
+    );
+    const quickAccessTools = useMemo(
+        () =>
+            quickAccessKeys
+                .map((key: any) => availableToolMap.get(key))
+                .filter(Boolean),
+        [availableToolMap, quickAccessKeys]
+    );
     const communityThemeAccentControlled = communityThemeControlsAccent(
         communityThemeEnabled,
         installedCommunityTheme
     );
+
+    useEffect(() => {
+        let active = true;
+        const loadQuickAccessTools = () => {
+            configRepository
+                .getString(quickAccessConfigKey, '[]')
+                .then((value: any) => {
+                    if (active) {
+                        setQuickAccessKeys(parseQuickAccessToolKeys(value));
+                    }
+                })
+                .catch(() => {
+                    if (active) {
+                        setQuickAccessKeys([]);
+                    }
+                });
+        };
+
+        loadQuickAccessTools();
+        window.addEventListener(
+            TOOLS_QUICK_ACCESS_UPDATED_EVENT,
+            loadQuickAccessTools
+        );
+        return () => {
+            active = false;
+            window.removeEventListener(
+                TOOLS_QUICK_ACCESS_UPDATED_EVENT,
+                loadQuickAccessTools
+            );
+        };
+    }, []);
 
     async function applyZoomLevel(nextZoom: any) {
         try {
@@ -518,27 +570,45 @@ export function AppMenuBar({
                     <MenubarTrigger className="h-full rounded-none px-2 !py-0 text-xs">
                         {t('app_menu.tools')}
                     </MenubarTrigger>
-                    <MenubarContent align="start">
+                    <MenubarContent align="start" className="w-56">
                         <MenubarGroup>
                             <MenuItem onSelect={() => navigate('/tools')}>
                                 {t('app_menu.all_tools')}
                             </MenuItem>
                         </MenubarGroup>
-                        {availableToolCategories.map((category: any) => (
-                            <Fragment key={category.key}>
+                        {quickAccessTools.length > 0 ? (
+                            <>
                                 <MenubarSeparator />
                                 <MenubarGroup>
                                     <MenubarLabel className="text-muted-foreground px-2 py-1.5 text-[11px] font-medium uppercase">
-                                        {t(category.labelKey)}
+                                        {t('view.tools.quick_access.header')}
                                     </MenubarLabel>
-                                    {category.tools.map((tool: any) => (
+                                    {quickAccessTools.map((tool: any) => (
                                         <ToolMenuItem
                                             key={tool.key}
                                             tool={tool}
                                         />
                                     ))}
                                 </MenubarGroup>
-                            </Fragment>
+                            </>
+                        ) : null}
+                        {availableToolCategories.length > 0 ? (
+                            <MenubarSeparator />
+                        ) : null}
+                        {availableToolCategories.map((category: any) => (
+                            <MenubarSub key={category.key}>
+                                <MenubarSubTrigger className="min-h-7 min-w-48 text-xs">
+                                    {t(category.labelKey)}
+                                </MenubarSubTrigger>
+                                <MenubarSubContent className="w-56">
+                                    {category.tools.map((tool: any) => (
+                                        <ToolMenuItem
+                                            key={tool.key}
+                                            tool={tool}
+                                        />
+                                    ))}
+                                </MenubarSubContent>
+                            </MenubarSub>
                         ))}
                     </MenubarContent>
                 </MenubarMenu>

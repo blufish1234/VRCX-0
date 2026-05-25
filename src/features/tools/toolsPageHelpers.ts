@@ -1,10 +1,15 @@
 import {
+    getEquivalentToolNavKeys,
     getToolsByCategory,
+    knownToolKeys,
+    normalizePinnedToolKey,
+    normalizeQuickAccessToolKeys,
+    parseQuickAccessToolKeys,
+    quickAccessConfigKey,
     toolCategories
 } from '@/shared/constants/tools';
 
 export const categoryConfigKey = 'VRCX_toolsCategoryCollapsed';
-export const quickAccessConfigKey = 'VRCX_toolsQuickAccessList';
 export const quickAccessDropId = 'tools-quick-access-drop-zone';
 export const toolCatalogDropId = 'tools-catalog-drop-zone';
 
@@ -28,59 +33,6 @@ export const toolsPageCategories = toolCategories
         ...category,
         tools: getToolsByCategory(category.key)
     }));
-
-const allTools = toolsPageCategories.flatMap((category: any) => category.tools);
-
-export const knownToolKeys = new Set(allTools.map((tool: any) => tool.key));
-
-const legacyPinnedToolAliases: any = {
-    'auto-change-status': 'presence-room-rules'
-};
-
-export function normalizePinnedToolKey(toolKey: any) {
-    return legacyPinnedToolAliases[toolKey] ?? toolKey;
-}
-
-export function getEquivalentToolNavKeys(toolKey: any) {
-    const normalizedToolKey = normalizePinnedToolKey(toolKey);
-    const equivalentToolKeys = new Set([normalizedToolKey]);
-
-    for (const [legacyToolKey, targetToolKey] of Object.entries(
-        legacyPinnedToolAliases
-    )) {
-        if (targetToolKey === normalizedToolKey) {
-            equivalentToolKeys.add(legacyToolKey);
-        }
-    }
-
-    return Array.from(equivalentToolKeys).map((key: any) => `tool-${key}`);
-}
-
-export function normalizeQuickAccessToolKeys(value: any) {
-    if (!Array.isArray(value)) {
-        return [];
-    }
-
-    const seen = new Set();
-    const nextKeys = [];
-    for (const rawKey of value) {
-        const toolKey = normalizePinnedToolKey(String(rawKey || ''));
-        if (!knownToolKeys.has(toolKey) || seen.has(toolKey)) {
-            continue;
-        }
-        seen.add(toolKey);
-        nextKeys.push(toolKey);
-    }
-    return nextKeys;
-}
-
-export function parseQuickAccessToolKeys(value: any) {
-    try {
-        return normalizeQuickAccessToolKeys(JSON.parse(value || '[]'));
-    } catch {
-        return [];
-    }
-}
 
 export function getQuickAccessDragId(toolKey: any) {
     return `${quickAccessDragPrefix}${toolKey}`;
@@ -145,3 +97,12 @@ export function removeToolNavItem(layout: any, navKey: any) {
         })
         .filter(Boolean);
 }
+
+export {
+    getEquivalentToolNavKeys,
+    knownToolKeys,
+    normalizePinnedToolKey,
+    normalizeQuickAccessToolKeys,
+    parseQuickAccessToolKeys,
+    quickAccessConfigKey
+};

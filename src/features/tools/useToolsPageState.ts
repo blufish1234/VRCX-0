@@ -20,6 +20,7 @@ import {
     isToolCapabilityAvailable,
     triggerToolByKey
 } from '@/services/toolActionService';
+import { publishToolsQuickAccessUpdated } from '@/shared/constants/tools';
 import { useDashboardStore } from '@/state/dashboardStore';
 import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -120,7 +121,8 @@ function useToolsQuickAccessState() {
             configRepository.setString(
                 quickAccessConfigKey,
                 JSON.stringify(nextKeys)
-            );
+            ).then(() => publishToolsQuickAccessUpdated())
+                .catch(() => {});
             return nextKeys;
         });
     }

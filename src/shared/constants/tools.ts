@@ -377,6 +377,64 @@ const toolDefinitionMap = new Map<string, ToolDefinition>(
     toolDefinitions.map((tool: any) => [tool.key, tool])
 );
 
+const quickAccessConfigKey = 'VRCX_toolsQuickAccessList';
+const TOOLS_QUICK_ACCESS_UPDATED_EVENT = 'vrcx:tools-quick-access-updated';
+const knownToolKeys = new Set(toolDefinitions.map((tool: any) => tool.key));
+const legacyToolKeyAliases: Record<string, string> = {
+    'auto-change-status': 'presence-room-rules'
+};
+
+function normalizePinnedToolKey(toolKey: any) {
+    return legacyToolKeyAliases[toolKey] ?? toolKey;
+}
+
+function normalizeQuickAccessToolKeys(value: any) {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    const seen = new Set();
+    const nextKeys = [];
+    for (const rawKey of value) {
+        const toolKey = normalizePinnedToolKey(String(rawKey || ''));
+        if (!knownToolKeys.has(toolKey) || seen.has(toolKey)) {
+            continue;
+        }
+        seen.add(toolKey);
+        nextKeys.push(toolKey);
+    }
+    return nextKeys;
+}
+
+function parseQuickAccessToolKeys(value: any) {
+    try {
+        return normalizeQuickAccessToolKeys(JSON.parse(value || '[]'));
+    } catch {
+        return [];
+    }
+}
+
+function getEquivalentToolNavKeys(toolKey: any) {
+    const normalizedToolKey = normalizePinnedToolKey(toolKey);
+    const equivalentToolKeys = new Set([normalizedToolKey]);
+
+    for (const [legacyToolKey, targetToolKey] of Object.entries(
+        legacyToolKeyAliases
+    )) {
+        if (targetToolKey === normalizedToolKey) {
+            equivalentToolKeys.add(legacyToolKey);
+        }
+    }
+
+    return Array.from(equivalentToolKeys).map((key: any) => `tool-${key}`);
+}
+
+function publishToolsQuickAccessUpdated(): void {
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent(TOOLS_QUICK_ACCESS_UPDATED_EVENT));
+    }
+}
+
 const generatedToolNavDefinitions: ToolNavDefinition[] = toolDefinitions
     .filter((tool: any) => tool.navEligible)
     .map((tool: any) => ({
@@ -421,8 +479,16 @@ function getToolsByCategory(categoryKey: ToolCategoryKey): ToolDefinition[] {
 }
 
 export {
+    TOOLS_QUICK_ACCESS_UPDATED_EVENT,
     defaultHiddenToolNavKeys,
+    getEquivalentToolNavKeys,
     isToolNavKey,
+    knownToolKeys,
+    normalizePinnedToolKey,
+    normalizeQuickAccessToolKeys,
+    parseQuickAccessToolKeys,
+    publishToolsQuickAccessUpdated,
+    quickAccessConfigKey,
     toolCategories,
     toolDefinitions,
     toolDefinitionMap,
