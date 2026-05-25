@@ -7,6 +7,7 @@ import { useShellStore } from '@/state/shellStore';
 
 import { refreshSavedAuthSnapshot } from './authSnapshotService';
 import { runStartupMaintenance } from './backgroundMaintenanceService';
+import { initializeCommunityThemes } from './communityThemeService';
 import { initializeDatabaseUpgradeFlow } from './databaseUpgradeService';
 import { checkVRChatDebugLogging } from './gameStateService';
 import {
@@ -77,6 +78,10 @@ export async function initializeReactRuntime() {
             applyThemeMode(resolvedThemeMode)
         );
         applyThemeColor(resolveThemeColor(themeColor));
+        await runNonCriticalStartupSync(
+            'communityThemes',
+            initializeCommunityThemes()
+        );
         applyAppFontPreferences({ fontFamily, customFontFamily, cjkFontPack });
         await runNonCriticalStartupSync('zoom', applyZoomLevel(zoomLevel));
         await databaseMaintenanceRepository.initGlobalTables();

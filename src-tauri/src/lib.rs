@@ -5,9 +5,11 @@ mod error;
 mod state;
 
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconEvent};
+use tauri::Emitter;
 use tauri::Manager;
 use tauri::WindowEvent;
 use vrcx_0_application::{BackendRuntimeMode, BackendRuntimePhase};
+use vrcx_0_persistence::config::{self as config_store, ConfigWriteEntry};
 
 use state::AppState;
 
@@ -49,6 +51,24 @@ fn is_background_mode_hidden(app: &tauri::AppHandle, state: &AppState) -> bool {
     match app.get_webview_window("main") {
         Some(window) => !window.is_visible().unwrap_or(true),
         None => true,
+    }
+}
+
+fn disable_community_theme_from_tray(app: &tauri::AppHandle, state: &AppState) {
+    if let Err(error) = config_store::config_set_values(
+        state.db.as_ref(),
+        vec![ConfigWriteEntry {
+            key: "config:vrcx_communitythemeenabled".into(),
+            value: "false".into(),
+        }],
+    ) {
+        tracing::warn!(error = %error, "failed to disable community theme from tray");
+    }
+    if let Err(error) = app.emit("communityThemeDisableRequested", serde_json::json!({})) {
+        tracing::warn!(error = %error, "failed to emit community theme disable request");
+    }
+    if let Err(error) = bootstrap::refresh_tray_menu(app, state) {
+        tracing::warn!(error = %error, "failed to refresh tray menu after disabling community theme");
     }
 }
 
@@ -238,6 +258,11 @@ pub fn run() {
                         } else {
                             start_background_mode_and_hide_window(app.clone());
                         }
+                    }
+                }
+                "tray-disable-theme" => {
+                    if let Some(state) = app.try_state::<AppState>() {
+                        disable_community_theme_from_tray(app, &state);
                     }
                 }
                 "tray-exit" => {
@@ -614,6 +639,7 @@ pub fn run() {
             commands::host::window::app__change_theme,
             commands::host::window::app__do_funny,
             commands::host::window::app__set_tray_icon_notification,
+            commands::host::window::app__refresh_tray_menu,
             commands::host::window::app__restart_application,
             commands::host::window::app__exit_application,
             commands::host::updater::app__check_tauri_update,

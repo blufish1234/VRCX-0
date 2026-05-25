@@ -609,6 +609,7 @@ pub fn refresh_tray_menu(app: &tauri::AppHandle, state: &AppState) -> Result<(),
     if let Some(tray) = app.tray_by_id("main") {
         let labels = tray_labels(state);
         let background_mode_active = is_background_mode_active(state);
+        let community_theme_enabled = is_community_theme_enabled(state);
         let open_item = MenuItem::with_id(app, "tray-open", labels.open, true, None::<&str>)?;
         let background_item = CheckMenuItem::with_id(
             app,
@@ -618,8 +619,27 @@ pub fn refresh_tray_menu(app: &tauri::AppHandle, state: &AppState) -> Result<(),
             background_mode_active,
             None::<&str>,
         )?;
+        let disable_theme_item = MenuItem::with_id(
+            app,
+            "tray-disable-theme",
+            labels.disable_theme,
+            true,
+            None::<&str>,
+        )?;
         let exit_item = MenuItem::with_id(app, "tray-exit", labels.exit, true, None::<&str>)?;
-        let menu = Menu::with_items(app, &[&open_item, &background_item, &exit_item])?;
+        let menu = if community_theme_enabled {
+            Menu::with_items(
+                app,
+                &[
+                    &open_item,
+                    &background_item,
+                    &disable_theme_item,
+                    &exit_item,
+                ],
+            )?
+        } else {
+            Menu::with_items(app, &[&open_item, &background_item, &exit_item])?
+        };
         let _ = tray.set_menu(Some(menu));
         let _ = tray.set_show_menu_on_left_click(false);
     }
@@ -629,6 +649,7 @@ pub fn refresh_tray_menu(app: &tauri::AppHandle, state: &AppState) -> Result<(),
 struct TrayLabels {
     open: &'static str,
     background_mode: &'static str,
+    disable_theme: &'static str,
     exit: &'static str,
 }
 
@@ -638,6 +659,10 @@ fn is_background_mode_active(state: &AppState) -> bool {
         && snapshot.phase == BackendRuntimePhase::Running
 }
 
+fn is_community_theme_enabled(state: &AppState) -> bool {
+    db_config_bool(state, "config:vrcx_communitythemeenabled") == Some(true)
+}
+
 fn tray_labels(state: &AppState) -> TrayLabels {
     let language = state
         .runtime_context
@@ -645,10 +670,19 @@ fn tray_labels(state: &AppState) -> TrayLabels {
         .get_string("appLanguage", "en")
         .unwrap_or_else(|_| "en".into())
         .to_ascii_lowercase();
+    if language.starts_with("zh-tw") || language.starts_with("zh-hant") {
+        return TrayLabels {
+            open: "開啟 VRCX-0",
+            background_mode: "背景模式",
+            disable_theme: "停用主題",
+            exit: "結束",
+        };
+    }
     if language.starts_with("zh") {
         return TrayLabels {
             open: "打开 VRCX-0",
             background_mode: "后台模式",
+            disable_theme: "禁用主题",
             exit: "退出",
         };
     }
@@ -656,12 +690,14 @@ fn tray_labels(state: &AppState) -> TrayLabels {
         return TrayLabels {
             open: "VRCX-0 を開く",
             background_mode: "バックグラウンドモード",
+            disable_theme: "テーマを無効化",
             exit: "終了",
         };
     }
     TrayLabels {
         open: "Open VRCX-0",
         background_mode: "Background Mode",
+        disable_theme: "Disable Theme",
         exit: "Exit",
     }
 }

@@ -2498,6 +2498,74 @@
                 "decline_the_value_notification": "拒绝 {value} 通知？",
                 "send_an_invite_to_value": "向 {value} 发送邀请？"
             }
+        },
+        "community_themes": {
+            "header": "社区主题",
+            "tool_description": "浏览和管理社区主题。",
+            "tabs": {
+                "browse": "浏览",
+                "installed": "已安装",
+                "override": "Override"
+            },
+            "status": {
+                "active": "已启用",
+                "installed": "已安装"
+            },
+            "field": {
+                "name": "名称",
+                "author": "作者",
+                "version": "版本",
+                "license": "许可证",
+                "tested_with": "测试版本",
+                "remote_assets": "远程资源",
+                "accent_mode": "是否可自定义强调色"
+            },
+            "value": {
+                "yes": "是",
+                "no": "否"
+            },
+            "action": {
+                "install": "安装并启用",
+                "update_enable": "更新并启用",
+                "enable_theme": "启用主题",
+                "disable_theme": "禁用主题",
+                "delete_theme": "删除主题",
+                "apply_override": "应用 override",
+                "clear_override": "清空 override",
+                "open_marketplace": "打开社区主题"
+            },
+            "browse": {
+                "empty": "Catalog 里还没有社区主题。"
+            },
+            "installed": {
+                "header": "已安装主题",
+                "empty": "还没有安装社区主题。",
+                "accent_controlled": "当前社区主题接管强调色，内置强调色选择器已禁用。"
+            },
+            "override": {
+                "header": "用户 override CSS",
+                "placeholder": ":root {\n  --vrcx-0-main-content-surface: transparent;\n}"
+            },
+            "settings": {
+                "header": "社区主题",
+                "current_theme": "当前主题",
+                "description": "社区主题是高自由度自定义层，可能在 UI 更新后失效。",
+                "status_default": "默认应用主题",
+                "override_active": "Override CSS 已启用"
+            },
+            "menu": {
+                "accent_disabled": "强调色由当前社区主题控制。"
+            },
+            "toast": {
+                "catalog_failed": "加载社区主题失败。",
+                "theme_enabled": "社区主题已启用。",
+                "theme_disabled": "社区主题已禁用。",
+                "theme_deleted": "已删除安装的主题。",
+                "theme_failed": "启用社区主题失败。",
+                "override_saved": "Override CSS 已应用。",
+                "override_cleared": "Override CSS 已清空。",
+                "disable_failed": "更新社区主题设置失败。"
+            }
         }
     },
     "dialog": {
@@ -5626,7 +5694,9 @@
             "vrchat_log_viewer_for_local_output_logs": "本地 VRChat output log 查看器。",
             "settings": "设置",
             "settings_and_diagnostics": "设置和诊断。",
-            "current_instance_player_roster_rebuilt_from_local_activity_data": "已根据本地活动数据重建当前房间玩家列表。"
+            "current_instance_player_roster_rebuilt_from_local_activity_data": "已根据本地活动数据重建当前房间玩家列表。",
+            "community_themes": "社区主题",
+            "community_themes_css_theme_marketplace": "社区主题市场。"
         }
     }
 }

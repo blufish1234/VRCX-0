@@ -241,6 +241,15 @@ export const protectedRoutes = [
         )
     },
     {
+        path: '/community-themes',
+        titleKey: 'app.routes.community_themes',
+        descriptionKey: 'app.routes.community_themes_css_theme_marketplace',
+        element: lazyRouteElement(
+            () => import('@/features/community-themes/CommunityThemesPage'),
+            'CommunityThemesPage'
+        )
+    },
+    {
         path: '/settings',
         titleKey: 'app.routes.settings',
         descriptionKey: 'app.routes.settings_and_diagnostics',

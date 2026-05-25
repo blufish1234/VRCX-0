@@ -2498,6 +2498,74 @@
                 "decline_the_value_notification": "{value} 通知を辞退しますか？",
                 "send_an_invite_to_value": "{value} に招待を送信しますか？"
             }
+        },
+        "community_themes": {
+            "header": "コミュニティテーマ",
+            "tool_description": "コミュニティテーマを参照して管理します。",
+            "tabs": {
+                "browse": "参照",
+                "installed": "インストール済み",
+                "override": "Override"
+            },
+            "status": {
+                "active": "有効",
+                "installed": "インストール済み"
+            },
+            "field": {
+                "name": "名前",
+                "author": "作者",
+                "version": "バージョン",
+                "license": "ライセンス",
+                "tested_with": "テスト済みバージョン",
+                "remote_assets": "リモートアセット",
+                "accent_mode": "アクセントカラーをカスタマイズ可能"
+            },
+            "value": {
+                "yes": "はい",
+                "no": "いいえ"
+            },
+            "action": {
+                "install": "インストールして有効化",
+                "update_enable": "更新して有効化",
+                "enable_theme": "テーマを有効化",
+                "disable_theme": "テーマを無効化",
+                "delete_theme": "テーマを削除",
+                "apply_override": "override を適用",
+                "clear_override": "override をクリア",
+                "open_marketplace": "コミュニティテーマを開く"
+            },
+            "browse": {
+                "empty": "Catalog にはまだコミュニティテーマがありません。"
+            },
+            "installed": {
+                "header": "インストール済みテーマ",
+                "empty": "コミュニティテーマはまだインストールされていません。",
+                "accent_controlled": "このコミュニティテーマがアクセントカラーを制御しているため、内蔵のアクセント選択は無効です。"
+            },
+            "override": {
+                "header": "ユーザー override CSS",
+                "placeholder": ":root {\n  --vrcx-0-main-content-surface: transparent;\n}"
+            },
+            "settings": {
+                "header": "コミュニティテーマ",
+                "current_theme": "現在のテーマ",
+                "description": "コミュニティテーマは自由度の高いカスタマイズで、UI 更新後に壊れることがあります。",
+                "status_default": "既定のアプリテーマ",
+                "override_active": "Override CSS が有効です"
+            },
+            "menu": {
+                "accent_disabled": "アクセントカラーは現在のコミュニティテーマが制御しています。"
+            },
+            "toast": {
+                "catalog_failed": "コミュニティテーマの読み込みに失敗しました。",
+                "theme_enabled": "コミュニティテーマを有効化しました。",
+                "theme_disabled": "コミュニティテーマを無効化しました。",
+                "theme_deleted": "インストール済みテーマを削除しました。",
+                "theme_failed": "コミュニティテーマの有効化に失敗しました。",
+                "override_saved": "Override CSS を適用しました。",
+                "override_cleared": "Override CSS をクリアしました。",
+                "disable_failed": "コミュニティテーマ設定の更新に失敗しました。"
+            }
         }
     },
     "dialog": {
@@ -5626,7 +5694,9 @@
             "vrchat_log_viewer_for_local_output_logs": "ローカル VRChat output log ビューアーです。",
             "settings": "設定",
             "settings_and_diagnostics": "設定と診断です。",
-            "current_instance_player_roster_rebuilt_from_local_activity_data": "ローカルアクティビティデータから現在のインスタンスのプレイヤー一覧を再構築しました。"
+            "current_instance_player_roster_rebuilt_from_local_activity_data": "ローカルアクティビティデータから現在のインスタンスのプレイヤー一覧を再構築しました。",
+            "community_themes": "コミュニティテーマ",
+            "community_themes_css_theme_marketplace": "コミュニティテーママーケット。"
         }
     }
 }

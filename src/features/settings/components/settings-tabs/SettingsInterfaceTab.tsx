@@ -1,5 +1,6 @@
 import { SettingsTabContent } from '../SettingsViewParts';
 import { SettingsInterfaceAppearanceCard } from './SettingsInterfaceAppearanceCard';
+import { SettingsInterfaceCommunityThemesCard } from './SettingsInterfaceCommunityThemesCard';
 import { SettingsInterfaceDisplayCards } from './SettingsInterfaceDisplayCards';
 import { SettingsInterfaceUserColorsCard } from './SettingsInterfaceUserColorsCard';
 
@@ -52,6 +53,7 @@ export function SettingsInterfaceTab({ settingsInterface }: any) {
                     onAccessibleStatusIndicatorsChange
                 }
             />
+            <SettingsInterfaceCommunityThemesCard />
             <SettingsInterfaceDisplayCards
                 prefs={prefs}
                 onShowInstanceIdInLocationChange={

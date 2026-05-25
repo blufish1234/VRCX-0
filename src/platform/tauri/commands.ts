@@ -295,6 +295,7 @@ const commandArgs: Record<string, string[]> = {
     app__restart_application: [],
     app__exit_application: [],
     app__set_tray_icon_notification: ['notify'],
+    app__refresh_tray_menu: [],
     app__copy_image_to_clipboard: ['path'],
     app__set_startup: ['enabled'],
     app__get_vrchat_registry_key: ['key'],

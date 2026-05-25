@@ -1,5 +1,6 @@
 import { AppToaster } from './AppToaster';
 import { BackgroundRouteResumeHost } from './BackgroundRouteResumeHost';
+import { CommunityThemeSafetyHost } from './CommunityThemeSafetyHost';
 import { DialogHost } from './DialogHost';
 import { FavoriteImportHost } from './FavoriteImportHost';
 import { LaunchDialogHost } from './LaunchDialogHost';
@@ -13,6 +14,7 @@ export function GlobalHosts() {
     return (
         <>
             <AppToaster />
+            <CommunityThemeSafetyHost />
             <BackgroundRouteResumeHost />
             <ModalHost />
             <DialogHost />

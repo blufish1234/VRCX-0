@@ -725,6 +725,7 @@ export interface AppTauriCommandNamespace extends TauriCommandNamespace {
     GetBackendRuntimeSnapshot(): Promise<BackendRuntimeSnapshot>;
     GetBackendRuntimeFrontendSessionSnapshot(): Promise<BackendRuntimeFrontendSessionSnapshot | null>;
     EnsureMainWindow(): Promise<void>;
+    RefreshTrayMenu(): Promise<void>;
     RegistryBackupList(): Promise<RegistryBackupSnapshot[]>;
     RegistryBackupCreate(name: string): Promise<RegistryBackupSnapshot[]>;
     RegistryBackupRestore(key: string): Promise<RegistryBackupSnapshot>;

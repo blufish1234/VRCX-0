@@ -188,6 +188,13 @@ function clearThemeColorProperties(root: HTMLElement): void {
     });
 }
 
+export function clearThemeColorInlineProperties(): void {
+    if (typeof document === 'undefined') {
+        return;
+    }
+    clearThemeColorProperties(document.documentElement);
+}
+
 export function applyThemeColor(themeColor: unknown): string {
     const normalized = resolveThemeColor(themeColor);
     const theme = THEME_COLOR_CONFIG[normalized];
@@ -202,7 +209,10 @@ export function applyThemeColor(themeColor: unknown): string {
     root.setAttribute('data-theme-color', normalized);
     clearThemeColorProperties(root);
 
-    if (normalized !== DEFAULT_THEME_COLOR_KEY) {
+    if (
+        root.getAttribute('data-vrcx-0-community-theme-accent') !== 'theme' &&
+        normalized !== DEFAULT_THEME_COLOR_KEY
+    ) {
         Object.entries(THEME_COLOR_STYLE_PROPERTIES).forEach(
             ([tokenName, propertyName]: any) => {
                 const cssValue = theme[tokenName as ThemeColorStyleToken];

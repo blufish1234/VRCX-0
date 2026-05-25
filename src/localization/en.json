@@ -2498,6 +2498,74 @@
                 "decline_the_value_notification": "Decline the {value} notification?",
                 "send_an_invite_to_value": "Send an invite to {value}?"
             }
+        },
+        "community_themes": {
+            "header": "Community Themes",
+            "tool_description": "Browse and manage community themes.",
+            "tabs": {
+                "browse": "Browse",
+                "installed": "Installed",
+                "override": "Override"
+            },
+            "status": {
+                "active": "Active",
+                "installed": "Installed"
+            },
+            "field": {
+                "name": "Name",
+                "author": "Author",
+                "version": "Version",
+                "license": "License",
+                "tested_with": "Tested with",
+                "remote_assets": "Remote assets",
+                "accent_mode": "Accent color customizable"
+            },
+            "value": {
+                "yes": "Yes",
+                "no": "No"
+            },
+            "action": {
+                "install": "Install and enable",
+                "update_enable": "Update and enable",
+                "enable_theme": "Enable theme",
+                "disable_theme": "Disable theme",
+                "delete_theme": "Delete theme",
+                "apply_override": "Apply override",
+                "clear_override": "Clear override",
+                "open_marketplace": "Open Community Themes"
+            },
+            "browse": {
+                "empty": "No community themes are listed in the catalog yet."
+            },
+            "installed": {
+                "header": "Installed theme",
+                "empty": "No community theme is installed yet.",
+                "accent_controlled": "This community theme controls accent colors, so the built-in accent selector is disabled."
+            },
+            "override": {
+                "header": "User override CSS",
+                "placeholder": ":root {\n  --vrcx-0-main-content-surface: transparent;\n}"
+            },
+            "settings": {
+                "header": "Community Themes",
+                "current_theme": "Current theme",
+                "description": "Community themes are high-freedom customizations and may break after UI changes.",
+                "status_default": "Default app theme",
+                "override_active": "Override CSS active"
+            },
+            "menu": {
+                "accent_disabled": "Accent colors are controlled by the active community theme."
+            },
+            "toast": {
+                "catalog_failed": "Failed to load community themes.",
+                "theme_enabled": "Community theme enabled.",
+                "theme_disabled": "Community theme disabled.",
+                "theme_deleted": "Installed theme deleted.",
+                "theme_failed": "Failed to enable community theme.",
+                "override_saved": "Override CSS applied.",
+                "override_cleared": "Override CSS cleared.",
+                "disable_failed": "Failed to update community theme settings."
+            }
         }
     },
     "dialog": {
@@ -5626,7 +5694,9 @@
             "vrchat_log_viewer_for_local_output_logs": "Local VRChat output log viewer.",
             "settings": "Settings",
             "settings_and_diagnostics": "Settings and diagnostics.",
-            "current_instance_player_roster_rebuilt_from_local_activity_data": "Current-instance player roster rebuilt from local activity data."
+            "current_instance_player_roster_rebuilt_from_local_activity_data": "Current-instance player roster rebuilt from local activity data.",
+            "community_themes": "Community Themes",
+            "community_themes_css_theme_marketplace": "Community theme marketplace."
         }
     }
 }

@@ -36,6 +36,10 @@ import {
 } from '@/shared/constants/tools';
 import { publishNavCustomizeRequested } from '@/shared/events/navLayoutEvents';
 import { formatReleaseDisplayVersion } from '@/shared/utils/releaseVersion';
+import {
+    communityThemeControlsAccent,
+    useCommunityThemeStore
+} from '@/state/communityThemeStore';
 import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useShellStore } from '@/state/shellStore';
@@ -112,11 +116,11 @@ function MenuRadioItem({ children, className, ...props }: any) {
     );
 }
 
-function ThemeColorRadioItem({ themeColor }: any) {
+function ThemeColorRadioItem({ themeColor, disabled = false }: any) {
     const { t } = useTranslation();
 
     return (
-        <MenuRadioItem value={themeColor.key}>
+        <MenuRadioItem value={themeColor.key} disabled={disabled}>
             <span className="flex min-w-0 items-center gap-2">
                 <span
                     aria-hidden="true"
@@ -162,6 +166,12 @@ export function AppMenuBar({
     const themeMode = useShellStore((state: any) => state.themeMode);
     const themeColor = useShellStore((state: any) => state.themeColor);
     const tableDensity = useShellStore((state: any) => state.tableDensity);
+    const communityThemeEnabled = useCommunityThemeStore(
+        (state: any) => state.enabled
+    );
+    const installedCommunityTheme = useCommunityThemeStore(
+        (state: any) => state.installedTheme
+    );
     const notificationLayout = usePreferencesStore(
         (state: any) => state.notificationLayout
     );
@@ -197,6 +207,10 @@ export function AppMenuBar({
                 }))
                 .filter((category: any) => category.tools.length > 0),
         [hostCapabilities]
+    );
+    const communityThemeAccentControlled = communityThemeControlsAccent(
+        communityThemeEnabled,
+        installedCommunityTheme
     );
 
     async function applyZoomLevel(nextZoom: any) {
@@ -393,9 +407,31 @@ export function AppMenuBar({
                                         ))}
                                     </MenubarRadioGroup>
                                     <MenubarSeparator />
+                                    <MenuItem
+                                        onSelect={() =>
+                                            navigate('/community-themes')
+                                        }
+                                    >
+                                        {t(
+                                            'view.community_themes.action.open_marketplace'
+                                        )}
+                                    </MenuItem>
+                                    <MenubarSeparator />
+                                    {communityThemeAccentControlled ? (
+                                        <MenubarLabel className="text-muted-foreground px-2 py-1.5 text-[11px] leading-snug whitespace-normal">
+                                            {t(
+                                                'view.community_themes.menu.accent_disabled'
+                                            )}
+                                        </MenubarLabel>
+                                    ) : null}
                                     <MenubarRadioGroup
                                         value={themeColor}
                                         onValueChange={(value: any) => {
+                                            if (
+                                                communityThemeAccentControlled
+                                            ) {
+                                                return;
+                                            }
                                             setThemeColorPreference(value);
                                         }}
                                     >
@@ -403,6 +439,9 @@ export function AppMenuBar({
                                             <ThemeColorRadioItem
                                                 key={color.key}
                                                 themeColor={color}
+                                                disabled={
+                                                    communityThemeAccentControlled
+                                                }
                                             />
                                         ))}
                                     </MenubarRadioGroup>

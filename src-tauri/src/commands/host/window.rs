@@ -79,6 +79,16 @@ pub fn app__set_tray_icon_notification(app_handle: AppHandle, notify: Option<boo
 }
 
 #[tauri::command]
+pub fn app__refresh_tray_menu(app_handle: AppHandle) -> Result<(), AppError> {
+    use tauri::Manager;
+    if let Some(state) = app_handle.try_state::<AppState>() {
+        crate::bootstrap::refresh_tray_menu(&app_handle, &state)
+            .map_err(|error| AppError::Custom(format!("refresh tray menu: {error}")))?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
 pub fn app__restart_application(app_handle: AppHandle) -> Result<(), AppError> {
     #[cfg(debug_assertions)]
     {

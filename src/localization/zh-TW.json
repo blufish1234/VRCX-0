@@ -2498,6 +2498,74 @@
                 "decline_the_value_notification": "拒絕 {value} 通知？",
                 "send_an_invite_to_value": "向 {value} 傳送邀請？"
             }
+        },
+        "community_themes": {
+            "header": "社群主題",
+            "tool_description": "瀏覽和管理社群主題。",
+            "tabs": {
+                "browse": "瀏覽",
+                "installed": "已安裝",
+                "override": "Override"
+            },
+            "status": {
+                "active": "已啟用",
+                "installed": "已安裝"
+            },
+            "field": {
+                "name": "名稱",
+                "author": "作者",
+                "version": "版本",
+                "license": "授權",
+                "tested_with": "測試版本",
+                "remote_assets": "遠端資源",
+                "accent_mode": "是否可自訂強調色"
+            },
+            "value": {
+                "yes": "是",
+                "no": "否"
+            },
+            "action": {
+                "install": "安裝並啟用",
+                "update_enable": "更新並啟用",
+                "enable_theme": "啟用主題",
+                "disable_theme": "停用主題",
+                "delete_theme": "刪除主題",
+                "apply_override": "套用 override",
+                "clear_override": "清除 override",
+                "open_marketplace": "開啟社群主題"
+            },
+            "browse": {
+                "empty": "Catalog 裡還沒有社群主題。"
+            },
+            "installed": {
+                "header": "已安裝主題",
+                "empty": "尚未安裝社群主題。",
+                "accent_controlled": "目前社群主題接管強調色，內建強調色選擇器已停用。"
+            },
+            "override": {
+                "header": "使用者 override CSS",
+                "placeholder": ":root {\n  --vrcx-0-main-content-surface: transparent;\n}"
+            },
+            "settings": {
+                "header": "社群主題",
+                "current_theme": "目前主題",
+                "description": "社群主題是高自由度自訂層，可能在 UI 更新後失效。",
+                "status_default": "預設應用程式主題",
+                "override_active": "Override CSS 已啟用"
+            },
+            "menu": {
+                "accent_disabled": "強調色由目前社群主題控制。"
+            },
+            "toast": {
+                "catalog_failed": "載入社群主題失敗。",
+                "theme_enabled": "社群主題已啟用。",
+                "theme_disabled": "社群主題已停用。",
+                "theme_deleted": "已刪除安裝的主題。",
+                "theme_failed": "啟用社群主題失敗。",
+                "override_saved": "Override CSS 已套用。",
+                "override_cleared": "Override CSS 已清除。",
+                "disable_failed": "更新社群主題設定失敗。"
+            }
         }
     },
     "dialog": {
@@ -5626,7 +5694,9 @@
             "vrchat_log_viewer_for_local_output_logs": "本機 VRChat output log 查看器。",
             "settings": "設定",
             "settings_and_diagnostics": "設定和診斷。",
-            "current_instance_player_roster_rebuilt_from_local_activity_data": "已根據本機活動資料重建目前房間玩家列表。"
+            "current_instance_player_roster_rebuilt_from_local_activity_data": "已根據本機活動資料重建目前房間玩家列表。",
+            "community_themes": "社群主題",
+            "community_themes_css_theme_marketplace": "社群主題市場。"
         }
     }
 }
