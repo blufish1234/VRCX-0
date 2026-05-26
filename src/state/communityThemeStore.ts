@@ -4,7 +4,7 @@ import type {
     CommunityThemeInstallMetadata,
     CommunityThemeLocalPreview,
     CommunityThemeManifest
-} from '@/features/community-themes/communityThemeTypes';
+} from '@/features/themes/communityThemeTypes';
 
 interface CommunityThemeStore {
     catalogUrl: string;

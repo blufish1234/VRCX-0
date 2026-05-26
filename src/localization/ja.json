@@ -2538,6 +2538,7 @@
                 "disable_theme": "テーマを無効化",
                 "delete_theme": "テーマを削除",
                 "apply_override": "override を適用",
+                "disable_override": "カスタム CSS を無効化",
                 "clear_override": "override をクリア",
                 "open_marketplace": "コミュニティテーマを開く"
             },
@@ -2585,8 +2586,47 @@
                 "theme_deleted": "インストール済みテーマを削除しました。",
                 "theme_failed": "コミュニティテーマの有効化に失敗しました。",
                 "override_saved": "Override CSS を適用しました。",
+                "override_disabled": "カスタム CSS を無効化しました。",
                 "override_cleared": "Override CSS をクリアしました。",
                 "disable_failed": "コミュニティテーマ設定の更新に失敗しました。"
+            }
+        },
+        "themes": {
+            "header": "テーマ",
+            "settings": {
+                "header": "テーマ",
+                "description": "テーマソース、背景画像、コミュニティテーマ、アクセントカラー、カスタム CSS を管理します。",
+                "current_source": "現在のソース"
+            },
+            "source": {
+                "header": "テーマソース",
+                "built_in": "内蔵テーマ",
+                "built_in_description": "VRCX-0 標準のライト/ダークテーマを使用します。",
+                "background": "背景画像",
+                "background_description": "デイリー画像またはローカル画像を固定 surface プリセットで使用します。",
+                "community": "コミュニティテーマ",
+                "community_description": "コミュニティ CSS スナップショットをインストールして有効化します。"
+            },
+            "built_in": {
+                "header": "内蔵テーマ"
+            },
+            "accent": {
+                "header": "アクセントカラー"
+            },
+            "custom_css": {
+                "header": "カスタム CSS"
+            },
+            "action": {
+                "open_themes": "テーマを開く",
+                "use_built_in": "内蔵テーマを使用"
+            },
+            "menu": {
+                "header": "テーマ",
+                "current_source": "現在: {source}"
+            },
+            "toast": {
+                "built_in_enabled": "内蔵テーマを有効化しました。",
+                "source_failed": "テーマソースの更新に失敗しました。"
             }
         },
         "background_image": {
@@ -5770,6 +5810,8 @@
             "settings": "設定",
             "settings_and_diagnostics": "設定と診断です。",
             "current_instance_player_roster_rebuilt_from_local_activity_data": "ローカルアクティビティデータから現在のインスタンスのプレイヤー一覧を再構築しました。",
+            "themes": "テーマ",
+            "themes_description": "テーマソースとカスタム CSS の管理です。",
             "community_themes": "コミュニティテーマ",
             "community_themes_css_theme_marketplace": "コミュニティテーママーケット。"
         }

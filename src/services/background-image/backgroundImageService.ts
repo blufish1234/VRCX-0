@@ -1,7 +1,6 @@
 import configRepository from '@/repositories/configRepository';
 import { tauriClient } from '@/platform/tauri/client';
 import {
-    disableCommunityThemeOverrideCss,
     disableInstalledCommunityTheme,
     stopLocalCommunityThemePreview
 } from '@/services/communityThemeService';
@@ -46,8 +45,7 @@ import {
 const BACKGROUND_IMAGE_LAYER = 'background-image';
 const COMMUNITY_CSS_LAYERS: VrcxCssLayer[] = [
     'installed-theme',
-    'local-theme-preview',
-    'user-override'
+    'local-theme-preview'
 ];
 
 const CONFIG_KEYS = {
@@ -265,7 +263,6 @@ function isCommunityAppearanceActive(): boolean {
 async function disableCommunityThemesForBackgroundImage(): Promise<void> {
     await stopLocalCommunityThemePreview();
     await disableInstalledCommunityTheme();
-    await disableCommunityThemeOverrideCss();
 }
 
 async function syncBackgroundImageAppearance(
@@ -492,8 +489,60 @@ export async function setBackgroundImageProvider(
     providerIdInput: unknown
 ): Promise<void> {
     const providerId = normalizeProviderId(providerIdInput);
-    await configRepository.setString(CONFIG_KEYS.providerId, providerId);
     const state = useBackgroundImageStore.getState();
+    if (state.providerId === providerId) {
+        return;
+    }
+
+    if (state.enabled && state.mode === 'daily') {
+        const operationId = beginBackgroundImageOperation();
+        state.setLoading(true);
+        state.setError(null);
+        try {
+            const snapshot = await resolveProviderSnapshot(providerId);
+            if (!isCurrentBackgroundImageOperation(operationId)) {
+                return;
+            }
+            await disableCommunityThemesForBackgroundImage();
+            await persistState({
+                enabled: Boolean(snapshot),
+                mode: snapshot ? 'daily' : 'off',
+                providerId
+            });
+            useBackgroundImageStore.getState().setStateSnapshot({
+                mode: snapshot ? 'daily' : 'off',
+                enabled: Boolean(snapshot),
+                providerId,
+                customSource: state.customSource,
+                snapshot
+            });
+            await syncBackgroundImageAppearance();
+        } catch (error) {
+            if (!isCurrentBackgroundImageOperation(operationId)) {
+                return;
+            }
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : 'Failed to update Background Image provider.';
+            useBackgroundImageStore.getState().setError(message);
+            useBackgroundImageStore.getState().setStateSnapshot({
+                mode: state.mode,
+                enabled: state.enabled,
+                providerId: state.providerId,
+                customSource: state.customSource,
+                snapshot: state.snapshot
+            });
+            throw error;
+        } finally {
+            if (isCurrentBackgroundImageOperation(operationId)) {
+                useBackgroundImageStore.getState().setLoading(false);
+            }
+        }
+        return;
+    }
+
+    await configRepository.setString(CONFIG_KEYS.providerId, providerId);
     const snapshots = await loadSnapshots();
     useBackgroundImageStore.getState().setStateSnapshot({
         mode: state.mode === 'daily' ? 'daily' : state.mode,
@@ -505,11 +554,7 @@ export async function setBackgroundImageProvider(
                 ? state.snapshot
                 : (snapshots[providerId] ?? null)
     });
-    if (state.enabled && state.mode === 'daily') {
-        await enableBackgroundImageDaily(providerId);
-    } else {
-        await syncBackgroundImageAppearance();
-    }
+    await syncBackgroundImageAppearance();
 }
 
 export async function enableBackgroundImageDaily(

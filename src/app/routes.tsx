@@ -241,13 +241,17 @@ export const protectedRoutes = [
         )
     },
     {
-        path: '/community-themes',
-        titleKey: 'app.routes.community_themes',
-        descriptionKey: 'app.routes.community_themes_css_theme_marketplace',
+        path: '/themes',
+        titleKey: 'app.routes.themes',
+        descriptionKey: 'app.routes.themes_description',
         element: lazyRouteElement(
-            () => import('@/features/community-themes/CommunityThemesPage'),
-            'CommunityThemesPage'
+            () => import('@/features/themes/ThemesPage'),
+            'ThemesPage'
         )
+    },
+    {
+        path: '/community-themes',
+        element: <Navigate to="/themes" replace />
     },
     {
         path: '/settings',

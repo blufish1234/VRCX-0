@@ -3,7 +3,7 @@ import type {
     CommunityThemeInstallMetadata,
     CommunityThemeLocalPreview,
     CommunityThemeManifest
-} from '@/features/community-themes/communityThemeTypes';
+} from '@/features/themes/communityThemeTypes';
 import { convertFileSrc } from '@/platform/tauri/assets';
 import { tauriClient } from '@/platform/tauri/client';
 import {

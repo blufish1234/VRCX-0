@@ -23,6 +23,7 @@ import {
 import {
     clearCommunityThemeOverrideCss,
     deleteInstalledCommunityTheme,
+    disableCommunityThemeOverrideCss,
     disableInstalledCommunityTheme,
     enableInstalledCommunityTheme,
     getCommunityThemeOverrideCssSnapshot,
@@ -32,23 +33,63 @@ import {
     saveCommunityThemeOverrideCss,
     stopLocalCommunityThemePreview
 } from '@/services/communityThemeService';
+import {
+    disableBackgroundImage,
+    setBackgroundImageMode
+} from '@/services/background-image/backgroundImageService';
 import { openExternalLink } from '@/services/entityMediaService';
 import { tauriClient } from '@/platform/tauri/client';
+import {
+    setThemeColorPreference,
+    setThemeModePreference
+} from '@/services/preferencesService';
 import { isThemeDeveloperBuild } from '@/shared/buildLabel';
+import { THEME_COLORS } from '@/shared/constants/themes';
+import type { BackgroundImageMode } from '@/services/background-image/types';
+import { useBackgroundImageStore } from '@/state/backgroundImageStore';
 import {
     communityThemeControlsAccent,
     useCommunityThemeStore
 } from '@/state/communityThemeStore';
+import { useShellStore } from '@/state/shellStore';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/shadcn/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/shadcn/tabs';
 import { Textarea } from '@/ui/shadcn/textarea';
 
+import { BackgroundImageSection } from './components/BackgroundImageSection';
+
 import type {
     CommunityThemeInstallMetadata,
     CommunityThemeManifest
 } from './communityThemeTypes';
+
+type ThemeSource = 'built-in' | 'background' | 'community';
+
+const THEME_MODE_OPTIONS = ['system', 'light', 'dark'];
+
+function themeModeLabel(themeMode: string, t: (key: string) => string) {
+    return t(`view.settings.appearance.appearance.theme_mode_${themeMode}`);
+}
+
+function themeColorLabel(themeColor: any, t: (key: string) => string) {
+    return t(`view.settings.appearance.theme_color.${themeColor.key}`);
+}
+
+function resolveActiveThemeSource(
+    backgroundImageEnabled: boolean,
+    communityThemeEnabled: boolean,
+    localPreview: unknown
+): ThemeSource {
+    if (localPreview || communityThemeEnabled) {
+        return 'community';
+    }
+    if (backgroundImageEnabled) {
+        return 'background';
+    }
+    return 'built-in';
+}
 
 function ThemeTags({ tags }: { tags: string[] }) {
     return (
@@ -213,50 +254,19 @@ function ThemeCatalogCard({
     );
 }
 
-function NoCommunityThemeOption({
-    enabled,
-    loading,
-    onDisable,
-    t
-}: {
-    enabled: boolean;
-    loading: boolean;
-    onDisable: () => void;
-    t: (key: string, options?: any) => string;
-}) {
-    return (
-        <div className="border-border/70 bg-muted/20 flex min-w-0 items-center justify-between gap-3 rounded-md border p-3 text-sm">
-            <div className="grid min-w-0 gap-1">
-                <div className="font-medium">
-                    {t('view.community_themes.action.no_theme')}
-                </div>
-                <div className="text-muted-foreground text-xs">
-                    {t('view.community_themes.settings.status_default')}
-                </div>
-            </div>
-            {enabled ? (
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={loading}
-                    onClick={onDisable}
-                >
-                    <SquareIcon data-icon="inline-start" />
-                    {t('view.community_themes.action.disable_theme')}
-                </Button>
-            ) : (
-                <Badge className="shrink-0">
-                    <BadgeCheckIcon data-icon="inline-start" />
-                    {t('view.community_themes.status.active')}
-                </Badge>
-            )}
-        </div>
-    );
-}
-
-export function CommunityThemesPage() {
+export function ThemesPage() {
     const { t } = useTranslation();
+    const themeMode = useShellStore((state: any) => state.themeMode);
+    const themeColor = useShellStore((state: any) => state.themeColor);
+    const backgroundImageEnabled = useBackgroundImageStore(
+        (state: any) => state.enabled
+    );
+    const backgroundImageMode = useBackgroundImageStore(
+        (state: any) => state.mode
+    );
+    const backgroundImageCustomSource = useBackgroundImageStore(
+        (state: any) => state.customSource
+    );
     const catalog = useCommunityThemeStore((state: any) => state.catalog);
     const enabled = useCommunityThemeStore((state: any) => state.enabled);
     const installedTheme = useCommunityThemeStore(
@@ -282,6 +292,15 @@ export function CommunityThemesPage() {
     const [devError, setDevError] = useState<string | null>(null);
     const devWatchReloadingRef = useRef(false);
     const developerToolsAvailable = isThemeDeveloperBuild();
+    const activeSource = resolveActiveThemeSource(
+        backgroundImageEnabled,
+        enabled,
+        localPreview
+    );
+    const [selectedSource, setSelectedSource] =
+        useState<ThemeSource>(activeSource);
+    const visibleSource =
+        activeSource === 'built-in' ? selectedSource : activeSource;
 
     useEffect(() => {
         loadCatalog().catch((loadError: any) => {
@@ -293,6 +312,12 @@ export function CommunityThemesPage() {
         });
         setOverrideDraft(getCommunityThemeOverrideCssSnapshot());
     }, [t]);
+
+    useEffect(() => {
+        if (activeSource !== 'built-in') {
+            setSelectedSource(activeSource);
+        }
+    }, [activeSource]);
 
     useEffect(() => {
         if (localPreview?.folderPath) {
@@ -424,6 +449,79 @@ export function CommunityThemesPage() {
         }
     }
 
+    async function disableOverride() {
+        try {
+            await disableCommunityThemeOverrideCss();
+            toast.success(t('view.community_themes.toast.override_disabled'));
+        } catch (disableError) {
+            toast.error(
+                disableError instanceof Error
+                    ? disableError.message
+                    : t('view.community_themes.toast.disable_failed')
+            );
+        }
+    }
+
+    async function selectBuiltInSource() {
+        setSelectedSource('built-in');
+        try {
+            if (backgroundImageEnabled) {
+                await disableBackgroundImage();
+            }
+            if (enabled) {
+                await disableInstalledCommunityTheme();
+            }
+            if (localPreview) {
+                await stopLocalCommunityThemePreview();
+            }
+            toast.success(t('view.themes.toast.built_in_enabled'));
+        } catch (sourceError) {
+            toast.error(
+                sourceError instanceof Error
+                    ? sourceError.message
+                    : t('view.themes.toast.source_failed')
+            );
+        }
+    }
+
+    async function selectBackgroundSource() {
+        setSelectedSource('background');
+        try {
+            const nextMode: BackgroundImageMode =
+                backgroundImageMode === 'custom' && backgroundImageCustomSource
+                    ? 'custom'
+                    : 'daily';
+            const updated = await setBackgroundImageMode(nextMode);
+            if (updated) {
+                toast.success(t('view.background_image.toast.enabled'));
+            }
+        } catch (sourceError) {
+            toast.error(
+                sourceError instanceof Error
+                    ? sourceError.message
+                    : t('view.background_image.toast.failed')
+            );
+        }
+    }
+
+    async function selectCommunitySource() {
+        setSelectedSource('community');
+        try {
+            if (backgroundImageEnabled) {
+                await disableBackgroundImage({ restoreAppTheme: false });
+            }
+            if (!enabled && installedTheme) {
+                await enableInstalledCommunityTheme(installedTheme.themeId);
+            }
+        } catch (sourceError) {
+            toast.error(
+                sourceError instanceof Error
+                    ? sourceError.message
+                    : t('view.community_themes.toast.theme_failed')
+            );
+        }
+    }
+
     async function loadLocalPreview(folderPath = devFolderPath) {
         const nextFolderPath = folderPath.trim();
         if (!nextFolderPath) {
@@ -490,13 +588,155 @@ export function CommunityThemesPage() {
             theme
         ])
     );
+    const appearanceControlled = activeSource !== 'built-in';
+
+    async function updateThemeMode(nextThemeMode: string) {
+        if (appearanceControlled) {
+            return;
+        }
+        try {
+            await setThemeModePreference(nextThemeMode);
+        } catch (modeError) {
+            toast.error(
+                modeError instanceof Error
+                    ? modeError.message
+                    : t('view.themes.toast.source_failed')
+            );
+        }
+    }
+
+    async function updateThemeColor(nextThemeColor: string) {
+        if (accentControlled) {
+            return;
+        }
+        try {
+            await setThemeColorPreference(nextThemeColor);
+        } catch (colorError) {
+            toast.error(
+                colorError instanceof Error
+                    ? colorError.message
+                    : t('view.themes.toast.source_failed')
+            );
+        }
+    }
 
     return (
         <PageScaffold className="flex-1">
             <PageHeader>
-                <PageTitle>{t('view.community_themes.header')}</PageTitle>
+                <PageTitle>{t('view.themes.header')}</PageTitle>
             </PageHeader>
             <PageBody>
+                <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                    <div className="mx-auto flex w-full max-w-6xl flex-col gap-3">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-sm">
+                                    {t('view.themes.source.header')}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="grid gap-2 md:grid-cols-3">
+                                <Button
+                                    type="button"
+                                    variant={
+                                        visibleSource === 'built-in'
+                                            ? 'default'
+                                            : 'outline'
+                                    }
+                                    className="h-auto justify-start p-3 text-left"
+                                    onClick={selectBuiltInSource}
+                                >
+                                    <span className="grid min-w-0 gap-1">
+                                        <span className="font-medium">
+                                            {t('view.themes.source.built_in')}
+                                        </span>
+                                        <span className="text-xs font-normal opacity-80">
+                                            {t(
+                                                'view.themes.source.built_in_description'
+                                            )}
+                                        </span>
+                                    </span>
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant={
+                                        visibleSource === 'background'
+                                            ? 'default'
+                                            : 'outline'
+                                    }
+                                    className="h-auto justify-start p-3 text-left"
+                                    onClick={selectBackgroundSource}
+                                >
+                                    <span className="grid min-w-0 gap-1">
+                                        <span className="font-medium">
+                                            {t('view.themes.source.background')}
+                                        </span>
+                                        <span className="text-xs font-normal opacity-80">
+                                            {t(
+                                                'view.themes.source.background_description'
+                                            )}
+                                        </span>
+                                    </span>
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant={
+                                        visibleSource === 'community'
+                                            ? 'default'
+                                            : 'outline'
+                                    }
+                                    className="h-auto justify-start p-3 text-left"
+                                    onClick={selectCommunitySource}
+                                >
+                                    <span className="grid min-w-0 gap-1">
+                                        <span className="font-medium">
+                                            {t('view.themes.source.community')}
+                                        </span>
+                                        <span className="text-xs font-normal opacity-80">
+                                            {t(
+                                                'view.themes.source.community_description'
+                                            )}
+                                        </span>
+                                    </span>
+                                </Button>
+                            </CardContent>
+                        </Card>
+
+                        {visibleSource === 'built-in' ? (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-sm">
+                                        {t('view.themes.built_in.header')}
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="flex flex-col gap-3">
+                                    <div className="flex flex-wrap gap-2">
+                                        {THEME_MODE_OPTIONS.map((mode) => (
+                                            <Button
+                                                key={mode}
+                                                type="button"
+                                                size="sm"
+                                                variant={
+                                                    themeMode === mode
+                                                        ? 'default'
+                                                        : 'outline'
+                                                }
+                                                onClick={() =>
+                                                    updateThemeMode(mode)
+                                                }
+                                            >
+                                                {themeModeLabel(mode, t)}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ) : null}
+
+                        {visibleSource === 'background' ? (
+                            <BackgroundImageSection />
+                        ) : null}
+
+                        {visibleSource === 'community' ? (
                 <Tabs
                     defaultValue="browse"
                     className="flex min-h-0 flex-1 flex-col"
@@ -509,16 +749,6 @@ export function CommunityThemesPage() {
                             <TabsTrigger value="installed">
                                 {t('view.community_themes.tabs.installed')}
                             </TabsTrigger>
-                            <TabsTrigger value="override">
-                                {t('view.community_themes.tabs.override')}
-                            </TabsTrigger>
-                            {developerToolsAvailable ? (
-                                <TabsTrigger value="developer">
-                                    {t(
-                                        'view.community_themes.tabs.developer'
-                                    )}
-                                </TabsTrigger>
-                            ) : null}
                         </TabsList>
                     </div>
                     <TabsContent
@@ -530,14 +760,6 @@ export function CommunityThemesPage() {
                                 {error}
                             </div>
                         ) : null}
-                        <div className="mb-3">
-                            <NoCommunityThemeOption
-                                enabled={enabled}
-                                loading={loading}
-                                t={t}
-                                onDisable={disableTheme}
-                            />
-                        </div>
                         {catalog.length ? (
                             <div className="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-2">
                                 {catalog.map((theme: any) => {
@@ -599,12 +821,6 @@ export function CommunityThemesPage() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="flex flex-col gap-3 text-sm">
-                                <NoCommunityThemeOption
-                                    enabled={enabled}
-                                    loading={loading}
-                                    t={t}
-                                    onDisable={disableTheme}
-                                />
                                 {installedThemes.length ? (
                                     <div className="grid gap-2">
                                         {installedThemes.map(
@@ -731,14 +947,58 @@ export function CommunityThemesPage() {
                             </CardContent>
                         </Card>
                     </TabsContent>
-                    <TabsContent
-                        value="override"
-                        className="m-0 min-h-0 flex-1 overflow-y-auto pt-3"
-                    >
+                </Tabs>
+                        ) : null}
+
                         <Card>
                             <CardHeader>
                                 <CardTitle className="text-sm">
-                                    {t('view.community_themes.override.header')}
+                                    {t('view.themes.accent.header')}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="flex flex-col gap-3">
+                                {accentControlled ? (
+                                    <p className="text-muted-foreground text-xs">
+                                        {t(
+                                            'view.community_themes.installed.accent_controlled'
+                                        )}
+                                    </p>
+                                ) : null}
+                                <div className="flex flex-wrap gap-2">
+                                    {THEME_COLORS.map((color: any) => (
+                                        <Button
+                                            key={color.key}
+                                            type="button"
+                                            size="sm"
+                                            variant={
+                                                themeColor === color.key
+                                                    ? 'default'
+                                                    : 'outline'
+                                            }
+                                            disabled={accentControlled}
+                                            onClick={() =>
+                                                updateThemeColor(color.key)
+                                            }
+                                        >
+                                            <span
+                                                aria-hidden="true"
+                                                className="border-foreground/10 size-2.5 shrink-0 rounded-full border"
+                                                style={{
+                                                    backgroundColor:
+                                                        color.swatch
+                                                }}
+                                            />
+                                            {themeColorLabel(color, t)}
+                                        </Button>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-sm">
+                                    {t('view.themes.custom_css.header')}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="flex flex-col gap-3">
@@ -769,6 +1029,18 @@ export function CommunityThemesPage() {
                                         variant="outline"
                                         size="sm"
                                         disabled={!overrideCssLength}
+                                        onClick={disableOverride}
+                                    >
+                                        <SquareIcon data-icon="inline-start" />
+                                        {t(
+                                            'view.community_themes.action.disable_override'
+                                        )}
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={!overrideDraft.trim()}
                                         onClick={clearOverride}
                                     >
                                         <EraserIcon data-icon="inline-start" />
@@ -779,12 +1051,8 @@ export function CommunityThemesPage() {
                                 </div>
                             </CardContent>
                         </Card>
-                    </TabsContent>
-                    {developerToolsAvailable ? (
-                        <TabsContent
-                            value="developer"
-                            className="m-0 min-h-0 flex-1 overflow-y-auto pt-3"
-                        >
+
+                        {developerToolsAvailable ? (
                             <Card>
                                 <CardHeader>
                                     <CardTitle className="text-sm">
@@ -909,9 +1177,9 @@ export function CommunityThemesPage() {
                                     ) : null}
                                 </CardContent>
                             </Card>
-                        </TabsContent>
-                    ) : null}
-                </Tabs>
+                        ) : null}
+                    </div>
+                </div>
             </PageBody>
         </PageScaffold>
     );

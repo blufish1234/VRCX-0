@@ -2538,6 +2538,7 @@
                 "disable_theme": "禁用主题",
                 "delete_theme": "删除主题",
                 "apply_override": "应用 override",
+                "disable_override": "禁用自定义 CSS",
                 "clear_override": "清空 override",
                 "open_marketplace": "打开社区主题"
             },
@@ -2585,8 +2586,47 @@
                 "theme_deleted": "已删除安装的主题。",
                 "theme_failed": "启用社区主题失败。",
                 "override_saved": "Override CSS 已应用。",
+                "override_disabled": "自定义 CSS 已禁用。",
                 "override_cleared": "Override CSS 已清空。",
                 "disable_failed": "更新社区主题设置失败。"
+            }
+        },
+        "themes": {
+            "header": "主题",
+            "settings": {
+                "header": "主题",
+                "description": "管理主题来源、背景图案、社区主题、强调色和自定义 CSS。",
+                "current_source": "当前来源"
+            },
+            "source": {
+                "header": "主题来源",
+                "built_in": "内置主题",
+                "built_in_description": "使用 VRCX-0 标准亮色/暗色主题。",
+                "background": "背景图案",
+                "background_description": "使用每日图片或本地图片，并套用固定 surface 预设。",
+                "community": "社区主题",
+                "community_description": "安装并启用社区 CSS 快照。"
+            },
+            "built_in": {
+                "header": "内置主题"
+            },
+            "accent": {
+                "header": "强调色"
+            },
+            "custom_css": {
+                "header": "自定义 CSS"
+            },
+            "action": {
+                "open_themes": "打开主题",
+                "use_built_in": "使用内置主题"
+            },
+            "menu": {
+                "header": "主题",
+                "current_source": "当前：{source}"
+            },
+            "toast": {
+                "built_in_enabled": "已启用内置主题。",
+                "source_failed": "更新主题来源失败。"
             }
         },
         "background_image": {
@@ -5770,6 +5810,8 @@
             "settings": "设置",
             "settings_and_diagnostics": "设置和诊断。",
             "current_instance_player_roster_rebuilt_from_local_activity_data": "已根据本地活动数据重建当前房间玩家列表。",
+            "themes": "主题",
+            "themes_description": "主题来源和自定义 CSS 管理。",
             "community_themes": "社区主题",
             "community_themes_css_theme_marketplace": "社区主题市场。"
         }

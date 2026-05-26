@@ -33,13 +33,13 @@ import {
     SelectValue
 } from '@/ui/shadcn/select';
 
-import { Field } from '../SettingsField';
+import { Field } from '@/features/settings/components/SettingsField';
 
 function countKey(baseKey: string, count: number): string {
     return count === 1 ? baseKey : `${baseKey}_plural`;
 }
 
-export function SettingsInterfaceBackgroundImageCard() {
+export function BackgroundImageSection() {
     const { t } = useTranslation();
     const mode = useBackgroundImageStore((state: any) => state.mode);
     const enabled = useBackgroundImageStore((state: any) => state.enabled);
@@ -59,10 +59,6 @@ export function SettingsInterfaceBackgroundImageCard() {
     async function updateMode(nextMode: BackgroundImageMode) {
         try {
             const updated = await setBackgroundImageMode(nextMode);
-            if (nextMode === 'off') {
-                toast.success(t('view.background_image.toast.disabled'));
-                return;
-            }
             if (updated) {
                 toast.success(t('view.background_image.toast.enabled'));
             }
@@ -183,7 +179,7 @@ export function SettingsInterfaceBackgroundImageCard() {
                 >
                     <div className="flex min-w-0 flex-wrap items-center gap-2">
                         <Select
-                            value={mode}
+                            value={mode === 'custom' ? 'custom' : 'daily'}
                             disabled={loading}
                             onValueChange={(value) =>
                                 updateMode(value as BackgroundImageMode)
@@ -193,9 +189,6 @@ export function SettingsInterfaceBackgroundImageCard() {
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="off">
-                                    {t('view.background_image.mode.off')}
-                                </SelectItem>
                                 <SelectItem value="daily">
                                     {t('view.background_image.mode.daily')}
                                 </SelectItem>

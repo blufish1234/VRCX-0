@@ -2538,6 +2538,7 @@
                 "disable_theme": "Disable theme",
                 "delete_theme": "Delete theme",
                 "apply_override": "Apply override",
+                "disable_override": "Disable custom CSS",
                 "clear_override": "Clear override",
                 "open_marketplace": "Open Community Themes"
             },
@@ -2585,8 +2586,47 @@
                 "theme_deleted": "Installed theme deleted.",
                 "theme_failed": "Failed to enable community theme.",
                 "override_saved": "Override CSS applied.",
+                "override_disabled": "Custom CSS disabled.",
                 "override_cleared": "Override CSS cleared.",
                 "disable_failed": "Failed to update community theme settings."
+            }
+        },
+        "themes": {
+            "header": "Themes",
+            "settings": {
+                "header": "Themes",
+                "description": "Manage theme source, background image, community themes, accent color, and custom CSS.",
+                "current_source": "Current source"
+            },
+            "source": {
+                "header": "Theme source",
+                "built_in": "Built-in",
+                "built_in_description": "Use VRCX-0's standard light and dark themes.",
+                "background": "Background image",
+                "background_description": "Use a daily or local image with the fixed surface preset.",
+                "community": "Community theme",
+                "community_description": "Install and enable a community CSS snapshot."
+            },
+            "built_in": {
+                "header": "Built-in theme"
+            },
+            "accent": {
+                "header": "Accent color"
+            },
+            "custom_css": {
+                "header": "Custom CSS"
+            },
+            "action": {
+                "open_themes": "Open Themes",
+                "use_built_in": "Use Built-in Theme"
+            },
+            "menu": {
+                "header": "Theme",
+                "current_source": "Current: {source}"
+            },
+            "toast": {
+                "built_in_enabled": "Built-in theme enabled.",
+                "source_failed": "Failed to update theme source."
             }
         },
         "background_image": {
@@ -5770,6 +5810,8 @@
             "settings": "Settings",
             "settings_and_diagnostics": "Settings and diagnostics.",
             "current_instance_player_roster_rebuilt_from_local_activity_data": "Current-instance player roster rebuilt from local activity data.",
+            "themes": "Themes",
+            "themes_description": "Theme source and custom CSS management.",
             "community_themes": "Community Themes",
             "community_themes_css_theme_marketplace": "Community theme marketplace."
         }

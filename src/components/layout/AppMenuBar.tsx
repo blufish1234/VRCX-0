@@ -1,4 +1,3 @@
-import { CheckIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -12,20 +11,15 @@ import configRepository from '@/repositories/configRepository';
 import { logoutFromReactShell } from '@/services/authExecutionService';
 import { startBackgroundModeForCurrentSession } from '@/services/backgroundModeService';
 import {
+    disableCommunityThemeOverrideCss,
     disableInstalledCommunityTheme,
-    enableInstalledCommunityTheme
+    stopLocalCommunityThemePreview
 } from '@/services/communityThemeService';
 import { openExternalLink } from '@/services/entityMediaService';
-import {
-    disableBackgroundImage,
-    enableBackgroundImageCustom,
-    enableBackgroundImageDaily
-} from '@/services/background-image/backgroundImageService';
+import { disableBackgroundImage } from '@/services/background-image/backgroundImageService';
 import {
     setSidebarCollapsedPreference,
     setTableDensityPreference,
-    setThemeColorPreference,
-    setThemeModePreference,
     setZoomLevelPreference
 } from '@/services/preferencesService';
 import {
@@ -41,7 +35,6 @@ import {
     triggerToolByKey
 } from '@/services/toolActionService';
 import { links } from '@/shared/constants/link';
-import { THEME_COLORS } from '@/shared/constants/themes';
 import {
     TOOLS_QUICK_ACCESS_UPDATED_EVENT,
     getToolsByCategory,
@@ -56,7 +49,6 @@ import {
     isThemeDeveloperBuild
 } from '@/shared/buildLabel';
 import {
-    communityThemeControlsAccent,
     communityThemeControlsAppearance,
     useCommunityThemeStore
 } from '@/state/communityThemeStore';
@@ -91,7 +83,6 @@ import {
 } from '@/ui/shadcn/menubar';
 
 const ZOOM_STEP = 10;
-const themeModeOptions = ['system', 'light', 'dark'];
 const tableDensityOptions = [
     {
         value: 'standard',
@@ -102,14 +93,6 @@ const tableDensityOptions = [
         labelKey: 'view.settings.appearance.appearance.table_density_compact'
     }
 ];
-
-function themeModeLabel(themeMode: any, t: any) {
-    return t(`view.settings.appearance.appearance.theme_mode_${themeMode}`);
-}
-
-function themeColorLabel(themeColor: any, t: any) {
-    return t(`view.settings.appearance.theme_color.${themeColor.key}`);
-}
 
 function MenuItem({ children, onSelect, ...props }: any) {
     return (
@@ -134,25 +117,6 @@ function MenuRadioItem({ children, className, ...props }: any) {
         >
             {children}
         </MenubarRadioItem>
-    );
-}
-
-function ThemeColorRadioItem({ themeColor, disabled = false }: any) {
-    const { t } = useTranslation();
-
-    return (
-        <MenuRadioItem value={themeColor.key} disabled={disabled}>
-            <span className="flex min-w-0 items-center gap-2">
-                <span
-                    aria-hidden="true"
-                    className="border-foreground/10 size-2.5 shrink-0 rounded-full border"
-                    style={{ backgroundColor: themeColor.swatch }}
-                />
-                <span className="truncate">
-                    {themeColorLabel(themeColor, t)}
-                </span>
-            </span>
-        </MenuRadioItem>
     );
 }
 
@@ -185,8 +149,6 @@ export function AppMenuBar({
     const [quickAccessKeys, setQuickAccessKeys] = useState<any[]>([]);
     const zoomLevel = useShellStore((state: any) => state.zoomLevel);
     const sidebarOpen = useShellStore((state: any) => state.sidebarOpen);
-    const themeMode = useShellStore((state: any) => state.themeMode);
-    const themeColor = useShellStore((state: any) => state.themeColor);
     const tableDensity = useShellStore((state: any) => state.tableDensity);
     const communityThemeEnabled = useCommunityThemeStore(
         (state: any) => state.enabled
@@ -194,20 +156,14 @@ export function AppMenuBar({
     const installedCommunityTheme = useCommunityThemeStore(
         (state: any) => state.installedTheme
     );
-    const installedCommunityThemes = useCommunityThemeStore(
-        (state: any) => state.installedThemes
-    );
     const localCommunityThemePreview = useCommunityThemeStore(
         (state: any) => state.localPreview
     );
+    const communityThemeOverrideCssLength = useCommunityThemeStore(
+        (state: any) => state.overrideCssLength
+    );
     const backgroundImageEnabled = useBackgroundImageStore(
         (state: any) => state.enabled
-    );
-    const backgroundImageMode = useBackgroundImageStore(
-        (state: any) => state.mode
-    );
-    const backgroundImageCustomSource = useBackgroundImageStore(
-        (state: any) => state.customSource
     );
     const notificationLayout = usePreferencesStore(
         (state: any) => state.notificationLayout
@@ -258,18 +214,21 @@ export function AppMenuBar({
                 .filter(Boolean),
         [availableToolMap, quickAccessKeys]
     );
-    const communityThemeAccentControlled = communityThemeControlsAccent(
-        communityThemeEnabled,
-        installedCommunityTheme,
-        localCommunityThemePreview
-    );
     const communityThemeAppearanceControlled = communityThemeControlsAppearance(
         communityThemeEnabled,
         installedCommunityTheme,
         localCommunityThemePreview
     );
-    const customThemeAppearanceControlled =
+    const customThemeAppearanceActive =
         communityThemeAppearanceControlled || backgroundImageEnabled;
+    const currentThemeSourceLabel = localCommunityThemePreview
+        ? localCommunityThemePreview.themeName
+        : communityThemeEnabled
+          ? installedCommunityTheme?.themeName ||
+            t('view.themes.source.community')
+          : backgroundImageEnabled
+            ? t('view.themes.source.background')
+            : t('view.themes.source.built_in');
 
     useEffect(() => {
         let active = true;
@@ -360,94 +319,44 @@ export function AppMenuBar({
         }
     }
 
-    async function runEnableInstalledCommunityTheme(themeId?: string) {
-        if (
-            !themeId ||
-            (communityThemeEnabled && installedCommunityTheme?.themeId === themeId)
-        ) {
+    async function runUseBuiltInTheme() {
+        if (!customThemeAppearanceActive) {
             return;
         }
 
         try {
-            await enableInstalledCommunityTheme(themeId);
-            toast.success(t('view.community_themes.toast.theme_enabled'));
+            if (backgroundImageEnabled) {
+                await disableBackgroundImage();
+            }
+            if (communityThemeEnabled) {
+                await disableInstalledCommunityTheme();
+            }
+            if (localCommunityThemePreview) {
+                await stopLocalCommunityThemePreview();
+            }
+            toast.success(t('view.themes.toast.built_in_enabled'));
         } catch (error) {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : t('view.community_themes.toast.theme_failed')
+                    : t('view.themes.toast.source_failed')
             );
         }
     }
 
-    async function runDisableInstalledCommunityTheme() {
-        if (!communityThemeEnabled) {
+    async function runDisableCustomCss() {
+        if (!communityThemeOverrideCssLength) {
             return;
         }
 
         try {
-            await disableInstalledCommunityTheme();
-            toast.success(t('view.community_themes.toast.theme_disabled'));
+            await disableCommunityThemeOverrideCss();
+            toast.success(t('view.community_themes.toast.override_disabled'));
         } catch (error) {
             toast.error(
                 error instanceof Error
                     ? error.message
                     : t('view.community_themes.toast.disable_failed')
-            );
-        }
-    }
-
-    async function runEnableBackgroundImageDaily() {
-        try {
-            const enabledBackground = await enableBackgroundImageDaily();
-            if (!enabledBackground) {
-                return;
-            }
-            toast.success(t('view.background_image.toast.enabled'));
-        } catch (error) {
-            toast.error(
-                error instanceof Error
-                    ? error.message
-                    : t('view.background_image.toast.failed')
-            );
-        }
-    }
-
-    async function runEnableBackgroundImageCustom() {
-        if (!backgroundImageCustomSource) {
-            navigate('/settings');
-            toast.info(t('view.background_image.toast.custom_source_required'));
-            return;
-        }
-
-        try {
-            const enabledBackground = await enableBackgroundImageCustom();
-            if (!enabledBackground) {
-                return;
-            }
-            toast.success(t('view.background_image.toast.enabled'));
-        } catch (error) {
-            toast.error(
-                error instanceof Error
-                    ? error.message
-                    : t('view.background_image.toast.failed')
-            );
-        }
-    }
-
-    async function runDisableBackgroundImage() {
-        if (!backgroundImageEnabled) {
-            return;
-        }
-
-        try {
-            await disableBackgroundImage();
-            toast.success(t('view.background_image.toast.disabled'));
-        } catch (error) {
-            toast.error(
-                error instanceof Error
-                    ? error.message
-                    : t('view.background_image.toast.failed')
             );
         }
     }
@@ -579,221 +488,40 @@ export function AppMenuBar({
                         <MenubarGroup>
                             <MenubarSub>
                                 <MenubarSubTrigger className="min-h-7 min-w-48 text-xs">
-                                    {t(
-                                        'view.settings.appearance.appearance.theme_mode'
-                                    )}
-                                </MenubarSubTrigger>
-                                <MenubarSubContent className="w-56">
-                                    <MenubarRadioGroup
-                                        value={themeMode}
-                                        onValueChange={(value: any) => {
-                                            if (customThemeAppearanceControlled) {
-                                                return;
-                                            }
-                                            setThemeModePreference(value);
-                                        }}
-                                    >
-                                        {themeModeOptions.map((mode: any) => (
-                                            <MenuRadioItem
-                                                key={mode}
-                                                value={mode}
-                                                disabled={
-                                                    customThemeAppearanceControlled
-                                                }
-                                            >
-                                                {themeModeLabel(mode, t)}
-                                            </MenuRadioItem>
-                                        ))}
-                                    </MenubarRadioGroup>
-                                    <MenubarSeparator />
-                                    {communityThemeAppearanceControlled ? (
-                                        <MenubarLabel className="text-muted-foreground px-2 py-1.5 text-[11px] leading-snug whitespace-normal">
-                                            {t(
-                                                'view.community_themes.menu.appearance_disabled'
-                                            )}
-                                        </MenubarLabel>
-                                    ) : null}
-                                    {backgroundImageEnabled ? (
-                                        <MenubarLabel className="text-muted-foreground px-2 py-1.5 text-[11px] leading-snug whitespace-normal">
-                                            {t(
-                                                'view.background_image.menu.appearance_disabled'
-                                            )}
-                                        </MenubarLabel>
-                                    ) : null}
-                                    {communityThemeAccentControlled ? (
-                                        <MenubarLabel className="text-muted-foreground px-2 py-1.5 text-[11px] leading-snug whitespace-normal">
-                                            {t(
-                                                'view.community_themes.menu.accent_disabled'
-                                            )}
-                                        </MenubarLabel>
-                                    ) : null}
-                                    <MenubarRadioGroup
-                                        value={themeColor}
-                                        onValueChange={(value: any) => {
-                                            if (
-                                                communityThemeAccentControlled
-                                            ) {
-                                                return;
-                                            }
-                                            setThemeColorPreference(value);
-                                        }}
-                                    >
-                                        {THEME_COLORS.map((color: any) => (
-                                            <ThemeColorRadioItem
-                                                key={color.key}
-                                                themeColor={color}
-                                                disabled={
-                                                    communityThemeAccentControlled
-                                                }
-                                            />
-                                        ))}
-                                    </MenubarRadioGroup>
-                                </MenubarSubContent>
-                            </MenubarSub>
-                            <MenubarSub>
-                                <MenubarSubTrigger className="min-h-7 min-w-48 text-xs">
-                                    {t('view.community_themes.header')}
+                                    {t('view.themes.menu.header')}
                                 </MenubarSubTrigger>
                                 <MenubarSubContent className="w-60">
                                     <MenuItem
                                         onSelect={() => {
-                                            runDisableInstalledCommunityTheme();
+                                            navigate('/themes');
                                         }}
                                     >
-                                        <span className="flex min-w-0 items-center gap-2">
-                                            <span className="inline-flex size-3.5 shrink-0 items-center justify-center">
-                                                {!communityThemeEnabled ? (
-                                                    <CheckIcon data-icon="inline-start" />
-                                                ) : null}
-                                            </span>
-                                            <span className="min-w-0 truncate">
-                                                {t(
-                                                    'view.community_themes.action.no_theme'
-                                                )}
-                                            </span>
-                                        </span>
+                                        {t('view.themes.action.open_themes')}
                                     </MenuItem>
-                                    <MenubarSeparator />
-                                    {installedCommunityThemes?.length ? (
-                                        installedCommunityThemes.map(
-                                            (theme: any) => {
-                                                const active =
-                                                    communityThemeEnabled &&
-                                                    installedCommunityTheme?.themeId ===
-                                                        theme.themeId;
-                                                return (
-                                                    <MenuItem
-                                                        key={theme.themeId}
-                                                        onSelect={() => {
-                                                            runEnableInstalledCommunityTheme(
-                                                                theme.themeId
-                                                            );
-                                                        }}
-                                                    >
-                                                        <span className="flex min-w-0 items-center gap-2">
-                                                            <span className="inline-flex size-3.5 shrink-0 items-center justify-center">
-                                                                {active ? (
-                                                                    <CheckIcon data-icon="inline-start" />
-                                                                ) : null}
-                                                            </span>
-                                                            <span className="min-w-0 truncate">
-                                                                {theme.themeName}
-                                                            </span>
-                                                        </span>
-                                                    </MenuItem>
-                                                );
-                                            }
-                                        )
-                                    ) : (
-                                        <MenubarLabel className="text-muted-foreground px-2 py-1.5 text-xs font-normal">
-                                            {t(
-                                                'view.community_themes.installed.empty'
-                                            )}
-                                        </MenubarLabel>
-                                    )}
-                                    <MenubarSeparator />
                                     <MenuItem
-                                        onSelect={() =>
-                                            navigate('/community-themes')
-                                        }
-                                    >
-                                        {t('view.community_themes.header')}
-                                    </MenuItem>
-                                </MenubarSubContent>
-                            </MenubarSub>
-                            <MenubarSub>
-                                <MenubarSubTrigger className="min-h-7 min-w-48 text-xs">
-                                    {t('view.background_image.menu.header')}
-                                </MenubarSubTrigger>
-                                <MenubarSubContent className="w-60">
-                                    <MenuItem
+                                        disabled={!customThemeAppearanceActive}
                                         onSelect={() => {
-                                            runDisableBackgroundImage();
+                                            runUseBuiltInTheme();
                                         }}
                                     >
-                                        <span className="flex min-w-0 items-center gap-2">
-                                            <span className="inline-flex size-3.5 shrink-0 items-center justify-center">
-                                                {!backgroundImageEnabled ? (
-                                                    <CheckIcon data-icon="inline-start" />
-                                                ) : null}
-                                            </span>
-                                            <span className="min-w-0 truncate">
-                                                {t(
-                                                    'view.background_image.action.off'
-                                                )}
-                                            </span>
-                                        </span>
-                                    </MenuItem>
-                                    <MenubarSeparator />
-                                    <MenuItem
-                                        onSelect={() => {
-                                            runEnableBackgroundImageDaily();
-                                        }}
-                                    >
-                                        <span className="flex min-w-0 items-center gap-2">
-                                            <span className="inline-flex size-3.5 shrink-0 items-center justify-center">
-                                                {backgroundImageEnabled &&
-                                                backgroundImageMode === 'daily' ? (
-                                                    <CheckIcon data-icon="inline-start" />
-                                                ) : null}
-                                            </span>
-                                            <span className="min-w-0 truncate">
-                                                {t(
-                                                    'view.background_image.mode.daily'
-                                                )}
-                                            </span>
-                                        </span>
+                                        {t('view.themes.action.use_built_in')}
                                     </MenuItem>
                                     <MenuItem
+                                        disabled={!communityThemeOverrideCssLength}
                                         onSelect={() => {
-                                            runEnableBackgroundImageCustom();
-                                        }}
-                                    >
-                                        <span className="flex min-w-0 items-center gap-2">
-                                            <span className="inline-flex size-3.5 shrink-0 items-center justify-center">
-                                                {backgroundImageEnabled &&
-                                                backgroundImageMode ===
-                                                    'custom' ? (
-                                                    <CheckIcon data-icon="inline-start" />
-                                                ) : null}
-                                            </span>
-                                            <span className="min-w-0 truncate">
-                                                {t(
-                                                    'view.background_image.mode.custom'
-                                                )}
-                                            </span>
-                                        </span>
-                                    </MenuItem>
-                                    <MenubarSeparator />
-                                    <MenuItem
-                                        onSelect={() => {
-                                            navigate('/settings');
+                                            runDisableCustomCss();
                                         }}
                                     >
                                         {t(
-                                            'view.background_image.action.open_settings'
+                                            'view.community_themes.action.disable_override'
                                         )}
                                     </MenuItem>
+                                    <MenubarSeparator />
+                                    <MenubarLabel className="text-muted-foreground px-2 py-1.5 text-[11px] leading-snug whitespace-normal">
+                                        {t('view.themes.menu.current_source', {
+                                            source: currentThemeSourceLabel
+                                        })}
+                                    </MenubarLabel>
                                 </MenubarSubContent>
                             </MenubarSub>
                             <MenubarSub>

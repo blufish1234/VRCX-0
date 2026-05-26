@@ -3,7 +3,7 @@ import type {
     CommunityThemeAuthor,
     CommunityThemeCatalog,
     CommunityThemeManifest
-} from '@/features/community-themes/communityThemeTypes';
+} from '@/features/themes/communityThemeTypes';
 
 export const COMMUNITY_THEME_CATALOG_URL =
     'https://raw.githubusercontent.com/Map1en/VRCX-0-Community-Themes/master/themes/index.json';
