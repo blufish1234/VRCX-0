@@ -283,6 +283,8 @@ const commandArgs: Record<string, string[]> = {
     app__get_ugc_photo_location: ['path'],
     app__open_ugc_photos_folder: ['ugcPath'],
     app__open_folder_and_select_item: ['path', 'isFolder'],
+    app__background_image_files_resolve: ['input'],
+    app__open_background_image_files_selector_dialog: ['defaultPath'],
     app__open_file_selector_dialog: [
         'defaultPath',
         'defaultExt',

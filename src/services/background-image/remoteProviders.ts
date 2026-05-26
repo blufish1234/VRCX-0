@@ -1,8 +1,11 @@
 import type {
-    OfficialBackgroundProvider,
-    OfficialBackgroundProviderId,
-    OfficialBackgroundSnapshot
-} from './officialBackgroundProviderTypes';
+    BackgroundImageProvider,
+    BackgroundImageProviderId,
+    BackgroundImageSnapshot
+} from './types';
+
+export const DEFAULT_BACKGROUND_IMAGE_PROVIDER_ID: BackgroundImageProviderId =
+    'nasa-epic';
 
 const NASA_EPIC_METADATA_URL = 'https://epic.gsfc.nasa.gov/api/natural';
 const AIC_PUBLIC_DOMAIN_SEARCH_URL =
@@ -41,10 +44,10 @@ interface NasaApodResponse {
     copyright?: string;
 }
 
-class OfficialBackgroundRateLimitError extends Error {
+class BackgroundImageRateLimitError extends Error {
     constructor(message: string) {
         super(message);
-        this.name = 'OfficialBackgroundRateLimitError';
+        this.name = 'BackgroundImageRateLimitError';
     }
 }
 
@@ -74,13 +77,13 @@ function stableDailyIndex(length: number): number {
 async function fetchJson<T>(url: string): Promise<T> {
     const response = await fetch(url, { cache: 'no-cache' });
     if (response.status === 429) {
-        throw new OfficialBackgroundRateLimitError(
-            'Daily Background provider rate limit reached.'
+        throw new BackgroundImageRateLimitError(
+            'Background Image provider rate limit reached.'
         );
     }
     if (!response.ok) {
         throw new Error(
-            `Failed to load Daily Background provider: ${response.status} ${response.statusText}`
+            `Failed to load Background Image provider: ${response.status} ${response.statusText}`
         );
     }
     return (await response.json()) as T;
@@ -92,16 +95,19 @@ function buildSnapshot({
     title,
     author,
     license,
-    source
+    source,
+    resolvedForKey = currentDateKey()
 }: {
-    providerId: OfficialBackgroundProviderId;
+    providerId: BackgroundImageProviderId;
     imageUrl: string;
     title: string;
     author: string;
     license: string;
     source: string;
-}): OfficialBackgroundSnapshot {
+    resolvedForKey?: string;
+}): BackgroundImageSnapshot {
     return {
+        mode: 'daily',
         providerId,
         imageUrl,
         title,
@@ -109,7 +115,7 @@ function buildSnapshot({
         license,
         source,
         resolvedAt: new Date().toISOString(),
-        resolvedForDate: currentDateKey()
+        resolvedForKey
     };
 }
 
@@ -122,15 +128,15 @@ function normalizeHttpsUrl(rawUrl: string, allowedHosts?: Set<string>): string {
         parsedUrl.protocol = 'https:';
     }
     if (parsedUrl.protocol !== 'https:') {
-        throw new Error('Daily Background image must use HTTPS.');
+        throw new Error('Background Image must use HTTPS.');
     }
     if (allowedHosts && !allowedHosts.has(parsedUrl.hostname)) {
-        throw new Error('Daily Background image host is not allowed.');
+        throw new Error('Background Image host is not allowed.');
     }
     return parsedUrl.toString();
 }
 
-async function resolveNasaEpicSnapshot(): Promise<OfficialBackgroundSnapshot> {
+async function resolveNasaEpicSnapshot(): Promise<BackgroundImageSnapshot> {
     const entries = await fetchJson<NasaEpicEntry[]>(NASA_EPIC_METADATA_URL);
     const entry = [...(Array.isArray(entries) ? entries : [])]
         .filter((item) => item.image && item.date)
@@ -157,7 +163,7 @@ async function resolveNasaEpicSnapshot(): Promise<OfficialBackgroundSnapshot> {
     });
 }
 
-async function resolveAicSnapshot(): Promise<OfficialBackgroundSnapshot> {
+async function resolveAicSnapshot(): Promise<BackgroundImageSnapshot> {
     const payload = await fetchJson<AicSearchResponse>(
         AIC_PUBLIC_DOMAIN_SEARCH_URL
     );
@@ -186,8 +192,8 @@ async function resolveAicSnapshot(): Promise<OfficialBackgroundSnapshot> {
 
 function normalizeApodImage(
     value: NasaApodResponse,
-    resolvedForDate: string
-): OfficialBackgroundSnapshot | null {
+    resolvedForKey: string
+): BackgroundImageSnapshot | null {
     if (value.media_type !== 'image' || String(value.copyright || '').trim()) {
         return null;
     }
@@ -210,14 +216,15 @@ function normalizeApodImage(
     }
 
     return {
+        mode: 'daily',
         providerId: 'nasa-apod-safe',
         imageUrl,
         title: String(value.title || 'NASA Astronomy Picture of the Day'),
         author: 'NASA APOD',
         license: 'Public Domain / no copyright field',
-        source: String(value.date || resolvedForDate),
+        source: String(value.date || resolvedForKey),
         resolvedAt: new Date().toISOString(),
-        resolvedForDate
+        resolvedForKey
     };
 }
 
@@ -232,9 +239,7 @@ async function fetchApodByDate(date: string): Promise<NasaApodResponse | null> {
         return null;
     }
     if (response.status === 429) {
-        throw new OfficialBackgroundRateLimitError(
-            'NASA APOD rate limit reached.'
-        );
+        throw new BackgroundImageRateLimitError('NASA APOD rate limit reached.');
     }
     if (!response.ok) {
         throw new Error(
@@ -245,8 +250,8 @@ async function fetchApodByDate(date: string): Promise<NasaApodResponse | null> {
     return (await response.json()) as NasaApodResponse;
 }
 
-async function resolveNasaApodSnapshot(): Promise<OfficialBackgroundSnapshot> {
-    const resolvedForDate = currentDateKey();
+async function resolveNasaApodSnapshot(): Promise<BackgroundImageSnapshot> {
+    const resolvedForKey = currentDateKey();
     const today = new Date();
     for (let offset = 0; offset <= NASA_APOD_IMAGE_LOOKBACK_DAYS; offset += 1) {
         const date = formatUtcDate(addUtcDays(today, -offset));
@@ -255,7 +260,7 @@ async function resolveNasaApodSnapshot(): Promise<OfficialBackgroundSnapshot> {
             continue;
         }
 
-        const snapshot = normalizeApodImage(entry, resolvedForDate);
+        const snapshot = normalizeApodImage(entry, resolvedForKey);
         if (snapshot) {
             return snapshot;
         }
@@ -266,7 +271,7 @@ async function resolveNasaApodSnapshot(): Promise<OfficialBackgroundSnapshot> {
     );
 }
 
-export const officialImageProviders: OfficialBackgroundProvider[] = [
+const backgroundImageRemoteProviderList: BackgroundImageProvider[] = [
     {
         id: 'nasa-epic',
         name: 'NASA EPIC',
@@ -291,14 +296,19 @@ export const officialImageProviders: OfficialBackgroundProvider[] = [
         cacheTtlHours: 24,
         resolveSnapshot: resolveNasaApodSnapshot
     }
+];
+
+export const backgroundImageRemoteProviders: BackgroundImageProvider[] = [
+    ...backgroundImageRemoteProviderList
 ].sort((left, right) => left.priority - right.priority);
 
-export function resolveOfficialBackgroundProvider(
+export function resolveBackgroundImageProvider(
     value: unknown
-): OfficialBackgroundProvider {
+): BackgroundImageProvider {
     const providerId = String(value || '').trim();
     return (
-        officialImageProviders.find((provider) => provider.id === providerId) ||
-        officialImageProviders[0]
+        backgroundImageRemoteProviders.find(
+            (provider) => provider.id === providerId
+        ) || backgroundImageRemoteProviders[0]
     );
 }

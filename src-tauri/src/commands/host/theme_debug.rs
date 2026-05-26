@@ -26,9 +26,9 @@ pub fn app__community_theme_debug_load_local_theme(
     {
         let _ = state;
         let _ = folder_path;
-        return Err(AppError::Custom(
+        Err(AppError::Custom(
             "Community theme debug tools are unavailable in this build.".into(),
-        ));
+        ))
     }
 
     #[cfg(feature = "devtools")]

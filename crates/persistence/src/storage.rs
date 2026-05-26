@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{mpsc, Arc, RwLock};
+use std::thread::JoinHandle;
 use std::time::Duration;
 
 use crate::Error;
@@ -8,7 +9,8 @@ use crate::Error;
 pub struct StorageService {
     data: Arc<RwLock<HashMap<String, String>>>,
     file_path: PathBuf,
-    dirty_tx: mpsc::Sender<()>,
+    dirty_tx: Option<mpsc::Sender<()>>,
+    saver_handle: Option<JoinHandle<()>>,
 }
 
 impl StorageService {
@@ -25,12 +27,14 @@ impl StorageService {
 
         let saver_data = Arc::clone(&data);
         let saver_path = file_path.to_path_buf();
-        std::thread::spawn(move || debounce_saver(dirty_rx, saver_data, saver_path));
+        let saver_handle =
+            std::thread::spawn(move || debounce_saver(dirty_rx, saver_data, saver_path));
 
         Ok(Self {
             data,
             file_path: file_path.to_path_buf(),
-            dirty_tx,
+            dirty_tx: Some(dirty_tx),
+            saver_handle: Some(saver_handle),
         })
     }
 
@@ -40,13 +44,17 @@ impl StorageService {
 
     pub fn set(&self, key: String, value: String) {
         self.data.write().unwrap().insert(key, value);
-        let _ = self.dirty_tx.send(());
+        if let Some(dirty_tx) = &self.dirty_tx {
+            let _ = dirty_tx.send(());
+        }
     }
 
     pub fn remove(&self, key: &str) -> Option<String> {
         let removed = self.data.write().unwrap().remove(key);
         if removed.is_some() {
-            let _ = self.dirty_tx.send(());
+            if let Some(dirty_tx) = &self.dirty_tx {
+                let _ = dirty_tx.send(());
+            }
         }
         removed
     }
@@ -60,6 +68,15 @@ impl StorageService {
         let json = serde_json::to_string_pretty(&*data)?;
         std::fs::write(&self.file_path, json)?;
         Ok(())
+    }
+}
+
+impl Drop for StorageService {
+    fn drop(&mut self) {
+        self.dirty_tx.take();
+        if let Some(handle) = self.saver_handle.take() {
+            let _ = handle.join();
+        }
     }
 }
 

@@ -76,9 +76,12 @@ export const ConfigKeys = {
     tableDensity: { type: 'string', default: null },
     tablePageSize: { type: 'int', default: null },
     randomUserColours: { type: 'bool', default: false },
-    officialBackgroundEnabled: { type: 'bool', default: false },
-    officialBackgroundProviderId: { type: 'string', default: 'nasa-epic' },
-    officialBackgroundSnapshots: { type: 'string', default: '{}' },
+    backgroundImageEnabled: { type: 'bool', default: false },
+    backgroundImageMode: { type: 'string', default: 'off' },
+    backgroundImageProviderId: { type: 'string', default: 'nasa-epic' },
+    backgroundImageSnapshots: { type: 'string', default: '{}' },
+    backgroundImageCustomSource: { type: 'string', default: '{}' },
+    communityThemeOverrideEnabled: { type: 'bool', default: true },
 
     // ── Settings - Advanced ──────────────────────────
     bioLanguage: { type: 'string', default: null },

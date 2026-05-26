@@ -152,6 +152,19 @@ pub fn run() {
                 ));
             });
         })
+        .register_asynchronous_uri_scheme_protocol("vrcx-0-bg-img", move |ctx, request, responder| {
+            let app_handle = ctx.app_handle().clone();
+            tauri::async_runtime::spawn_blocking(move || {
+                let response = match app_handle.try_state::<AppState>() {
+                    Some(state) => bootstrap::background_image_protocol_response(request, &state),
+                    None => tauri::http::Response::builder()
+                        .status(tauri::http::StatusCode::SERVICE_UNAVAILABLE)
+                        .body(Vec::new().into())
+                        .unwrap(),
+                };
+                responder.respond(response);
+            });
+        })
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
@@ -631,6 +644,8 @@ pub fn run() {
             commands::host::shell::app__open_vrc_screenshots_folder,
             commands::host::shell::app__open_crash_vrc_crash_dumps,
             commands::host::shell::app__open_folder_and_select_item,
+            commands::host::shell::app__background_image_files_resolve,
+            commands::host::shell::app__open_background_image_files_selector_dialog,
             commands::host::shell::app__open_file_selector_dialog,
             commands::host::shell::app__open_folder_selector_dialog,
             commands::host::shell::app__save_vrc_reg_json_file,

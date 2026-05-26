@@ -29,10 +29,10 @@ import {
     setCommunityThemeAppearanceControl
 } from './themeService';
 import {
-    disableOfficialBackground,
-    isOfficialBackgroundActive,
+    disableBackgroundImage,
+    isBackgroundImageActive,
     migrateLegacyNasaApodCommunityTheme
-} from './officialBackgroundService';
+} from './background-image/backgroundImageService';
 import { setVrcxCssLayers } from './vrcxCssLayerService';
 
 const INSTALLED_THEME_LAYER = 'installed-theme';
@@ -48,6 +48,7 @@ const CONFIG_KEYS = {
     version: 'VRCX_communityThemeVersion',
     cssSnapshot: 'VRCX_communityThemeCssSnapshot',
     overrideCss: 'VRCX_communityThemeOverrideCss',
+    overrideCssEnabled: 'VRCX_communityThemeOverrideEnabled',
     installMetadata: 'VRCX_communityThemeInstallMetadata',
     installedThemes: 'VRCX_communityThemeInstalledThemes'
 };
@@ -59,6 +60,7 @@ type CommunityThemeInstalledSnapshot = CommunityThemeInstallMetadata & {
 let installedThemeCssSnapshot = '';
 let localPreviewCssSnapshot = '';
 let overrideCssSnapshot = '';
+let overrideCssEnabled = false;
 
 async function refreshCommunityThemeTrayMenu(): Promise<void> {
     try {
@@ -76,7 +78,7 @@ function syncCommunityStyleLayers(): void {
     setVrcxCssLayers({
         [INSTALLED_THEME_LAYER]: installedThemeCssSnapshot,
         [LOCAL_PREVIEW_LAYER]: localPreviewCssSnapshot,
-        [USER_OVERRIDE_LAYER]: overrideCssSnapshot
+        [USER_OVERRIDE_LAYER]: overrideCssEnabled ? overrideCssSnapshot : ''
     });
 }
 
@@ -107,7 +109,7 @@ async function syncCommunityThemeAppearanceControl(): Promise<void> {
         return;
     }
 
-    if (!isOfficialBackgroundActive()) {
+    if (!isBackgroundImageActive()) {
         await applySavedThemeMode();
     }
 }
@@ -360,7 +362,8 @@ export async function initializeCommunityThemes(): Promise<void> {
         legacyMetadata,
         legacyCssSnapshot,
         installedThemeRecords,
-        overrideCss
+        overrideCss,
+        overrideCssEnabledRaw
     ] = await Promise.all([
         configRepository.getBool(CONFIG_KEYS.enabled, false),
         configRepository.getString(CONFIG_KEYS.id, ''),
@@ -368,6 +371,7 @@ export async function initializeCommunityThemes(): Promise<void> {
         configRepository.getString(CONFIG_KEYS.cssSnapshot, ''),
         configRepository.getObject(CONFIG_KEYS.installedThemes, null),
         configRepository.getString(CONFIG_KEYS.overrideCss, ''),
+        configRepository.getRawValue(CONFIG_KEYS.overrideCssEnabled),
         configRepository.remove('VRCX_themeMarketplaceCatalogUrl')
     ]);
 
@@ -412,6 +416,9 @@ export async function initializeCommunityThemes(): Promise<void> {
     installedThemeCssSnapshot =
         enabled && activeRecord ? activeRecord.cssSnapshot : '';
     overrideCssSnapshot = String(overrideCss || '');
+    overrideCssEnabled = overrideCssSnapshot.trim()
+        ? overrideCssEnabledRaw === null || overrideCssEnabledRaw === 'true'
+        : false;
     if (legacyApodWasActive) {
         await migrateLegacyNasaApodCommunityTheme();
     }
@@ -422,7 +429,7 @@ export async function initializeCommunityThemes(): Promise<void> {
         installedTheme:
             enabled && activeRecord ? stripCssSnapshot(activeRecord) : null,
         installedThemes: records.map(stripCssSnapshot),
-        overrideCssLength: overrideCssSnapshot.length,
+        overrideCssLength: overrideCssEnabled ? overrideCssSnapshot.length : 0,
         localPreview: null
     });
     syncCommunityStyleLayers();
@@ -440,7 +447,7 @@ export async function installCommunityTheme(
     try {
         const catalogUrl = COMMUNITY_THEME_CATALOG_URL;
         const cssText = await loadCommunityThemeCss(catalogUrl, theme);
-        await disableOfficialBackground({ restoreAppTheme: false });
+        await disableBackgroundImage({ restoreAppTheme: false });
         const now = currentTimestamp();
         const previous = store.installedThemes.find(
             (installedTheme) => installedTheme.themeId === theme.id
@@ -527,7 +534,7 @@ export async function enableInstalledCommunityTheme(themeId?: string): Promise<v
     if (!activeRecord) {
         return;
     }
-    await disableOfficialBackground({ restoreAppTheme: false });
+    await disableBackgroundImage({ restoreAppTheme: false });
     const nextRecords = mergeInstallRecords([
         ...records.filter((record) => record.themeId !== activeRecord.themeId),
         activeRecord
@@ -614,15 +621,29 @@ export async function saveCommunityThemeOverrideCss(
     cssText: string
 ): Promise<void> {
     overrideCssSnapshot = String(cssText || '');
-    await configRepository.setString(CONFIG_KEYS.overrideCss, overrideCssSnapshot);
+    overrideCssEnabled = Boolean(overrideCssSnapshot.trim());
+    await Promise.all([
+        configRepository.setString(CONFIG_KEYS.overrideCss, overrideCssSnapshot),
+        configRepository.setBool(
+            CONFIG_KEYS.overrideCssEnabled,
+            overrideCssEnabled
+        )
+    ]);
     useCommunityThemeStore
         .getState()
-        .setOverrideCssLength(overrideCssSnapshot.length);
+        .setOverrideCssLength(overrideCssEnabled ? overrideCssSnapshot.length : 0);
     syncCommunityStyleLayers();
 }
 
 export async function clearCommunityThemeOverrideCss(): Promise<void> {
     await saveCommunityThemeOverrideCss('');
+}
+
+export async function disableCommunityThemeOverrideCss(): Promise<void> {
+    overrideCssEnabled = false;
+    await configRepository.setBool(CONFIG_KEYS.overrideCssEnabled, false);
+    useCommunityThemeStore.getState().setOverrideCssLength(0);
+    syncCommunityStyleLayers();
 }
 
 export function getCommunityThemeOverrideCssSnapshot(): string {
@@ -646,7 +667,7 @@ export async function loadLocalCommunityThemePreview(
         output.cssPath,
         loadedAt
     );
-    await disableOfficialBackground({ restoreAppTheme: false });
+    await disableBackgroundImage({ restoreAppTheme: false });
     localPreviewCssSnapshot = cssText;
 
     const preview: CommunityThemeLocalPreview = {

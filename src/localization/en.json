@@ -2590,15 +2590,34 @@
                 "disable_failed": "Failed to update community theme settings."
             }
         },
-        "official_backgrounds": {
+        "background_image": {
             "settings": {
-                "header": "Daily Background",
-                "enabled": "Daily Background",
-                "description": "Update the app background from the selected daily image source. Enabling it turns off community themes.",
+                "header": "Background Image",
+                "mode": "Mode",
+                "description": "Use a daily image source or your own local image source. Enabling it turns off community themes.",
                 "provider": "Source",
                 "apod_note": "NASA APOD only uses images without a copyright field.",
+                "custom_source": "Custom image source",
+                "custom_source_description": "Select one image for a fixed background, or select multiple images or a folder for rotation.",
+                "folder_first_level_note": "Folders are scanned one level only. Subfolders are not read.",
+                "current_source": "Current source",
+                "selected_files": "{count} selected image",
+                "selected_files_plural": "{count} selected images",
                 "current_image": "Current image",
+                "image_count": "{count} image",
+                "image_count_plural": "{count} images",
+                "rotation": "Rotation",
+                "no_custom_source": "No custom image source selected",
                 "no_image": "No image loaded"
+            },
+            "mode": {
+                "off": "Off",
+                "daily": "Daily image",
+                "custom": "Custom image source"
+            },
+            "rotation": {
+                "daily": "Daily",
+                "hourly": "Hourly"
             },
             "status": {
                 "enabled": "Enabled",
@@ -2606,17 +2625,22 @@
             },
             "action": {
                 "off": "Off",
-                "refresh": "Refresh"
+                "refresh": "Refresh",
+                "select_images": "Select images",
+                "select_folder": "Select folder",
+                "open_settings": "Open Background Settings"
             },
             "menu": {
-                "header": "Daily Background",
-                "appearance_disabled": "Light and dark mode are fixed while Daily Background is active."
+                "header": "Background Image",
+                "appearance_disabled": "Light and dark mode are fixed while Background Image is active."
             },
             "toast": {
-                "enabled": "Daily Background enabled.",
-                "disabled": "Daily Background disabled.",
-                "refreshed": "Daily Background refreshed.",
-                "failed": "Failed to update Daily Background."
+                "enabled": "Background Image enabled.",
+                "disabled": "Background Image disabled.",
+                "refreshed": "Background Image refreshed.",
+                "failed": "Failed to update Background Image.",
+                "custom_source_required": "Select a custom image source in Settings first.",
+                "no_images": "No supported images were found."
             }
         }
     },

@@ -13,15 +13,14 @@ import { logoutFromReactShell } from '@/services/authExecutionService';
 import { startBackgroundModeForCurrentSession } from '@/services/backgroundModeService';
 import {
     disableInstalledCommunityTheme,
-    enableInstalledCommunityTheme,
-    stopLocalCommunityThemePreview
+    enableInstalledCommunityTheme
 } from '@/services/communityThemeService';
 import { openExternalLink } from '@/services/entityMediaService';
 import {
-    disableOfficialBackground,
-    enableOfficialBackground,
-    officialImageProviders
-} from '@/services/officialBackgroundService';
+    disableBackgroundImage,
+    enableBackgroundImageCustom,
+    enableBackgroundImageDaily
+} from '@/services/background-image/backgroundImageService';
 import {
     setSidebarCollapsedPreference,
     setTableDensityPreference,
@@ -61,7 +60,7 @@ import {
     communityThemeControlsAppearance,
     useCommunityThemeStore
 } from '@/state/communityThemeStore';
-import { useOfficialBackgroundStore } from '@/state/officialBackgroundStore';
+import { useBackgroundImageStore } from '@/state/backgroundImageStore';
 import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useShellStore } from '@/state/shellStore';
@@ -201,11 +200,14 @@ export function AppMenuBar({
     const localCommunityThemePreview = useCommunityThemeStore(
         (state: any) => state.localPreview
     );
-    const officialBackgroundEnabled = useOfficialBackgroundStore(
+    const backgroundImageEnabled = useBackgroundImageStore(
         (state: any) => state.enabled
     );
-    const officialBackgroundProviderId = useOfficialBackgroundStore(
-        (state: any) => state.providerId
+    const backgroundImageMode = useBackgroundImageStore(
+        (state: any) => state.mode
+    );
+    const backgroundImageCustomSource = useBackgroundImageStore(
+        (state: any) => state.customSource
     );
     const notificationLayout = usePreferencesStore(
         (state: any) => state.notificationLayout
@@ -267,7 +269,7 @@ export function AppMenuBar({
         localCommunityThemePreview
     );
     const customThemeAppearanceControlled =
-        communityThemeAppearanceControlled || officialBackgroundEnabled;
+        communityThemeAppearanceControlled || backgroundImageEnabled;
 
     useEffect(() => {
         let active = true;
@@ -395,37 +397,57 @@ export function AppMenuBar({
         }
     }
 
-    async function runEnableOfficialBackground(providerId: string) {
+    async function runEnableBackgroundImageDaily() {
         try {
-            const enabledBackground = await enableOfficialBackground(providerId);
+            const enabledBackground = await enableBackgroundImageDaily();
             if (!enabledBackground) {
                 return;
             }
-            await stopLocalCommunityThemePreview();
-            await disableInstalledCommunityTheme();
-            toast.success(t('view.official_backgrounds.toast.enabled'));
+            toast.success(t('view.background_image.toast.enabled'));
         } catch (error) {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : t('view.official_backgrounds.toast.failed')
+                    : t('view.background_image.toast.failed')
             );
         }
     }
 
-    async function runDisableOfficialBackground() {
-        if (!officialBackgroundEnabled) {
+    async function runEnableBackgroundImageCustom() {
+        if (!backgroundImageCustomSource) {
+            navigate('/settings');
+            toast.info(t('view.background_image.toast.custom_source_required'));
             return;
         }
 
         try {
-            await disableOfficialBackground();
-            toast.success(t('view.official_backgrounds.toast.disabled'));
+            const enabledBackground = await enableBackgroundImageCustom();
+            if (!enabledBackground) {
+                return;
+            }
+            toast.success(t('view.background_image.toast.enabled'));
         } catch (error) {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : t('view.official_backgrounds.toast.failed')
+                    : t('view.background_image.toast.failed')
+            );
+        }
+    }
+
+    async function runDisableBackgroundImage() {
+        if (!backgroundImageEnabled) {
+            return;
+        }
+
+        try {
+            await disableBackgroundImage();
+            toast.success(t('view.background_image.toast.disabled'));
+        } catch (error) {
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : t('view.background_image.toast.failed')
             );
         }
     }
@@ -591,10 +613,10 @@ export function AppMenuBar({
                                             )}
                                         </MenubarLabel>
                                     ) : null}
-                                    {officialBackgroundEnabled ? (
+                                    {backgroundImageEnabled ? (
                                         <MenubarLabel className="text-muted-foreground px-2 py-1.5 text-[11px] leading-snug whitespace-normal">
                                             {t(
-                                                'view.official_backgrounds.menu.appearance_disabled'
+                                                'view.background_image.menu.appearance_disabled'
                                             )}
                                         </MenubarLabel>
                                     ) : null}
@@ -701,55 +723,77 @@ export function AppMenuBar({
                             </MenubarSub>
                             <MenubarSub>
                                 <MenubarSubTrigger className="min-h-7 min-w-48 text-xs">
-                                    {t('view.official_backgrounds.menu.header')}
+                                    {t('view.background_image.menu.header')}
                                 </MenubarSubTrigger>
                                 <MenubarSubContent className="w-60">
                                     <MenuItem
                                         onSelect={() => {
-                                            runDisableOfficialBackground();
+                                            runDisableBackgroundImage();
                                         }}
                                     >
                                         <span className="flex min-w-0 items-center gap-2">
                                             <span className="inline-flex size-3.5 shrink-0 items-center justify-center">
-                                                {!officialBackgroundEnabled ? (
+                                                {!backgroundImageEnabled ? (
                                                     <CheckIcon data-icon="inline-start" />
                                                 ) : null}
                                             </span>
                                             <span className="min-w-0 truncate">
                                                 {t(
-                                                    'view.official_backgrounds.action.off'
+                                                    'view.background_image.action.off'
                                                 )}
                                             </span>
                                         </span>
                                     </MenuItem>
                                     <MenubarSeparator />
-                                    {officialImageProviders.map((provider) => {
-                                        const active =
-                                            officialBackgroundEnabled &&
-                                            officialBackgroundProviderId ===
-                                                provider.id;
-                                        return (
-                                            <MenuItem
-                                                key={provider.id}
-                                                onSelect={() => {
-                                                    runEnableOfficialBackground(
-                                                        provider.id
-                                                    );
-                                                }}
-                                            >
-                                                <span className="flex min-w-0 items-center gap-2">
-                                                    <span className="inline-flex size-3.5 shrink-0 items-center justify-center">
-                                                        {active ? (
-                                                            <CheckIcon data-icon="inline-start" />
-                                                        ) : null}
-                                                    </span>
-                                                    <span className="min-w-0 truncate">
-                                                        {provider.name}
-                                                    </span>
-                                                </span>
-                                            </MenuItem>
-                                        );
-                                    })}
+                                    <MenuItem
+                                        onSelect={() => {
+                                            runEnableBackgroundImageDaily();
+                                        }}
+                                    >
+                                        <span className="flex min-w-0 items-center gap-2">
+                                            <span className="inline-flex size-3.5 shrink-0 items-center justify-center">
+                                                {backgroundImageEnabled &&
+                                                backgroundImageMode === 'daily' ? (
+                                                    <CheckIcon data-icon="inline-start" />
+                                                ) : null}
+                                            </span>
+                                            <span className="min-w-0 truncate">
+                                                {t(
+                                                    'view.background_image.mode.daily'
+                                                )}
+                                            </span>
+                                        </span>
+                                    </MenuItem>
+                                    <MenuItem
+                                        onSelect={() => {
+                                            runEnableBackgroundImageCustom();
+                                        }}
+                                    >
+                                        <span className="flex min-w-0 items-center gap-2">
+                                            <span className="inline-flex size-3.5 shrink-0 items-center justify-center">
+                                                {backgroundImageEnabled &&
+                                                backgroundImageMode ===
+                                                    'custom' ? (
+                                                    <CheckIcon data-icon="inline-start" />
+                                                ) : null}
+                                            </span>
+                                            <span className="min-w-0 truncate">
+                                                {t(
+                                                    'view.background_image.mode.custom'
+                                                )}
+                                            </span>
+                                        </span>
+                                    </MenuItem>
+                                    <MenubarSeparator />
+                                    <MenuItem
+                                        onSelect={() => {
+                                            navigate('/settings');
+                                        }}
+                                    >
+                                        {t(
+                                            'view.background_image.action.open_settings'
+                                        )}
+                                    </MenuItem>
                                 </MenubarSubContent>
                             </MenubarSub>
                             <MenubarSub>

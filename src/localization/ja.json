@@ -2590,15 +2590,34 @@
                 "disable_failed": "コミュニティテーマ設定の更新に失敗しました。"
             }
         },
-        "official_backgrounds": {
+        "background_image": {
             "settings": {
-                "header": "デイリー背景",
-                "enabled": "デイリー背景",
-                "description": "選択したデイリー画像ソースからアプリ背景を更新します。有効にするとコミュニティテーマはオフになります。",
+                "header": "背景画像",
+                "mode": "モード",
+                "description": "デイリー画像ソース、またはローカル画像ソースを背景に使用します。有効にするとコミュニティテーマはオフになります。",
                 "provider": "ソース",
                 "apod_note": "NASA APOD は copyright フィールドがない画像だけを使用します。",
+                "custom_source": "カスタム画像ソース",
+                "custom_source_description": "画像 1 枚なら固定背景、複数画像またはフォルダーならローテーションになります。",
+                "folder_first_level_note": "フォルダーは直下の画像だけを読み込みます。サブフォルダーは読み込みません。",
+                "current_source": "現在のソース",
+                "selected_files": "{count} 枚の画像を選択済み",
+                "selected_files_plural": "{count} 枚の画像を選択済み",
                 "current_image": "現在の画像",
+                "image_count": "{count} 枚の画像",
+                "image_count_plural": "{count} 枚の画像",
+                "rotation": "ローテーション",
+                "no_custom_source": "カスタム画像ソースは未選択です",
                 "no_image": "画像はまだ読み込まれていません"
+            },
+            "mode": {
+                "off": "オフ",
+                "daily": "デイリー画像",
+                "custom": "カスタム画像ソース"
+            },
+            "rotation": {
+                "daily": "毎日",
+                "hourly": "毎時"
             },
             "status": {
                 "enabled": "有効",
@@ -2606,17 +2625,22 @@
             },
             "action": {
                 "off": "オフ",
-                "refresh": "再読み込み"
+                "refresh": "再読み込み",
+                "select_images": "画像を選択",
+                "select_folder": "フォルダーを選択",
+                "open_settings": "背景設定を開く"
             },
             "menu": {
-                "header": "デイリー背景",
-                "appearance_disabled": "デイリー背景が有効な間はライト/ダークモードが固定されます。"
+                "header": "背景画像",
+                "appearance_disabled": "背景画像が有効な間はライト/ダークモードが固定されます。"
             },
             "toast": {
-                "enabled": "デイリー背景を有効化しました。",
-                "disabled": "デイリー背景を無効化しました。",
-                "refreshed": "デイリー背景を再読み込みしました。",
-                "failed": "デイリー背景の更新に失敗しました。"
+                "enabled": "背景画像を有効化しました。",
+                "disabled": "背景画像を無効化しました。",
+                "refreshed": "背景画像を再読み込みしました。",
+                "failed": "背景画像の更新に失敗しました。",
+                "custom_source_required": "先に設定でカスタム画像ソースを選択してください。",
+                "no_images": "対応している画像が見つかりません。"
             }
         }
     },

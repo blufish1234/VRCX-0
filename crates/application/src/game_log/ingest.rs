@@ -459,13 +459,13 @@ fn remove_player_for_leave(
     let matches = state
         .players_by_key
         .iter()
-        .filter_map(|(key, player)| {
+        .filter(|(_, player)| {
             player
                 .display_name
                 .trim()
                 .eq_ignore_ascii_case(normalized_display_name)
-                .then(|| key.clone())
         })
+        .map(|(key, _)| key.clone())
         .collect::<Vec<_>>();
     if matches.len() != 1 {
         return None;

@@ -416,7 +416,7 @@ mod tests {
 
     #[test]
     fn external_scopes_allow_any_http_and_https_url() {
-        let policy = ExternalApiPolicy::default();
+        let policy = ExternalApiPolicy;
         let request = ExternalHttpRequestInput {
             url: Some("http://localhost:8123/search".into()),
             ..Default::default()
@@ -462,7 +462,7 @@ mod tests {
 
     #[test]
     fn fixed_external_scopes_keep_origin_and_path_restrictions() {
-        let policy = ExternalApiPolicy::default();
+        let policy = ExternalApiPolicy;
 
         assert!(build_web_execute_request_with_policy(
             ExternalHttpRequestInput {

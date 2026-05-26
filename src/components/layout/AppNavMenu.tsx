@@ -18,7 +18,7 @@ import {
     communityThemeControlsAppearance,
     useCommunityThemeStore
 } from '@/state/communityThemeStore';
-import { useOfficialBackgroundStore } from '@/state/officialBackgroundStore';
+import { useBackgroundImageStore } from '@/state/backgroundImageStore';
 import { useShellStore } from '@/state/shellStore';
 import { useVrcNotificationStore } from '@/state/vrcNotificationStore';
 
@@ -351,7 +351,7 @@ export function AppNavMenu({ isCollapsed }: any) {
     const localCommunityThemePreview = useCommunityThemeStore(
         (state: any) => state.localPreview
     );
-    const officialBackgroundEnabled = useOfficialBackgroundStore(
+    const backgroundImageEnabled = useBackgroundImageStore(
         (state: any) => state.enabled
     );
     const dashboards = useDashboardStore((state: any) => state.dashboards);
@@ -436,7 +436,7 @@ export function AppNavMenu({ isCollapsed }: any) {
         localCommunityThemePreview
     );
     const customThemeAppearanceControlled =
-        communityThemeAppearanceControlled || officialBackgroundEnabled;
+        communityThemeAppearanceControlled || backgroundImageEnabled;
 
     async function handleSelectEntry(entry: any) {
         if (!entry) {

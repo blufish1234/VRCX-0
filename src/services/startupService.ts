@@ -15,7 +15,7 @@ import {
     isHostCapabilityAvailable
 } from './hostCapabilityService';
 import { loadPreferenceSnapshot } from './preferencesService';
-import { initializeOfficialBackgrounds } from './officialBackgroundService';
+import { initializeBackgroundImage } from './background-image/backgroundImageService';
 import { showSQLiteErrorDialog } from './sqliteErrorDialogService';
 import {
     APP_CJK_FONT_PACK_DEFAULT_KEY,
@@ -84,8 +84,8 @@ export async function initializeReactRuntime() {
             initializeCommunityThemes()
         );
         await runNonCriticalStartupSync(
-            'officialBackgrounds',
-            initializeOfficialBackgrounds()
+            'backgroundImage',
+            initializeBackgroundImage()
         );
         applyAppFontPreferences({ fontFamily, customFontFamily, cjkFontPack });
         await runNonCriticalStartupSync('zoom', applyZoomLevel(zoomLevel));

@@ -764,6 +764,13 @@ export interface AppTauriCommandNamespace extends TauriCommandNamespace {
         defaultExt?: string | null,
         defaultFilter?: string | null
     ): Promise<string>;
+    OpenBackgroundImageFilesSelectorDialog(
+        defaultPath?: string | null
+    ): Promise<string[]>;
+    BackgroundImageFilesResolve(input: {
+        paths?: string[];
+        folderPath?: string | null;
+    }): Promise<string[]>;
     OpenFolderSelectorDialog(defaultPath?: string | null): Promise<string>;
     ReadVrcRegJsonFile(filepath: string): Promise<string>;
     SaveVrcRegJsonFile(

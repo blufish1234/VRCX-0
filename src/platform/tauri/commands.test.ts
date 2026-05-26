@@ -139,6 +139,8 @@ const highRiskCommands = [
     'app__download_and_install_tauri_update',
     'app__get_file_base64',
     'app__get_file_bytes',
+    'app__background_image_files_resolve',
+    'app__open_background_image_files_selector_dialog',
     'app__open_file_selector_dialog',
     'app__open_folder_selector_dialog',
     'app__app_launcher_target_pick',

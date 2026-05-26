@@ -2590,15 +2590,34 @@
                 "disable_failed": "更新社区主题设置失败。"
             }
         },
-        "official_backgrounds": {
+        "background_image": {
             "settings": {
-                "header": "每日背景",
-                "enabled": "每日背景",
-                "description": "每天从所选来源更新应用背景图。启用后会关闭社区主题。",
+                "header": "背景图案",
+                "mode": "模式",
+                "description": "使用每日图片来源，或选择你自己的本地图片来源。启用后会关闭社区主题。",
                 "provider": "来源",
                 "apod_note": "NASA APOD 只使用没有 copyright 字段的图片。",
+                "custom_source": "自定义图片来源",
+                "custom_source_description": "选择 1 张图片会固定为背景；选择多张图片或文件夹会启用轮播。",
+                "folder_first_level_note": "文件夹只读取第一层图片，不读取子文件夹。",
+                "current_source": "当前来源",
+                "selected_files": "已选择 {count} 张图片",
+                "selected_files_plural": "已选择 {count} 张图片",
                 "current_image": "当前图片",
+                "image_count": "{count} 张图片",
+                "image_count_plural": "{count} 张图片",
+                "rotation": "轮播",
+                "no_custom_source": "尚未选择自定义图片来源",
                 "no_image": "尚未加载图片"
+            },
+            "mode": {
+                "off": "关闭",
+                "daily": "每日图片",
+                "custom": "自定义图片来源"
+            },
+            "rotation": {
+                "daily": "每天",
+                "hourly": "每小时"
             },
             "status": {
                 "enabled": "已启用",
@@ -2606,17 +2625,22 @@
             },
             "action": {
                 "off": "关闭",
-                "refresh": "刷新"
+                "refresh": "刷新",
+                "select_images": "选择图片",
+                "select_folder": "选择文件夹",
+                "open_settings": "打开背景设置"
             },
             "menu": {
-                "header": "每日背景",
-                "appearance_disabled": "每日背景启用时，亮色/暗色模式固定。"
+                "header": "背景图案",
+                "appearance_disabled": "背景图案启用时，亮色/暗色模式固定。"
             },
             "toast": {
-                "enabled": "每日背景已启用。",
-                "disabled": "每日背景已关闭。",
-                "refreshed": "每日背景已刷新。",
-                "failed": "更新每日背景失败。"
+                "enabled": "背景图案已启用。",
+                "disabled": "背景图案已关闭。",
+                "refreshed": "背景图案已刷新。",
+                "failed": "更新背景图案失败。",
+                "custom_source_required": "请先在设置里选择自定义图片来源。",
+                "no_images": "没有找到支持的图片。"
             }
         }
     },

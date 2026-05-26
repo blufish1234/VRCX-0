@@ -1,7 +1,7 @@
 export const VRCX_CSS_LAYER_ATTR = 'data-vrcx-0-css-layer';
 
 export const VRCX_CSS_LAYERS = [
-    'official-background',
+    'background-image',
     'installed-theme',
     'local-theme-preview',
     'user-override'
@@ -10,7 +10,7 @@ export const VRCX_CSS_LAYERS = [
 export type VrcxCssLayer = (typeof VRCX_CSS_LAYERS)[number];
 
 const layerSnapshots: Record<VrcxCssLayer, string> = {
-    'official-background': '',
+    'background-image': '',
     'installed-theme': '',
     'local-theme-preview': '',
     'user-override': ''
