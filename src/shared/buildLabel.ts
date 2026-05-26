@@ -10,6 +10,13 @@ export function getVrcxBuildLabel(): VrcxBuildLabel {
         : '';
 }
 
+export function getVrcxBuildBadge(): string {
+    // oxlint-disable-next-line no-undef
+    return typeof VRCX_0_BUILD_BADGE === 'string'
+        ? VRCX_0_BUILD_BADGE.trim()
+        : '';
+}
+
 export function isLocalDevBuild(): boolean {
     return import.meta.env.DEV;
 }
@@ -42,4 +49,14 @@ export function getBuildBadgeI18nKey(): string | null {
         return 'app_menu.preview_build_badge';
     }
     return null;
+}
+
+export function getBuildBadgeLabel(t: (key: string) => string): string {
+    const buildBadge = getVrcxBuildBadge();
+    if (buildBadge) {
+        return buildBadge;
+    }
+
+    const buildBadgeKey = getBuildBadgeI18nKey();
+    return buildBadgeKey ? t(buildBadgeKey) : '';
 }

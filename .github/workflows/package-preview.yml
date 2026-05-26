@@ -11,8 +11,40 @@ permissions:
     contents: read
 
 jobs:
+    prepare:
+        name: Prepare preview metadata
+        runs-on: ubuntu-24.04
+        outputs:
+            timestamp: ${{ steps.timestamp.outputs.timestamp }}
+        steps:
+            - id: timestamp
+              name: Generate preview timestamp
+              run: |
+                  node <<'NODE'
+                  const fs = require('node:fs');
+
+                  const timestampParts = new Intl.DateTimeFormat('en-US', {
+                      timeZone: 'Asia/Tokyo',
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hourCycle: 'h23'
+                  })
+                      .formatToParts(new Date())
+                      .reduce((parts, part) => {
+                          parts[part.type] = part.value;
+                          return parts;
+                      }, {});
+                  const previewTimestamp = `${timestampParts.year}${timestampParts.month}${timestampParts.day}-${timestampParts.hour}${timestampParts.minute}`;
+
+                  fs.appendFileSync(process.env.GITHUB_OUTPUT, `timestamp=${previewTimestamp}\n`);
+                  NODE
+
     package:
         name: Preview ${{ matrix.platform }}
+        needs: prepare
         runs-on: ${{ matrix.os }}
         defaults:
             run:
@@ -23,10 +55,10 @@ jobs:
                 include:
                     - platform: windows_x86_64
                       os: windows-latest
-                      output: VRCX-0_${version}_preview_windows_x86_64.exe
+                      output: VRCX-0_${version}_preview_${timestamp}_windows_x86_64.exe
                     - platform: linux_x86_64
                       os: ubuntu-24.04
-                      output: VRCX-0_${version}_preview_linux_x86_64.AppImage
+                      output: VRCX-0_${version}_preview_${timestamp}_linux_x86_64.AppImage
         steps:
             - uses: actions/checkout@v6
 
@@ -107,6 +139,7 @@ jobs:
               if: runner.os == 'Windows'
               env:
                   VRCX-0_BUILD_LABEL: preview
+                  VRCX-0_BUILD_BADGE: Preview ${{ needs.prepare.outputs.timestamp }}
               run: |
                   npm run tauri:build:devtools -- \
                       --debug \
@@ -118,6 +151,7 @@ jobs:
               if: runner.os == 'Linux'
               env:
                   VRCX-0_BUILD_LABEL: preview
+                  VRCX-0_BUILD_BADGE: Preview ${{ needs.prepare.outputs.timestamp }}
               run: |
                   npm run tauri:build:devtools -- \
                       --config "${{ steps.config.outputs.config }}" \
@@ -127,8 +161,10 @@ jobs:
               run: |
                   mkdir -p preview-assets
                   version="${{ steps.config.outputs.version }}"
+                  timestamp="${{ needs.prepare.outputs.timestamp }}"
                   output="${{ matrix.output }}"
                   output="${output//\$\{version\}/$version}"
+                  output="${output//\$\{timestamp\}/$timestamp}"
 
                   if [[ "${{ runner.os }}" == "Windows" ]]; then
                       cp target/debug/vrcx-0.exe "preview-assets/$output"
@@ -140,6 +176,6 @@ jobs:
 
             - uses: actions/upload-artifact@v7
               with:
-                  name: preview-${{ matrix.platform }}-${{ steps.config.outputs.version }}
+                  name: preview-${{ matrix.platform }}-${{ steps.config.outputs.version }}-${{ needs.prepare.outputs.timestamp }}
                   path: preview-assets/*
                   if-no-files-found: error

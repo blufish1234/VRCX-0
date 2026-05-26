@@ -52,7 +52,7 @@ import {
 import { publishNavCustomizeRequested } from '@/shared/events/navLayoutEvents';
 import { formatReleaseDisplayVersion } from '@/shared/utils/releaseVersion';
 import {
-    getBuildBadgeI18nKey,
+    getBuildBadgeLabel,
     isThemeDeveloperBuild
 } from '@/shared/buildLabel';
 import {
@@ -228,7 +228,7 @@ export function AppMenuBar({
         hostPlatform === 'macos' ? ['Meta', 'D'] : ['Ctrl', 'D'];
     // oxlint-disable-next-line no-undef
     const appVersion = formatReleaseDisplayVersion(VERSION || '') || '-';
-    const buildBadgeKey = getBuildBadgeI18nKey();
+    const buildBadgeLabel = getBuildBadgeLabel(t);
     const developerToolsAvailable = isThemeDeveloperBuild();
     const availableToolCategories = useMemo(
         () =>
@@ -914,12 +914,12 @@ export function AppMenuBar({
                     <MenubarTrigger className="h-full rounded-none px-2 !py-0 text-xs">
                         <span className="flex min-w-0 items-center gap-1.5">
                             <span>{t('app_menu.help')}</span>
-                            {buildBadgeKey ? (
+                            {buildBadgeLabel ? (
                                 <Badge
                                     variant="secondary"
                                     className="h-4 rounded-md px-1 text-[10px] leading-none shadow-none"
                                 >
-                                    {t(buildBadgeKey)}
+                                    {buildBadgeLabel}
                                 </Badge>
                             ) : null}
                         </span>

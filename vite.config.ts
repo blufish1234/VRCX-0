@@ -134,6 +134,9 @@ export default defineConfig(() => {
             VERSION: JSON.stringify(version),
             VRCX_0_BUILD_LABEL: JSON.stringify(
                 process.env['VRCX-0_BUILD_LABEL'] || ''
+            ),
+            VRCX_0_BUILD_BADGE: JSON.stringify(
+                process.env['VRCX-0_BUILD_BADGE'] || ''
             )
         },
         server: {
