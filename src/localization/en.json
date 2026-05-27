@@ -2650,7 +2650,7 @@
                 "description": "Use a daily image source or your own local image source.",
                 "provider": "Source",
                 "apod_note": "NASA APOD only uses images without a copyright field.",
-                "custom_source": "Custom image source",
+                "custom_source": "Local image",
                 "custom_source_description": "Select one image for a fixed background, or select multiple images or a folder for rotation.",
                 "folder_first_level_note": "Folders are scanned one level only. Subfolders are not read.",
                 "current_source": "Current source",
@@ -2660,7 +2660,7 @@
                 "image_count": "{count} image",
                 "image_count_plural": "{count} images",
                 "rotation": "Rotation",
-                "no_custom_source": "No custom image source selected",
+                "no_custom_source": "No local image selected",
                 "no_image": "No image loaded",
                 "no_image_description": "Refresh or choose a source to load an image.",
                 "source_type_file": "Local file",
@@ -2671,7 +2671,7 @@
             "mode": {
                 "off": "Off",
                 "daily": "Daily image",
-                "custom": "Custom image source"
+                "custom": "Local image"
             },
             "rotation": {
                 "daily": "Daily",
@@ -2697,7 +2697,7 @@
                 "disabled": "Background Image disabled.",
                 "refreshed": "Background Image refreshed.",
                 "failed": "Failed to update Background Image.",
-                "custom_source_required": "Select a custom image source in Settings first.",
+                "custom_source_required": "Select a local image in Settings first.",
                 "no_images": "No supported images were found."
             }
         }

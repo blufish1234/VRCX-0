@@ -2650,7 +2650,7 @@
                 "description": "使用每日圖片來源，或選擇你自己的本機圖片來源。",
                 "provider": "來源",
                 "apod_note": "NASA APOD 只使用沒有 copyright 欄位的圖片。",
-                "custom_source": "自訂圖片來源",
+                "custom_source": "本機圖片",
                 "custom_source_description": "選擇 1 張圖片會固定為背景；選擇多張圖片或資料夾會啟用輪播。",
                 "folder_first_level_note": "資料夾只讀取第一層圖片，不讀取子資料夾。",
                 "current_source": "目前來源",
@@ -2660,7 +2660,7 @@
                 "image_count": "{count} 張圖片",
                 "image_count_plural": "{count} 張圖片",
                 "rotation": "輪播",
-                "no_custom_source": "尚未選擇自訂圖片來源",
+                "no_custom_source": "尚未選擇本機圖片",
                 "no_image": "尚未載入圖片",
                 "no_image_description": "重新整理或選擇來源後會載入圖片。",
                 "source_type_file": "本機檔案",
@@ -2671,7 +2671,7 @@
             "mode": {
                 "off": "關閉",
                 "daily": "每日圖片",
-                "custom": "自訂圖片來源"
+                "custom": "本機圖片"
             },
             "rotation": {
                 "daily": "每天",
@@ -2697,7 +2697,7 @@
                 "disabled": "背景圖案已關閉。",
                 "refreshed": "背景圖案已重新整理。",
                 "failed": "更新背景圖案失敗。",
-                "custom_source_required": "請先在設定裡選擇自訂圖片來源。",
+                "custom_source_required": "請先在設定裡選擇本機圖片。",
                 "no_images": "沒有找到支援的圖片。"
             }
         }

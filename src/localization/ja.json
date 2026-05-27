@@ -2650,7 +2650,7 @@
                 "description": "デイリー画像ソース、またはローカル画像ソースを背景に使用します。",
                 "provider": "ソース",
                 "apod_note": "NASA APOD は copyright フィールドがない画像だけを使用します。",
-                "custom_source": "カスタム画像ソース",
+                "custom_source": "ローカル画像",
                 "custom_source_description": "画像 1 枚なら固定背景、複数画像またはフォルダーならローテーションになります。",
                 "folder_first_level_note": "フォルダーは直下の画像だけを読み込みます。サブフォルダーは読み込みません。",
                 "current_source": "現在のソース",
@@ -2660,7 +2660,7 @@
                 "image_count": "{count} 枚の画像",
                 "image_count_plural": "{count} 枚の画像",
                 "rotation": "ローテーション",
-                "no_custom_source": "カスタム画像ソースは未選択です",
+                "no_custom_source": "ローカル画像は未選択です",
                 "no_image": "画像はまだ読み込まれていません",
                 "no_image_description": "再読み込みするかソースを選択すると画像を読み込みます。",
                 "source_type_file": "ローカルファイル",
@@ -2671,7 +2671,7 @@
             "mode": {
                 "off": "オフ",
                 "daily": "デイリー画像",
-                "custom": "カスタム画像ソース"
+                "custom": "ローカル画像"
             },
             "rotation": {
                 "daily": "毎日",
@@ -2697,7 +2697,7 @@
                 "disabled": "背景画像を無効化しました。",
                 "refreshed": "背景画像を再読み込みしました。",
                 "failed": "背景画像の更新に失敗しました。",
-                "custom_source_required": "先に設定でカスタム画像ソースを選択してください。",
+                "custom_source_required": "先に設定でローカル画像を選択してください。",
                 "no_images": "対応している画像が見つかりません。"
             }
         }
