@@ -232,6 +232,29 @@ async fn fetch_missing_friends(
     recovered
 }
 
+async fn fetch_missing_confirmed_friends(
+    deps: &SocialBaselineDeps,
+    endpoint: &str,
+    user_ids: Vec<String>,
+) -> Vec<Value> {
+    let mut recovered = Vec::new();
+    for user_id in user_ids {
+        let Ok(status) = fetch_friend_status(deps, endpoint, &user_id).await else {
+            continue;
+        };
+        if object_field(&status, "isFriend").and_then(Value::as_bool) != Some(true) {
+            continue;
+        }
+        match fetch_user_profile(deps, endpoint, &user_id).await {
+            Ok(profile) if !object_field_normalized(&profile, &["id"]).is_empty() => {
+                recovered.push(profile);
+            }
+            _ => {}
+        }
+    }
+    recovered
+}
+
 fn build_unfriend_history_entry(
     row: &Value,
     created_at: &str,
@@ -340,6 +363,31 @@ async fn confirm_friend_log_removal_history_entries(
         }
     }
     (removed_rows, history_entries)
+}
+
+fn build_removed_friend_ids(removed_rows: &[Value]) -> HashSet<String> {
+    removed_rows
+        .iter()
+        .map(|row| object_field_normalized(row, &["userId", "user_id"]))
+        .filter(|value| !value.is_empty())
+        .collect()
+}
+
+fn build_reconciled_included_friend_ids(
+    expected_ids: &[String],
+    fetched_friend_ids: &HashSet<String>,
+    existing_rows_by_id: &HashMap<String, Value>,
+    removed_user_ids: &HashSet<String>,
+) -> Vec<String> {
+    expected_ids
+        .iter()
+        .filter(|friend_id| {
+            !removed_user_ids.contains(*friend_id)
+                && (fetched_friend_ids.contains(*friend_id)
+                    || existing_rows_by_id.contains_key(*friend_id))
+        })
+        .cloned()
+        .collect()
 }
 
 fn compute_trust_level(tags: &[String], developer_type: &str) -> TrustLevelInfo {
@@ -803,7 +851,7 @@ pub async fn build_friend_roster_baseline(
         .filter(|friend_id| !fetched_friends_by_id.contains_key(*friend_id))
         .cloned()
         .collect::<Vec<_>>();
-    for friend in fetch_missing_friends(&deps, &input.endpoint, missing_ids).await {
+    for friend in fetch_missing_confirmed_friends(&deps, &input.endpoint, missing_ids).await {
         apply_fetched_friend_state_bucket(
             &mut state_by_id,
             insert_fetched_friend(
@@ -836,7 +884,7 @@ pub async fn build_friend_roster_baseline(
         .cloned()
         .collect::<HashSet<_>>();
     let reconciliation_created_at = now_iso();
-    let (_, history_entries) = if friend_log_initialized {
+    let (removed_rows, history_entries) = if friend_log_initialized {
         confirm_friend_log_removal_history_entries(
             &deps,
             &input.endpoint,
@@ -853,10 +901,17 @@ pub async fn build_friend_roster_baseline(
     } else {
         (Vec::new(), Vec::new())
     };
+    let removed_user_ids = build_removed_friend_ids(&removed_rows);
 
     let mut included_ids = Vec::new();
     let mut included_seen = HashSet::new();
-    extend_unique(&mut included_ids, &mut included_seen, expected_ids);
+    let included_source_ids = build_reconciled_included_friend_ids(
+        &expected_ids,
+        &fetched_friend_ids,
+        &existing_rows_by_id,
+        &removed_user_ids,
+    );
+    extend_unique(&mut included_ids, &mut included_seen, included_source_ids);
 
     let friend_order_source_ids = if !snapshot_friend_ids.is_empty() {
         snapshot_friend_ids
@@ -1031,5 +1086,47 @@ mod tests {
             .get("usr_friend")
             .expect("inserted friend profile");
         assert!(!fetched_profile_needs_user_refetch(profile, &state_by_id));
+    }
+
+    #[test]
+    fn confirmed_removed_friend_is_not_reinserted_from_stale_snapshot() {
+        let expected_ids = vec![
+            "usr_removed".to_string(),
+            "usr_existing".to_string(),
+            "usr_fetched".to_string(),
+            "usr_stale_unknown".to_string(),
+        ];
+        let fetched_friend_ids = HashSet::from(["usr_fetched".to_string()]);
+        let existing_rows_by_id = HashMap::from([
+            (
+                "usr_removed".to_string(),
+                json!({
+                    "userId": "usr_removed",
+                    "displayName": "Removed Friend"
+                }),
+            ),
+            (
+                "usr_existing".to_string(),
+                json!({
+                    "userId": "usr_existing",
+                    "displayName": "Existing Friend"
+                }),
+            ),
+        ]);
+        let removed_user_ids = build_removed_friend_ids(&[json!({
+            "userId": "usr_removed"
+        })]);
+
+        let included_ids = build_reconciled_included_friend_ids(
+            &expected_ids,
+            &fetched_friend_ids,
+            &existing_rows_by_id,
+            &removed_user_ids,
+        );
+
+        assert_eq!(
+            included_ids,
+            vec!["usr_existing".to_string(), "usr_fetched".to_string()]
+        );
     }
 }
