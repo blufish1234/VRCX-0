@@ -974,17 +974,24 @@ fn process_name_for_run(run: &AppLauncherRun) -> Option<String> {
     if !matches!(run.kind, AppLauncherEntryKind::LocalApp) {
         return None;
     }
-    let target = Path::new(&run.target);
-    if is_windows_executable_path(target) {
-        return target
-            .file_stem()
-            .map(|value| normalize_process_name(&value.to_string_lossy()))
-            .filter(|value| !value.is_empty());
+    process_name_from_target_for_platform(&run.target, cfg!(windows))
+}
+
+fn process_name_from_target_for_platform(target: &str, windows: bool) -> Option<String> {
+    let trimmed = target.trim();
+    if trimmed.is_empty() {
+        return None;
     }
-    target
-        .file_name()
-        .map(|value| normalize_process_name(&value.to_string_lossy()))
-        .filter(|value| !value.is_empty())
+    let file_name = if windows {
+        trimmed
+            .trim_start_matches(r"\\?\")
+            .rsplit(['\\', '/'])
+            .next()
+    } else {
+        Path::new(trimmed).file_name().and_then(|value| value.to_str())
+    }?;
+    let process_name = normalize_process_name(file_name);
+    (!process_name.is_empty()).then_some(process_name)
 }
 
 fn process_pids_by_run_target(sys: &System, run: &AppLauncherRun) -> Vec<u32> {
@@ -1237,10 +1244,22 @@ mod app_launcher_tests {
     #[test]
     fn app_launcher_untracked_close_fallback_excludes_steam_client() {
         let mut cacher_entry = local_entry("cacher");
-        cacher_entry.target =
-            "D:\\SteamLibrary\\steamapps\\common\\VRCVideoCacher\\VRCVideoCacher.exe".to_string();
+        cacher_entry.target = if cfg!(windows) {
+            "D:\\SteamLibrary\\steamapps\\common\\VRCVideoCacher\\VRCVideoCacher.exe"
+        } else {
+            "/home/user/.local/share/Steam/steamapps/common/VRCVideoCacher/VRCVideoCacher"
+        }
+        .to_string();
         let cacher_run = new_run("run-cacher", &cacher_entry, false);
 
+        assert_eq!(
+            process_name_from_target_for_platform(
+                r"D:\SteamLibrary\steamapps\common\VRCVideoCacher\VRCVideoCacher.exe",
+                true
+            )
+            .as_deref(),
+            Some("vrcvideocacher")
+        );
         assert_eq!(
             process_name_for_run(&cacher_run).as_deref(),
             Some("vrcvideocacher")
@@ -1272,16 +1291,13 @@ mod app_launcher_tests {
             &[]
         ));
 
-        let mut linux_steam_entry = local_entry("steam-linux");
-        linux_steam_entry.target = "/home/user/.local/share/Steam/steam.sh".to_string();
-        let linux_steam_run = new_run("run-linux-steam", &linux_steam_entry, false);
-
         assert_eq!(
-            process_name_for_run(&linux_steam_run).as_deref(),
+            process_name_from_target_for_platform("/home/user/.local/share/Steam/steam.sh", false)
+                .as_deref(),
             Some("steam.sh")
         );
         assert!(!should_close_untracked_matching_processes(
-            process_name_for_run(&linux_steam_run).as_deref(),
+            Some("steam.sh"),
             &[],
             &[]
         ));
