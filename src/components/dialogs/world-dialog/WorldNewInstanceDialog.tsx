@@ -810,7 +810,7 @@ export function WorldNewInstanceDialog({
                         </Button>
                         <Button
                             type="button"
-                            variant="secondary"
+                            variant={isGameRunning ? 'secondary' : 'default'}
                             disabled={submitting}
                             onClick={() => {
                                 commitDisplayNamePreset();
