@@ -9,6 +9,7 @@ use sysinfo::{Pid, ProcessesToUpdate, System};
 
 pub const APP_LAUNCHER_ENABLED_CONFIG_KEY: &str = "VRCX_appLauncherEnabledV2";
 pub const APP_LAUNCHER_ENTRIES_CONFIG_KEY: &str = "VRCX_appLauncherEntriesV2";
+const UNTRACKED_CLOSE_PROCESS_DENYLIST: &[&str] = &["steam", "steam.sh"];
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -932,9 +933,25 @@ fn stop_tracked_run(run: &mut AppLauncherRun) {
     all_pids.sort_unstable();
     all_pids.dedup();
 
-    for pid in all_pids.into_iter().rev() {
-        if let Some(process) = sys.process(Pid::from_u32(pid)) {
-            process.kill();
+    let untracked_matching_pids = process_pids_by_run_target(&sys, run)
+        .into_iter()
+        .filter(|pid| !all_pids.contains(pid))
+        .collect::<Vec<_>>();
+    let mut killed_pids = Vec::new();
+    let mut failed_pids = Vec::new();
+    let mut missing_pids = Vec::new();
+    for pid in all_pids.iter().copied().rev() {
+        kill_process_by_pid(&sys, pid, &mut killed_pids, &mut failed_pids, &mut missing_pids);
+    }
+
+    let close_untracked_matching_pids = should_close_untracked_matching_processes(
+        process_name_for_run(run).as_deref(),
+        &killed_pids,
+        &failed_pids,
+    );
+    if close_untracked_matching_pids {
+        for pid in untracked_matching_pids.iter().copied().rev() {
+            kill_process_by_pid(&sys, pid, &mut killed_pids, &mut failed_pids, &mut missing_pids);
         }
     }
 
@@ -951,6 +968,105 @@ fn tracked_stop_pids(run: &AppLauncherRun) -> Vec<u32> {
     let mut pids: Vec<u32> = pids.into_iter().collect();
     pids.sort_unstable();
     pids
+}
+
+fn process_name_for_run(run: &AppLauncherRun) -> Option<String> {
+    if !matches!(run.kind, AppLauncherEntryKind::LocalApp) {
+        return None;
+    }
+    let target = Path::new(&run.target);
+    if is_windows_executable_path(target) {
+        return target
+            .file_stem()
+            .map(|value| normalize_process_name(&value.to_string_lossy()))
+            .filter(|value| !value.is_empty());
+    }
+    target
+        .file_name()
+        .map(|value| normalize_process_name(&value.to_string_lossy()))
+        .filter(|value| !value.is_empty())
+}
+
+fn process_pids_by_run_target(sys: &System, run: &AppLauncherRun) -> Vec<u32> {
+    let Some(expected_name) = process_name_for_run(run) else {
+        return Vec::new();
+    };
+    let mut pids = sys
+        .processes()
+        .iter()
+        .filter_map(|(pid, process)| {
+            (normalize_process_name(&process.name().to_string_lossy()) == expected_name
+                && process
+                    .exe()
+                    .and_then(|path| path.to_str())
+                    .is_some_and(|path| process_exe_matches_run_target(path, run)))
+                .then_some(pid.as_u32())
+        })
+        .collect::<Vec<_>>();
+    pids.sort_unstable();
+    pids
+}
+
+fn normalized_process_path(path: &str) -> String {
+    #[cfg(windows)]
+    {
+        normalized_process_path_for_platform(path, true)
+    }
+    #[cfg(not(windows))]
+    {
+        normalized_process_path_for_platform(path, false)
+    }
+}
+
+fn normalized_process_path_for_platform(path: &str, windows: bool) -> String {
+    let normalized = path.trim().trim_start_matches(r"\\?\");
+    if windows {
+        normalized.replace('/', "\\").to_ascii_lowercase()
+    } else {
+        normalized.to_string()
+    }
+}
+
+fn process_exe_matches_run_target(process_exe: &str, run: &AppLauncherRun) -> bool {
+    normalized_process_path(process_exe) == normalized_process_path(&run.target)
+}
+
+fn process_path_matches_target_for_platform(process_exe: &str, target: &str, windows: bool) -> bool {
+    normalized_process_path_for_platform(process_exe, windows)
+        == normalized_process_path_for_platform(target, windows)
+}
+
+fn should_close_untracked_process_name(process_name: &str) -> bool {
+    let normalized = normalize_process_name(process_name);
+    !normalized.is_empty() && !UNTRACKED_CLOSE_PROCESS_DENYLIST.contains(&normalized.as_str())
+}
+
+fn should_close_untracked_matching_processes(
+    process_name: Option<&str>,
+    killed_pids: &[u32],
+    failed_pids: &[u32],
+) -> bool {
+    killed_pids.is_empty()
+        && failed_pids.is_empty()
+        && process_name.is_some_and(should_close_untracked_process_name)
+}
+
+fn kill_process_by_pid(
+    sys: &System,
+    pid: u32,
+    killed_pids: &mut Vec<u32>,
+    failed_pids: &mut Vec<u32>,
+    missing_pids: &mut Vec<u32>,
+) {
+    if let Some(process) = sys.process(Pid::from_u32(pid)) {
+        if process.kill() {
+            killed_pids.push(pid);
+        } else {
+            failed_pids.push(pid);
+        }
+    } else {
+        missing_pids.push(pid);
+    }
 }
 
 fn find_child_pids_recursive(sys: &System, parent_pid: u32) -> Vec<u32> {
@@ -1116,6 +1232,88 @@ mod app_launcher_tests {
         assert_eq!(entries[0].stop_policy, AppLauncherStopPolicy::KeepRunning);
         assert!(entries[0].args.is_empty());
         assert_eq!(entries[0].working_directory, None);
+    }
+
+    #[test]
+    fn app_launcher_untracked_close_fallback_excludes_steam_client() {
+        let mut cacher_entry = local_entry("cacher");
+        cacher_entry.target =
+            "D:\\SteamLibrary\\steamapps\\common\\VRCVideoCacher\\VRCVideoCacher.exe".to_string();
+        let cacher_run = new_run("run-cacher", &cacher_entry, false);
+
+        assert_eq!(
+            process_name_for_run(&cacher_run).as_deref(),
+            Some("vrcvideocacher")
+        );
+        assert!(should_close_untracked_matching_processes(
+            process_name_for_run(&cacher_run).as_deref(),
+            &[],
+            &[]
+        ));
+        assert!(!should_close_untracked_matching_processes(
+            process_name_for_run(&cacher_run).as_deref(),
+            &[123],
+            &[]
+        ));
+        assert!(!should_close_untracked_matching_processes(
+            process_name_for_run(&cacher_run).as_deref(),
+            &[],
+            &[123]
+        ));
+
+        let mut steam_entry = local_entry("steam-local");
+        steam_entry.target = "C:\\Program Files (x86)\\Steam\\steam.exe".to_string();
+        let steam_run = new_run("run-steam", &steam_entry, false);
+
+        assert_eq!(process_name_for_run(&steam_run).as_deref(), Some("steam"));
+        assert!(!should_close_untracked_matching_processes(
+            process_name_for_run(&steam_run).as_deref(),
+            &[],
+            &[]
+        ));
+
+        let mut linux_steam_entry = local_entry("steam-linux");
+        linux_steam_entry.target = "/home/user/.local/share/Steam/steam.sh".to_string();
+        let linux_steam_run = new_run("run-linux-steam", &linux_steam_entry, false);
+
+        assert_eq!(
+            process_name_for_run(&linux_steam_run).as_deref(),
+            Some("steam.sh")
+        );
+        assert!(!should_close_untracked_matching_processes(
+            process_name_for_run(&linux_steam_run).as_deref(),
+            &[],
+            &[]
+        ));
+    }
+
+    #[test]
+    fn app_launcher_untracked_close_fallback_requires_matching_exe_path() {
+        assert!(process_path_matches_target_for_platform(
+            r"\\?\D:/SteamLibrary/steamapps/common/VRCVideoCacher/VRCVideoCacher.exe",
+            r"D:\SteamLibrary\steamapps\common\VRCVideoCacher\VRCVideoCacher.exe",
+            true
+        ));
+        assert!(process_path_matches_target_for_platform(
+            r"d:\steamlibrary\STEAMAPPS\common\VRCVideoCacher\VRCVideoCacher.exe",
+            r"D:\SteamLibrary\steamapps\common\VRCVideoCacher\VRCVideoCacher.exe",
+            true
+        ));
+        assert!(!process_path_matches_target_for_platform(
+            r"C:\Other\VRCVideoCacher.exe",
+            r"D:\SteamLibrary\steamapps\common\VRCVideoCacher\VRCVideoCacher.exe",
+            true
+        ));
+        assert!(process_path_matches_target_for_platform(
+            "/home/User/.local/share/Steam/steamapps/common/Tool/Tool.AppImage",
+            "/home/User/.local/share/Steam/steamapps/common/Tool/Tool.AppImage",
+            false
+        ));
+        assert!(!process_path_matches_target_for_platform(
+            "/home/user/.local/share/Steam/steamapps/common/Tool/Tool.AppImage",
+            "/home/User/.local/share/Steam/steamapps/common/Tool/Tool.AppImage",
+            false
+        ));
     }
 
     #[test]
