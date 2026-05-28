@@ -3,7 +3,6 @@ import { HashRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 
 import { GlobalHosts } from '@/components/hosts/GlobalHosts';
 import { AppTitleBar } from '@/components/layout/AppTitleBar';
-import { TelemetryRouteTracker } from '@/services/telemetry/TelemetryRouteTracker';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 
@@ -120,7 +119,6 @@ function AppRouterContent() {
 export function AppRouter() {
     return (
         <HashRouter>
-            <TelemetryRouteTracker />
             <AppRouterContent />
         </HashRouter>
     );

@@ -10,8 +10,6 @@ import {
     openUserDialog,
     openWorldDialog
 } from '@/services/dialogService';
-import { recordTelemetryFeature } from '@/services/telemetry/telemetryService';
-import { TELEMETRY_FEATURE_KEYS } from '@/services/telemetry/telemetryTypes';
 import { useFavoriteStore } from '@/state/favoriteStore';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -504,12 +502,6 @@ export function QuickSearchDialog({ open, onOpenChange }: any) {
         catalog,
         normalizedQuery
     });
-
-    useEffect(() => {
-        if (open) {
-            recordTelemetryFeature(TELEMETRY_FEATURE_KEYS.quickSearch);
-        }
-    }, [open]);
 
     const hasResults =
         results.friends.length ||

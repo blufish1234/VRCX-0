@@ -2,10 +2,7 @@ import type { BackendRuntimeMode } from '@/platform/tauri/appCommandTypes';
 
 export type TelemetryRuntimeMode = BackendRuntimeMode;
 
-export type TelemetryFeatureKey =
-    | 'quick_search'
-    | 'dashboard'
-    | 'background_mode';
+export type TelemetryFeatureKey = 'background_mode';
 
 export type TelemetryContextPayload = {
     installId: string;
@@ -37,7 +34,5 @@ export type TelemetrySessionState = {
 };
 
 export const TELEMETRY_FEATURE_KEYS = Object.freeze({
-    quickSearch: 'quick_search',
-    dashboard: 'dashboard',
     backgroundMode: 'background_mode'
 } satisfies Record<string, TelemetryFeatureKey>);
