@@ -302,9 +302,10 @@ export function LaunchDialogHost() {
             if (!result.ok) {
                 return false;
             }
-            await attachRunningVrchat(
+            await launchVrchat(
                 actionTag,
                 actionLaunchToken,
+                nextDesktopMode,
                 currentEndpoint
             );
             return true;
