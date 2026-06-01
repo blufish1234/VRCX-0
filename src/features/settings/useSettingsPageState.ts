@@ -109,7 +109,7 @@ export function useSettingsPageState() {
     const [customFontDraft, setCustomFontDraft] = useState('');
     const [loading, setLoading] = useState(true);
     const [activeSettingsTab, setActiveSettingsTab] = useState('system');
-    const [feedFilterMode, setFeedFilterMode] = useState('noty');
+    const feedFilterMode = 'noty';
     const [feedFilterDialogOpen, setFeedFilterDialogOpen] = useState(false);
     const [
         wristFeedNotificationsDialogOpen,
@@ -255,9 +255,7 @@ export function useSettingsPageState() {
     });
     const feedFilterOptions = FEED_FILTER_OPTIONS;
     const currentSharedFeedFilterOptions =
-        feedFilterMode === 'noty'
-            ? feedFilterOptions.notyFeedFiltersOptions
-            : feedFilterOptions.wristFeedFiltersOptions;
+        feedFilterOptions.notyFeedFiltersOptions;
     const remoteFavoriteFriendGroupOptions = useMemo(
         () =>
             (favoriteFriendGroups || [])
@@ -761,7 +759,6 @@ export function useSettingsPageState() {
             feedFilterDialogOpen,
             setFeedFilterDialogOpen,
             feedFilterMode,
-            setFeedFilterMode,
             currentSharedFeedFilterOptions,
             sharedFeedFilters,
             updateSharedFeedFilter,

@@ -34,6 +34,7 @@ impl RealtimeHostRuntime {
                 "Runtime realtime transport requires an authenticated user.".into(),
             ));
         }
+        let friend_user_ids = friends_by_id.keys().cloned().collect::<Vec<_>>();
         let generation = {
             let mut state = self
                 .state
@@ -76,6 +77,9 @@ impl RealtimeHostRuntime {
                 generation,
                 0,
             );
+            self.deps
+                .overlay_activity
+                .set_friend_user_ids(friend_user_ids);
             self.current_user.set_snapshot(
                 session.user_id.clone(),
                 generation,
@@ -141,6 +145,7 @@ impl RealtimeHostRuntime {
     ) -> Result<FriendBaselineResult> {
         let requested_session = RealtimeSessionContext::new(user_id, endpoint, websocket);
         let friend_count = friends_by_id.len();
+        let friend_user_ids = friends_by_id.keys().cloned().collect::<Vec<_>>();
         let (result, active) = {
             let state = self
                 .state
@@ -201,6 +206,11 @@ impl RealtimeHostRuntime {
             (result, active)
         };
 
+        if result.accepted {
+            self.deps
+                .overlay_activity
+                .set_friend_user_ids(friend_user_ids);
+        }
         self.drain_queued_friend_messages(active);
         self.deps.sync.record(
             "realtimeFriends",
@@ -490,6 +500,9 @@ impl RealtimeHostRuntime {
             }
         }
         self.deps
+            .overlay_activity
+            .ingest_friend_projection(&projection);
+        self.deps
             .event_bus
             .emit_realtime_friend_projection(projection);
 
@@ -693,6 +706,9 @@ impl RealtimeHostRuntime {
             }
         }
         self.deps
+            .overlay_activity
+            .ingest_notification_projection(&projection);
+        self.deps
             .event_bus
             .emit_realtime_notification_projection(projection);
     }
@@ -775,6 +791,9 @@ impl RealtimeHostRuntime {
                     .record_failure("realtimeInstanceClosed", error.to_string());
             }
         }
+        self.deps
+            .overlay_activity
+            .ingest_instance_closed_projection(&projection);
         self.deps
             .event_bus
             .emit_realtime_instance_closed_projection(projection);
@@ -914,5 +933,149 @@ impl RealtimeHostRuntime {
             return;
         };
         self.apply_current_user_output(output);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+    use std::path::PathBuf;
+    use std::sync::{Arc, Mutex};
+
+    use serde_json::json;
+    use vrcx_0_core::friends::FriendRecord;
+    use vrcx_0_persistence::storage::StorageService;
+    use vrcx_0_persistence::DatabaseService;
+
+    use crate::overlay_activity::{
+        OverlayActivityCandidate, OverlayActivityFilters, OverlayActivityRuntime,
+    };
+    use crate::{
+        HostSessionRuntime, RuntimeEventBus, RuntimeSnapshot, RuntimeSyncEngine, TaskSupervisor,
+        WebClient,
+    };
+
+    use super::super::types::RealtimeHostRuntimeState;
+    use super::*;
+
+    struct TestDir {
+        path: PathBuf,
+    }
+
+    impl TestDir {
+        fn new(name: &str) -> Self {
+            let nonce = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let path = std::env::temp_dir().join(format!(
+                "vrcx-0-realtime-{name}-{}-{nonce}",
+                std::process::id()
+            ));
+            std::fs::create_dir_all(&path).unwrap();
+            Self { path }
+        }
+    }
+
+    impl Drop for TestDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.path);
+        }
+    }
+
+    #[test]
+    fn sync_friend_snapshot_updates_overlay_friend_scope() -> Result<()> {
+        let dir = TestDir::new("overlay-friend-scope");
+        let db = Arc::new(DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?);
+        let storage = StorageService::new(&dir.path.join("storage.json"))?;
+        let web = Arc::new(WebClient::new(
+            &storage,
+            db.as_ref(),
+            "wss://pipeline.vrchat.cloud".to_string(),
+        )?);
+        let session = HostSessionRuntime::new();
+        let host_session_generation =
+            session.set_realtime_context(crate::session::RealtimeSessionContext::new(
+                "usr_self".into(),
+                "https://api.vrchat.cloud/api/1".into(),
+                "wss://pipeline.vrchat.cloud".into(),
+            ));
+        let overlay_activity =
+            OverlayActivityRuntime::with_filters(OverlayActivityFilters::from_json(json!({
+                "version": 1,
+                "wrist": {
+                    "types": {
+                        "invite": {
+                            "scope": "friends",
+                            "favoriteGroupKeys": "all"
+                        }
+                    }
+                }
+            })));
+        let runtime = Arc::new(RealtimeHostRuntime::new(RealtimeHostRuntimeDeps {
+            db,
+            web,
+            event_bus: RuntimeEventBus::new(),
+            sync: RuntimeSyncEngine::new(),
+            tasks: TaskSupervisor::new(),
+            session,
+            game_log_snapshot: Arc::new(Mutex::new(RuntimeSnapshot::default())),
+            overlay_activity: overlay_activity.clone(),
+        }));
+        let active_session = RealtimeSessionContext::new(
+            "usr_self".into(),
+            "https://api.vrchat.cloud/api/1".into(),
+            "wss://pipeline.vrchat.cloud".into(),
+        );
+        {
+            let mut state = runtime.state.lock().unwrap();
+            *state = RealtimeHostRuntimeState {
+                generation: 7,
+                active_context: Some(ActiveRealtimeContext {
+                    session: active_session.clone(),
+                    generation: 7,
+                    client_run_id: 1,
+                    session_generation: host_session_generation,
+                }),
+                ..RealtimeHostRuntimeState::default()
+            };
+        }
+        let mut friends_by_id = HashMap::new();
+        friends_by_id.insert(
+            "usr_new".to_string(),
+            FriendRecord {
+                id: "usr_new".to_string(),
+                display_name: "New Friend".to_string(),
+                state: "online".to_string(),
+                state_bucket: "online".to_string(),
+                ..FriendRecord::default()
+            },
+        );
+
+        let result = runtime.sync_friend_snapshot(
+            active_session.user_id.clone(),
+            active_session.endpoint.clone(),
+            active_session.websocket.clone(),
+            Some(7),
+            friends_by_id,
+        )?;
+
+        assert!(result.accepted);
+        assert!(overlay_activity
+            .ingest_candidate(invite_candidate("usr_new"))
+            .is_some());
+        Ok(())
+    }
+
+    fn invite_candidate(user_id: &str) -> OverlayActivityCandidate {
+        OverlayActivityCandidate {
+            source_id: format!("invite:{user_id}"),
+            activity_type: "invite".to_string(),
+            created_at: "2026-06-01T00:00:00.000Z".to_string(),
+            actor_user_id: user_id.to_string(),
+            actor_display_name: "Friend".to_string(),
+            current_instance: false,
+            payload: json!({}),
+        }
     }
 }

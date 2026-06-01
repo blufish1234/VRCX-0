@@ -45,6 +45,7 @@ const commandArgs: Record<string, string[]> = {
     app__runtime_app_snapshot_get: [],
     app__runtime_auth_scope_get: [],
     app__runtime_auth_scope_set: ['input'],
+    app__overlay_activity_snapshot_get: [],
     app__vrchat_auth_config_get: ['input'],
     app__vrchat_auth_cookie_session_restore: ['input'],
     app__vrchat_auth_current_user_get: ['input'],

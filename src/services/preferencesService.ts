@@ -15,7 +15,7 @@ import {
     DEFAULT_PREFERENCES,
     normalizeDefaultLaunchMode,
     normalizeFeedTimeDisplayMode,
-    parseOverlayActivityFilters,
+    parseOverlayActivityFiltersPreference,
     parseSharedFeedFilters,
     normalizeSharedFeedFilters,
     normalizeOverlayActivityFilters,
@@ -291,7 +291,7 @@ export async function loadPreferenceSnapshot() {
         ),
         configRepository.getString(
             'overlayActivityFilters',
-            JSON.stringify(DEFAULT_PREFERENCES.overlayActivityFilters)
+            ''
         ),
         configRepository.getString('feedTimeDisplayMode', 'relative'),
         configRepository.getBool('youtubeAPI', false),
@@ -426,8 +426,9 @@ export async function loadPreferenceSnapshot() {
             localFavoriteFriendsGroups
         ),
         sharedFeedFilters: parseSharedFeedFilters(sharedFeedFilters),
-        overlayActivityFilters: parseOverlayActivityFilters(
-            overlayActivityFilters
+        overlayActivityFilters: parseOverlayActivityFiltersPreference(
+            overlayActivityFilters,
+            sharedFeedFilters
         ),
         feedTimeDisplayMode: normalizeFeedTimeDisplayMode(feedTimeDisplayMode),
         youtubeAPI: Boolean(youtubeAPI),

@@ -13,6 +13,7 @@ mod log_watcher;
 mod media_upload;
 mod moderation_sync;
 mod mutual_graph_fetch;
+mod overlay_activity;
 mod process_monitor;
 mod proxy;
 mod realtime;
@@ -89,6 +90,12 @@ pub use moderation_sync::{
 pub use mutual_graph_fetch::{
     MutualGraphFetchCancelInput, MutualGraphFetchRuntime, MutualGraphFetchStartInput,
     MutualGraphFetchStatus,
+};
+pub use overlay_activity::{
+    OverlayActivityCandidate, OverlayActivityCategory, OverlayActivityContent,
+    OverlayActivityEntry, OverlayActivityFavoriteGroupKeys, OverlayActivityFilters,
+    OverlayActivityRule, OverlayActivityRuntime, OverlayActivityScope, OverlayActivitySink,
+    OverlayActivitySnapshot, OverlayActivityText, OverlayFavoriteGroups,
 };
 pub use process_monitor::{
     GameProcessEvent, GameProcessEventSink, GameProcessMonitorActions, GameProcessStatus,

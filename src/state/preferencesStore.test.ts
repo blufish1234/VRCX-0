@@ -58,8 +58,8 @@ describe('preferencesStore normalizers', () => {
                         AvatarChange: 'VIP'
                     }
                 })
-            ).wrist.AvatarChange
-        ).toBe('VIP');
+            )
+        ).toEqual(DEFAULT_PREFERENCES.sharedFeedFilters);
 
         expect(parseSharedFeedFilters('{bad json')).toEqual(
             DEFAULT_PREFERENCES.sharedFeedFilters
@@ -97,6 +97,35 @@ describe('preferencesStore normalizers', () => {
             scope: 'on',
             favoriteGroupKeys: 'all'
         });
+    });
+
+    it('migrates legacy shared wrist filters when overlay activity filters are missing', () => {
+        const snapshot = normalizePreferenceSnapshot({
+            sharedFeedFilters: JSON.stringify({
+                wrist: {
+                    invite: 'VIP',
+                    OnPlayerJoined: 'Everyone',
+                    friendRequest: 'Off'
+                }
+            })
+        });
+
+        expect(snapshot.overlayActivityFilters.wrist.types.invite).toEqual({
+            scope: 'allFavorites',
+            favoriteGroupKeys: 'all'
+        });
+        expect(
+            snapshot.overlayActivityFilters.wrist.types.OnPlayerJoined
+        ).toEqual({
+            scope: 'everyoneInInstance',
+            favoriteGroupKeys: 'all'
+        });
+        expect(snapshot.overlayActivityFilters.wrist.types.friendRequest).toEqual(
+            {
+                scope: 'off',
+                favoriteGroupKeys: 'all'
+            }
+        );
     });
 
     it('coerces persisted preference snapshots into safe runtime values', () => {

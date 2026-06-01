@@ -9,6 +9,7 @@ import {
     filterTablePageSizeOptions,
     formatByteSize,
     isValidFontFamilyList,
+    migrateLegacySharedFeedWristFilters,
     normalizeOverlayActivityFilters,
     normalizeSharedFeedFilters,
     normalizeTablePageSizes,
@@ -51,7 +52,7 @@ describe('settingsValues', () => {
             ...sharedFeedFiltersDefaults.noty,
             displayName: 'Never'
         });
-        expect(filters.wrist).toEqual(sharedFeedFiltersDefaults.wrist);
+        expect((filters as any).wrist).toBeUndefined();
     });
 
     it('normalizes wrist activity filters with type-specific scopes', () => {
@@ -182,6 +183,36 @@ describe('settingsValues', () => {
         });
         expect(filters.wrist.types.Avatar).toBeUndefined();
         expect(filters.wrist.types.PortalSpawn).toBeUndefined();
+    });
+
+    it('migrates legacy shared wrist feed filters into wrist activity filters', () => {
+        const filters = migrateLegacySharedFeedWristFilters({
+            wrist: {
+                invite: 'VIP',
+                OnPlayerJoined: 'Everyone',
+                friendRequest: 'Off',
+                'group.queueReady': 'Friends',
+                Location: 'On'
+            }
+        });
+
+        expect(filters.wrist.types.invite).toEqual({
+            scope: 'allFavorites',
+            favoriteGroupKeys: 'all'
+        });
+        expect(filters.wrist.types.OnPlayerJoined).toEqual({
+            scope: 'everyoneInInstance',
+            favoriteGroupKeys: 'all'
+        });
+        expect(filters.wrist.types.friendRequest).toEqual({
+            scope: 'off',
+            favoriteGroupKeys: 'all'
+        });
+        expect(filters.wrist.types['group.queueReady']).toEqual({
+            scope: 'on',
+            favoriteGroupKeys: 'all'
+        });
+        expect((filters.wrist.types as any).Location).toBeUndefined();
     });
 
     it('maps wrist activity raw type keys to locale-safe label keys', () => {

@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { sharedFeedFiltersDefaults } from '@/shared/constants/feedFilters';
 import {
     DEFAULT_OVERLAY_ACTIVITY_FILTERS,
+    migrateLegacySharedFeedWristFilters,
     normalizeOverlayActivityFilters,
     parseOverlayActivityFilters
 } from '@/shared/constants/overlayActivityFilters';
@@ -53,10 +54,35 @@ export interface TableLimitsPreference {
 
 export interface SharedFeedFiltersPreference {
     noty: Record<string, unknown>;
-    wrist: Record<string, unknown>;
 }
 
 export { normalizeOverlayActivityFilters, parseOverlayActivityFilters };
+
+function hasPersistedOverlayActivityFilters(value: unknown): boolean {
+    if (!value) {
+        return false;
+    }
+    if (typeof value === 'string') {
+        try {
+            return hasPersistedOverlayActivityFilters(JSON.parse(value));
+        } catch {
+            return false;
+        }
+    }
+    const source = asRecord(value);
+    const wrist = asRecord(source.wrist);
+    return Boolean(wrist.types || wrist.categories);
+}
+
+export function parseOverlayActivityFiltersPreference(
+    value?: unknown,
+    legacySharedFeedFilters?: unknown
+) {
+    if (!hasPersistedOverlayActivityFilters(value)) {
+        return migrateLegacySharedFeedWristFilters(legacySharedFeedFilters);
+    }
+    return parseOverlayActivityFilters(value);
+}
 
 type BoundedIntOptions = {
     min?: number;
@@ -69,7 +95,6 @@ type TableLimits = {
 };
 type SharedFeedFilterSnapshot = {
     noty?: unknown;
-    wrist?: unknown;
 };
 type PreferenceInputSnapshot = Record<string, unknown>;
 
@@ -164,15 +189,10 @@ export function normalizeSharedFeedFilters(
 ): SharedFeedFiltersPreference {
     const filters = asRecord(value) as SharedFeedFilterSnapshot;
     const noty = asRecord(filters.noty);
-    const wrist = asRecord(filters.wrist);
     return {
         noty: {
             ...sharedFeedFiltersDefaults.noty,
             ...noty
-        },
-        wrist: {
-            ...sharedFeedFiltersDefaults.wrist,
-            ...wrist
         }
     };
 }
@@ -251,8 +271,7 @@ export const DEFAULT_PREFERENCES: PreferenceInputSnapshot = Object.freeze({
     },
     localFavoriteFriendsGroups: [],
     sharedFeedFilters: {
-        noty: { ...sharedFeedFiltersDefaults.noty },
-        wrist: { ...sharedFeedFiltersDefaults.wrist }
+        noty: { ...sharedFeedFiltersDefaults.noty }
     },
     overlayActivityFilters: DEFAULT_OVERLAY_ACTIVITY_FILTERS,
     feedTimeDisplayMode: 'relative',
@@ -277,6 +296,11 @@ export const DEFAULT_PREFERENCES: PreferenceInputSnapshot = Object.freeze({
 export function normalizePreferenceSnapshot(
     snapshot: PreferenceInputSnapshot = {}
 ) {
+    const hasOverlayActivityFiltersInput =
+        Object.prototype.hasOwnProperty.call(
+            snapshot,
+            'overlayActivityFilters'
+        );
     const next: any = {
         ...DEFAULT_PREFERENCES,
         ...snapshot
@@ -369,8 +393,11 @@ export function normalizePreferenceSnapshot(
             ? next.localFavoriteFriendsGroups.filter(Boolean)
             : [],
         sharedFeedFilters: parseSharedFeedFilters(next.sharedFeedFilters),
-        overlayActivityFilters: parseOverlayActivityFilters(
-            next.overlayActivityFilters
+        overlayActivityFilters: parseOverlayActivityFiltersPreference(
+            hasOverlayActivityFiltersInput
+                ? next.overlayActivityFilters
+                : undefined,
+            next.sharedFeedFilters
         ),
         feedTimeDisplayMode: normalizeFeedTimeDisplayMode(
             next.feedTimeDisplayMode

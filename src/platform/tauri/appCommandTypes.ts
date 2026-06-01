@@ -281,6 +281,43 @@ export interface RuntimeAppSnapshot {
     gameLog: Record<string, unknown>;
 }
 
+export interface OverlayActivityText {
+    key: string;
+    fallback: string;
+    params?: unknown;
+}
+
+export interface OverlayActivityContent {
+    icon: string;
+    title: OverlayActivityText;
+    body: OverlayActivityText;
+    summary: string;
+    detail: string;
+    location: string;
+    worldName: string;
+    groupName: string;
+    status: string;
+    statusDescription: string;
+    avatarName: string;
+    imageUrl: string;
+}
+
+export interface OverlayActivityEntry {
+    sequence: number;
+    sourceId: string;
+    activityType: string;
+    category: string;
+    createdAt: string;
+    actorUserId: string;
+    actorDisplayName: string;
+    content: OverlayActivityContent;
+    payload?: unknown;
+}
+
+export interface OverlayActivitySnapshot {
+    entries: OverlayActivityEntry[];
+}
+
 export interface RuntimeAuthScopeSnapshot {
     currentUserId: string;
     endpoint: string;
@@ -731,6 +768,7 @@ export interface AppTauriCommandNamespace extends TauriCommandNamespace {
         userId?: string;
         endpoint?: string;
     }): Promise<RuntimeAuthScopeSnapshot>;
+    OverlayActivitySnapshotGet(): Promise<OverlayActivitySnapshot>;
     StartBackgroundMode(): Promise<BackendRuntimeSnapshot>;
     StopBackgroundMode(reason?: string | null): Promise<BackendRuntimeSnapshot>;
     GetBackendRuntimeSnapshot(): Promise<BackendRuntimeSnapshot>;
