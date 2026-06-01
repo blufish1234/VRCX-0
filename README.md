@@ -37,6 +37,20 @@ The initial commit of this repository corresponds to the upstream VRCX snapshot 
 
 All modifications, additions, rewrites, and new code introduced after the fork are licensed under the GNU General Public License v3.0 (GPLv3).
 
+## Installation
+
+**All Versions**
+
+ - [Via GitHub Releases](https://github.com/Map1en/VRCX-0/releases)
+
+**Windows**
+
+- WinGet
+
+    ```ps
+    winget install vrcx-0
+    ```
+
 ## Development
 
 Requirements:
