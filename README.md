@@ -51,6 +51,14 @@ All modifications, additions, rewrites, and new code introduced after the fork a
     winget install vrcx-0
     ```
 
+**Linux**
+- AUR 
+
+    *Packaged by BlackCherry*
+    ```bash
+    yay -S vrcx-0-bin
+    ```
+
 ## Development
 
 Requirements:
