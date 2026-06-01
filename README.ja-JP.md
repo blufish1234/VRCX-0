@@ -1,4 +1,4 @@
-# VRCX-0
+# <img src="images/VRCX-0.png" alt="logo" width="25">   VRCX-0
 
 [English](README.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-Hant.md) | 日本語 | [한국어](README.ko-KR.md)
 
