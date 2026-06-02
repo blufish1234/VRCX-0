@@ -294,6 +294,13 @@ function NotificationActionButton({ label, onClick, children }: any) {
     );
 }
 
+function canMarkNotificationSeen(notification: any) {
+    return !(
+        Number(notification?.version ?? 1) !== 2 &&
+        notification?.type === 'friendRequest'
+    );
+}
+
 function NotificationRow({
     notification,
     isUnseen,
@@ -492,7 +499,8 @@ function NotificationRow({
                                     <ExternalLinkIcon data-icon="icon" />
                                 </NotificationActionButton>
                             ) : null}
-                            {isUnseen ? (
+                            {isUnseen &&
+                            canMarkNotificationSeen(notification) ? (
                                 <NotificationActionButton
                                     label={t(
                                         'view.notification.action.mark_seen'
