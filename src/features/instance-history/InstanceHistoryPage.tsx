@@ -548,9 +548,6 @@ export function InstanceHistoryPage({
                             sortKey={sortKey}
                             sortDesc={sortDesc}
                             onSortChange={changeSort}
-                            onSortDescChange={() =>
-                                setSortDesc((value: any) => !value)
-                            }
                             currentPageIndex={currentPageIndex}
                             totalPages={totalPages}
                             onPreviousPage={() =>

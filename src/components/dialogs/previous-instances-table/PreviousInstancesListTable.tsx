@@ -1,11 +1,7 @@
-import {
-    ArrowDownIcon,
-    ArrowUpDownIcon,
-    ArrowUpIcon,
-    Trash2Icon
-} from 'lucide-react';
+import { Trash2Icon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import { DataTableSortButton } from '@/components/data-table/DataTableSortButton';
 import { InstanceActionBar } from '@/components/instances/InstanceActionBar';
 import { Location } from '@/components/Location';
 import { LocationWorld } from '@/components/LocationWorld';
@@ -92,7 +88,6 @@ export function PreviousInstancesListTable({
     sortKey = 'date',
     sortDesc,
     onSortChange = null,
-    onSortDescChange,
     currentPageIndex,
     totalPages,
     onPreviousPage,
@@ -110,43 +105,21 @@ export function PreviousInstancesListTable({
     const totalCountText = formatPreviousInstanceCount(rows.length);
     const showWorldGroupColumn = variant !== 'user';
     const showCreatorColumn = variant !== 'user';
-    const sortIcon =
-        sortDesc ? (
-            <ArrowDownIcon data-icon="inline-end" />
-        ) : (
-            <ArrowUpIcon data-icon="inline-end" />
-        );
 
     function changeSort(nextKey: any) {
-        if (typeof onSortChange === 'function') {
-            onSortChange(nextKey);
-            return;
-        }
-        if (nextKey === 'date') {
-            onSortDescChange?.();
-        }
+        onSortChange?.(nextKey);
     }
 
     function sortableHeader(label: any, key: any) {
         const active = sortKey === key;
         return (
-            <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-auto px-1"
-                onClick={() => changeSort(key)}
-            >
-                {label}
-                {active ? (
-                    sortIcon
-                ) : (
-                    <ArrowUpDownIcon
-                        data-icon="inline-end"
-                        className="text-muted-foreground opacity-70"
-                    />
-                )}
-            </Button>
+            <DataTableSortButton
+                active={active}
+                direction={active ? (sortDesc ? 'desc' : 'asc') : false}
+                label={label}
+                onSort={() => changeSort(key)}
+                className="px-1"
+            />
         );
     }
 
