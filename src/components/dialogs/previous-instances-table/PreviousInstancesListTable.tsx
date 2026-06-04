@@ -1,4 +1,9 @@
-import { ArrowDownIcon, ArrowUpIcon, Trash2Icon } from 'lucide-react';
+import {
+    ArrowDownIcon,
+    ArrowUpDownIcon,
+    ArrowUpIcon,
+    Trash2Icon
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { InstanceActionBar } from '@/components/instances/InstanceActionBar';
@@ -84,7 +89,9 @@ export function PreviousInstancesListTable({
     onSearchChange,
     pageSize,
     onPageSizeChange,
+    sortKey = 'date',
     sortDesc,
+    onSortChange = null,
     onSortDescChange,
     currentPageIndex,
     totalPages,
@@ -94,11 +101,54 @@ export function PreviousInstancesListTable({
     currentUserId,
     currentEndpoint,
     onOpenDetails,
-    onDeleteRow
+    onDeleteRow,
+    headerActions = null,
+    searchActions = null
 }: any) {
     const { t } = useTranslation();
     const filteredCountText = formatPreviousInstanceCount(filteredRows.length);
     const totalCountText = formatPreviousInstanceCount(rows.length);
+    const showWorldGroupColumn = variant !== 'user';
+    const showCreatorColumn = variant !== 'user';
+    const sortIcon =
+        sortDesc ? (
+            <ArrowDownIcon data-icon="inline-end" />
+        ) : (
+            <ArrowUpIcon data-icon="inline-end" />
+        );
+
+    function changeSort(nextKey: any) {
+        if (typeof onSortChange === 'function') {
+            onSortChange(nextKey);
+            return;
+        }
+        if (nextKey === 'date') {
+            onSortDescChange?.();
+        }
+    }
+
+    function sortableHeader(label: any, key: any) {
+        const active = sortKey === key;
+        return (
+            <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-auto px-1"
+                onClick={() => changeSort(key)}
+            >
+                {label}
+                {active ? (
+                    sortIcon
+                ) : (
+                    <ArrowUpDownIcon
+                        data-icon="inline-end"
+                        className="text-muted-foreground opacity-70"
+                    />
+                )}
+            </Button>
+        );
+    }
 
     return (
         <div
@@ -117,19 +167,27 @@ export function PreviousInstancesListTable({
                             )}
                         </p>
                     </div>
+                    {headerActions ? (
+                        <div className="flex shrink-0 items-center gap-2">
+                            {headerActions}
+                        </div>
+                    ) : null}
                 </div>
             ) : null}
             <div className="flex flex-wrap items-center justify-between gap-3">
-                <Input
-                    value={search}
-                    onChange={(event: any) =>
-                        onSearchChange(event.target.value)
-                    }
-                    placeholder={t(
-                        'dialog.previous_instances.search_placeholder'
-                    )}
-                    className="max-w-sm"
-                />
+                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                    <Input
+                        value={search}
+                        onChange={(event: any) =>
+                            onSearchChange(event.target.value)
+                        }
+                        placeholder={t(
+                            'dialog.previous_instances.search_placeholder'
+                        )}
+                        className="max-w-sm"
+                    />
+                    {searchActions}
+                </div>
                 <div className="flex items-center gap-2">
                     <span className="text-muted-foreground text-sm">
                         {t('dialog.previous_instances.label.rows')}
@@ -161,37 +219,40 @@ export function PreviousInstancesListTable({
                         <TableHeader className="vrcx-0-table-header sticky top-0">
                             <TableRow>
                                 <TableHead className="w-44">
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-auto px-1"
-                                        onClick={onSortDescChange}
-                                    >
-                                        {t('table.previous_instances.date')}
-                                        {sortDesc ? (
-                                            <ArrowDownIcon data-icon="inline-end" />
-                                        ) : (
-                                            <ArrowUpIcon data-icon="inline-end" />
-                                        )}
-                                    </Button>
+                                    {sortableHeader(
+                                        t('table.previous_instances.date'),
+                                        'date'
+                                    )}
                                 </TableHead>
                                 <TableHead>
-                                    {t(
-                                        'dialog.previous_instances.label.location'
+                                    {sortableHeader(
+                                        t(
+                                            'dialog.previous_instances.label.location'
+                                        ),
+                                        'location'
                                     )}
                                 </TableHead>
-                                <TableHead className="w-48">
-                                    {t('table.previous_instances.world')} /{' '}
-                                    {t('dialog.new_instance.group')}
-                                </TableHead>
-                                <TableHead className="w-44">
-                                    {t(
-                                        'table.previous_instances.instance_creator'
-                                    )}
-                                </TableHead>
+                                {showWorldGroupColumn ? (
+                                    <TableHead className="w-48">
+                                        {t('table.previous_instances.world')} /{' '}
+                                        {t('dialog.new_instance.group')}
+                                    </TableHead>
+                                ) : null}
+                                {showCreatorColumn ? (
+                                    <TableHead className="w-44">
+                                        {sortableHeader(
+                                            t(
+                                                'table.previous_instances.instance_creator'
+                                            ),
+                                            'creator'
+                                        )}
+                                    </TableHead>
+                                ) : null}
                                 <TableHead className="w-24">
-                                    {t('table.previous_instances.time')}
+                                    {sortableHeader(
+                                        t('table.previous_instances.time'),
+                                        'duration'
+                                    )}
                                 </TableHead>
                                 <TableHead className="w-64 text-right">
                                     {t('table.previous_instances.action')}
@@ -235,20 +296,28 @@ export function PreviousInstancesListTable({
                                                     : '-'}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="text-muted-foreground align-middle text-xs leading-5">
-                                            {[row?.worldName, row?.groupName]
-                                                .filter(Boolean)
-                                                .join(' / ') || '-'}
-                                        </TableCell>
-                                        <TableCell className="align-middle text-xs">
-                                            <div className="flex min-h-9 items-center">
-                                                <InstanceOwnerCell
-                                                    userId={rowOwnerUserId(row)}
-                                                    location={location}
-                                                    endpoint={currentEndpoint}
-                                                />
-                                            </div>
-                                        </TableCell>
+                                        {showWorldGroupColumn ? (
+                                            <TableCell className="text-muted-foreground align-middle text-xs leading-5">
+                                                {[row?.worldName, row?.groupName]
+                                                    .filter(Boolean)
+                                                    .join(' / ') || '-'}
+                                            </TableCell>
+                                        ) : null}
+                                        {showCreatorColumn ? (
+                                            <TableCell className="align-middle text-xs">
+                                                <div className="flex min-h-9 items-center">
+                                                    <InstanceOwnerCell
+                                                        userId={rowOwnerUserId(
+                                                            row
+                                                        )}
+                                                        location={location}
+                                                        endpoint={
+                                                            currentEndpoint
+                                                        }
+                                                    />
+                                                </div>
+                                            </TableCell>
+                                        ) : null}
                                         <TableCell className="align-middle text-xs tabular-nums">
                                             {rowDuration(row)}
                                         </TableCell>
@@ -277,15 +346,32 @@ export function PreviousInstancesListTable({
                                                 </Button>
                                                 <Button
                                                     type="button"
-                                                    size="sm"
+                                                    size={
+                                                        variant === 'user'
+                                                            ? 'icon-sm'
+                                                            : 'sm'
+                                                    }
                                                     variant="outline"
                                                     disabled={!location}
+                                                    aria-label={t(
+                                                        'common.actions.delete'
+                                                    )}
                                                     onClick={() => {
                                                         onDeleteRow(row);
                                                     }}
                                                 >
-                                                    <Trash2Icon data-icon="inline-start" />
-                                                    {t('common.actions.delete')}
+                                                    <Trash2Icon
+                                                        data-icon={
+                                                            variant === 'user'
+                                                                ? 'icon'
+                                                                : 'inline-start'
+                                                        }
+                                                    />
+                                                    {variant === 'user'
+                                                        ? null
+                                                        : t(
+                                                              'common.actions.delete'
+                                                          )}
                                                 </Button>
                                             </div>
                                         </TableCell>

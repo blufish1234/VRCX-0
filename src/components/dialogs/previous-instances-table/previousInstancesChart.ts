@@ -22,10 +22,10 @@ function truncateLabel(value: any, maxLength: any = 20) {
 
 function markerForEntry(entry: any) {
     if (entry?.isFavorite) {
-        return '* ';
+        return '\u2b50 ';
     }
     if (entry?.isFriend) {
-        return '+ ';
+        return '\ud83d\udc9a ';
     }
     return '';
 }

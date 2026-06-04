@@ -78,6 +78,7 @@
         "friends_locations": "Friend Locations",
         "feed": "Feed",
         "game_log": "Game Log",
+        "instance_history": "Instance History",
         "player_list": "Current Players",
         "search": "Search",
         "favorites": "Favorites",
@@ -659,6 +660,30 @@
             },
             "dynamic": {
                 "no_user_id_was_found_for_value": "No user id was found for {value}"
+            }
+        },
+        "instance_history": {
+            "title": "Instance History",
+            "placeholder": {
+                "user": "Select user"
+            },
+            "label": {
+                "loaded_records": "{count} records loaded",
+                "selected_user": "Selected user",
+                "unnamed_user": "Unnamed user",
+                "self": "Me",
+                "date_range": "Date range"
+            },
+            "action": {
+                "current_user": "Me",
+                "open_full": "Open full instance history"
+            },
+            "description": {
+                "viewing": "Viewing {name}",
+                "no_current_user": "Sign in before viewing instance history."
+            },
+            "toast": {
+                "failed_to_load_instance_history": "Failed to load instance history"
             }
         },
         "my_avatars": {
@@ -5942,6 +5967,8 @@
             "live_friend_location_board_for_finding_people": "Live friend location board for finding people.",
             "game_log": "Game Log",
             "table_heavy_game_event_log": "Table-heavy game event log.",
+            "instance_history": "Instance History",
+            "local_instance_history_for_a_selected_user": "Instance history for a selected user.",
             "current_players": "Current Players",
             "search": "Search",
             "world_and_group_search_route": "World and group search route.",

@@ -78,6 +78,7 @@
         "friends_locations": "好友位置",
         "feed": "好友动态",
         "game_log": "游戏日志",
+        "instance_history": "房间历史",
         "player_list": "房内玩家",
         "search": "搜索",
         "favorites": "收藏&分组",
@@ -659,6 +660,30 @@
             },
             "dynamic": {
                 "no_user_id_was_found_for_value": "没有找到 {value} 的用户 ID"
+            }
+        },
+        "instance_history": {
+            "title": "房间历史",
+            "placeholder": {
+                "user": "选择用户"
+            },
+            "label": {
+                "loaded_records": "已加载 {count} 条记录",
+                "selected_user": "所选用户",
+                "unnamed_user": "未命名用户",
+                "self": "自己",
+                "date_range": "日期范围"
+            },
+            "action": {
+                "current_user": "自己",
+                "open_full": "打开完整房间历史"
+            },
+            "description": {
+                "viewing": "正在查看：{name}",
+                "no_current_user": "登录后才能查看房间历史。"
+            },
+            "toast": {
+                "failed_to_load_instance_history": "加载房间历史失败"
             }
         },
         "my_avatars": {
@@ -5942,6 +5967,8 @@
             "live_friend_location_board_for_finding_people": "用于找人的好友实时位置面板。",
             "game_log": "游戏日志",
             "table_heavy_game_event_log": "表格密集型游戏事件日志。",
+            "instance_history": "房间历史",
+            "local_instance_history_for_a_selected_user": "所选用户的房间历史。",
             "current_players": "当前玩家",
             "search": "搜索",
             "world_and_group_search_route": "世界和群组搜索路由。",

@@ -78,6 +78,7 @@
         "friends_locations": "フレンドの現在地",
         "feed": "フィード",
         "game_log": "ゲームログ",
+        "instance_history": "インスタンス履歴",
         "player_list": "プレイヤーリスト",
         "search": "検索",
         "favorites": "お気に入り",
@@ -659,6 +660,30 @@
             },
             "dynamic": {
                 "no_user_id_was_found_for_value": "{value} のユーザー ID が見つかりません"
+            }
+        },
+        "instance_history": {
+            "title": "インスタンス履歴",
+            "placeholder": {
+                "user": "ユーザーを選択"
+            },
+            "label": {
+                "loaded_records": "{count} 件の記録を読み込みました",
+                "selected_user": "選択中のユーザー",
+                "unnamed_user": "名前のないユーザー",
+                "self": "自分",
+                "date_range": "日付範囲"
+            },
+            "action": {
+                "current_user": "自分",
+                "open_full": "完全なインスタンス履歴を開く"
+            },
+            "description": {
+                "viewing": "{name} を表示中",
+                "no_current_user": "インスタンス履歴を表示するにはログインしてください。"
+            },
+            "toast": {
+                "failed_to_load_instance_history": "インスタンス履歴の読み込みに失敗しました"
             }
         },
         "my_avatars": {
@@ -5942,6 +5967,8 @@
             "live_friend_location_board_for_finding_people": "人を探すためのライブフレンド位置ボードです。",
             "game_log": "ゲームログ",
             "table_heavy_game_event_log": "テーブル中心のゲームイベントログです。",
+            "instance_history": "インスタンス履歴",
+            "local_instance_history_for_a_selected_user": "選択したユーザーのインスタンス履歴です。",
             "current_players": "現在のプレイヤー",
             "search": "検索",
             "world_and_group_search_route": "ワールドとグループ検索ルートです。",
