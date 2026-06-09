@@ -1,5 +1,5 @@
 use super::persistence::{
-    add_location_metadata, add_profile_diff_feed_entries, friend_log_upsert,
+    add_location_metadata, add_profile_diff_feed_entries, friend_log_upsert, FriendChangedProps,
     friend_relationship_feed_entry, gps_feed_entry, is_online_state, online_offline_feed_entry,
 };
 use super::projection::{has_event_state_bucket, resolve_state_bucket};
@@ -148,6 +148,7 @@ fn apply_friend_event_with_options(
                 return None;
             }
             let previous = get_friend_value(state, &user_id);
+            let changes = FriendChangedProps::from_patch(&patch, previous.as_ref());
             let state_bucket = resolve_state_bucket(content, &patch, previous.as_ref(), "offline");
             let has_state_bucket = has_event_state_bucket(content);
             if has_state_bucket && state.pending_offline.remove(&user_id).is_some() {
@@ -161,6 +162,7 @@ fn apply_friend_event_with_options(
                     &user_id,
                     &patch,
                     previous.as_ref(),
+                    &changes,
                     &now.iso,
                 );
             }
@@ -211,6 +213,7 @@ fn apply_friend_event_with_options(
                     &patch,
                     previous,
                     now,
+                    state_bucket_changed(previous, "online"),
                 );
             }
             apply_patch_to_state(state, &mut output, &user_id, patch, "online");
@@ -265,6 +268,7 @@ fn apply_friend_event_with_options(
                         &patch,
                         previous,
                         now,
+                        state_bucket_changed(previous, "online"),
                     );
                 }
                 apply_patch_to_state(state, &mut output, &user_id, patch, "online");
@@ -377,6 +381,7 @@ fn apply_friend_event_with_options(
                     &patch,
                     previous,
                     now,
+                    state_bucket_changed(previous, &state_bucket),
                 );
             }
             if state_bucket != "online" {
@@ -511,7 +516,11 @@ fn add_gps_feed_entry_if_not_repeated(
     patch: &Value,
     previous: &Value,
     now: &EventTime,
+    state_bucket_changed: bool,
 ) {
+    if state_bucket_changed {
+        return;
+    }
     let Some(entry) = gps_feed_entry(user_id, patch, previous, &now.iso) else {
         return;
     };
@@ -634,6 +643,18 @@ fn resolve_location_event_state_bucket(
         }
     }
     None
+}
+
+fn state_bucket_changed(previous: &Value, next_state_bucket: &str) -> bool {
+    [
+        previous.get("stateBucket").and_then(Value::as_str),
+        previous.get("state").and_then(Value::as_str),
+    ]
+    .iter()
+    .flatten()
+    .find_map(|state| normalize_state_bucket(state))
+    .map(|previous_state_bucket| previous_state_bucket != next_state_bucket)
+    .unwrap_or(false)
 }
 
 fn location_event_has_online_proof(content: &Value, user_patch: &Value) -> bool {

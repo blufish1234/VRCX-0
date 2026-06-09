@@ -2,6 +2,70 @@ use super::event_patch::record_to_value;
 use super::utils::*;
 use super::*;
 
+#[derive(Clone, Debug)]
+pub(super) struct FriendFieldChange {
+    next: Value,
+    previous: Value,
+}
+
+#[derive(Clone, Debug, Default)]
+pub(super) struct FriendChangedProps {
+    changes: HashMap<String, FriendFieldChange>,
+}
+
+impl FriendChangedProps {
+    pub(super) fn from_patch(patch: &Value, previous: Option<&Value>) -> Self {
+        let Some(previous) = previous else {
+            return Self::default();
+        };
+        let Some(patch_object) = patch.as_object() else {
+            return Self::default();
+        };
+        let mut changes = HashMap::new();
+        for (key, next) in patch_object {
+            let previous = previous_value_for_diff(previous, key);
+            if value_equal_for_diff(next, &previous) {
+                continue;
+            }
+            changes.insert(
+                key.clone(),
+                FriendFieldChange {
+                    next: next.clone(),
+                    previous,
+                },
+            );
+        }
+        Self { changes }
+    }
+
+    fn get(&self, key: &str) -> Option<&FriendFieldChange> {
+        self.changes.get(key)
+    }
+
+    fn has(&self, key: &str) -> bool {
+        self.changes.contains_key(key)
+    }
+}
+
+fn previous_value_for_diff(previous: &Value, key: &str) -> Value {
+    previous.get(key).cloned().unwrap_or_else(|| match key {
+        "currentAvatarTags" => json!([]),
+        _ => Value::String(String::new()),
+    })
+}
+
+fn value_equal_for_diff(next: &Value, previous: &Value) -> bool {
+    if next == previous {
+        return true;
+    }
+    let next_empty_string = next.as_str().map(|value| value.is_empty()).unwrap_or(false);
+    let previous_empty_string = previous
+        .as_str()
+        .map(|value| value.is_empty())
+        .unwrap_or(false);
+    next.is_null() && previous_empty_string || previous.is_null() && next_empty_string
+}
+
 pub(super) fn friend_log_upsert(
     user_id: &str,
     patch: &Value,
@@ -38,34 +102,34 @@ pub(super) fn add_profile_diff_feed_entries(
     user_id: &str,
     patch: &Value,
     previous: Option<&Value>,
+    changes: &FriendChangedProps,
     created_at: &str,
 ) {
     let Some(previous) = previous.filter(|previous| is_online_value(previous)) else {
         return;
     };
-    let status_changed = patch.has("status")
-        && string_field(patch.get("status")) != string_field(previous.get("status"))
-        && string_field(patch.get("status")) != "offline"
-        && string_field(previous.get("status")) != "offline";
-    let status_description_changed = patch.has("statusDescription")
-        && string_field(patch.get("statusDescription"))
-            != string_field(previous.get("statusDescription"));
-    if status_changed || status_description_changed {
+    let status_changed = changes.has("status");
+    let status_description_changed = changes.has("statusDescription");
+    let next_status = string_or_previous(patch, previous, "status");
+    let previous_status = string_field(previous.get("status"));
+    if (status_changed || status_description_changed)
+        && next_status != "offline"
+        && previous_status != "offline"
+    {
         output.persistence.feed_entries.push(json!({
             "created_at": created_at,
             "type": "Status",
             "userId": user_id,
             "displayName": display_name(user_id, patch, Some(previous)),
-            "status": string_or_previous(patch, previous, "status"),
+            "status": next_status,
             "statusDescription": string_or_previous(patch, previous, "statusDescription"),
-            "previousStatus": string_field(previous.get("status")),
+            "previousStatus": previous_status,
             "previousStatusDescription": string_field(previous.get("statusDescription")),
         }));
     }
-    if patch.has("bio")
+    if changes.has("bio")
         && !string_field(patch.get("bio")).is_empty()
         && !string_field(previous.get("bio")).is_empty()
-        && string_field(patch.get("bio")) != string_field(previous.get("bio"))
     {
         output.persistence.feed_entries.push(json!({
             "created_at": created_at,
@@ -76,15 +140,31 @@ pub(super) fn add_profile_diff_feed_entries(
             "previousBio": string_field(previous.get("bio")),
         }));
     }
+    let avatar_image_changed =
+        changes.has("currentAvatarImageUrl") || changes.has("currentAvatarThumbnailImageUrl");
+    let avatar_tags_changed = changes.has("currentAvatarTags");
+    let profile_pic_override = string_or_previous(patch, previous, "profilePicOverride");
+    let should_write_avatar =
+        (avatar_image_changed && profile_pic_override.is_empty()) || avatar_tags_changed;
     let current_avatar = first_owned([
-        string_field(patch.get("currentAvatarImageUrl")),
-        string_field(patch.get("currentAvatarThumbnailImageUrl")),
+        string_or_previous(patch, previous, "currentAvatarImageUrl"),
+        string_or_previous(patch, previous, "currentAvatarThumbnailImageUrl"),
     ]);
     let previous_avatar = first_owned([
         string_field(previous.get("currentAvatarImageUrl")),
         string_field(previous.get("currentAvatarThumbnailImageUrl")),
     ]);
-    if current_avatar != previous_avatar && !previous_avatar.is_empty() {
+    if should_write_avatar && !previous_avatar.is_empty() && !current_avatar.is_empty() {
+        let current_avatar_tags = changes
+            .get("currentAvatarTags")
+            .map(|change| change.next.clone())
+            .or_else(|| previous.get("currentAvatarTags").cloned())
+            .unwrap_or_else(|| json!([]));
+        let previous_avatar_tags = changes
+            .get("currentAvatarTags")
+            .map(|change| change.previous.clone())
+            .or_else(|| previous.get("currentAvatarTags").cloned())
+            .unwrap_or_else(|| json!([]));
         output.persistence.feed_entries.push(json!({
             "created_at": created_at,
             "type": "Avatar",
@@ -93,6 +173,8 @@ pub(super) fn add_profile_diff_feed_entries(
             "ownerId": first_owned([
                 string_field(patch.get("currentAvatarAuthorId")),
                 string_field(patch.get("authorId")),
+                string_field(previous.get("currentAvatarAuthorId")),
+                string_field(previous.get("authorId")),
             ]),
             "previousOwnerId": first_owned([
                 string_field(previous.get("currentAvatarAuthorId")),
@@ -101,15 +183,19 @@ pub(super) fn add_profile_diff_feed_entries(
             "avatarName": first_owned([
                 string_field(patch.get("currentAvatarName")),
                 string_field(patch.get("avatarName")),
+                string_field(previous.get("currentAvatarName")),
+                string_field(previous.get("avatarName")),
             ]),
             "previousAvatarName": first_owned([
                 string_field(previous.get("currentAvatarName")),
                 string_field(previous.get("avatarName")),
             ]),
-            "currentAvatarImageUrl": string_field(patch.get("currentAvatarImageUrl")),
-            "currentAvatarThumbnailImageUrl": string_field(patch.get("currentAvatarThumbnailImageUrl")),
+            "currentAvatarImageUrl": string_or_previous(patch, previous, "currentAvatarImageUrl"),
+            "currentAvatarThumbnailImageUrl": string_or_previous(patch, previous, "currentAvatarThumbnailImageUrl"),
             "previousCurrentAvatarImageUrl": string_field(previous.get("currentAvatarImageUrl")),
             "previousCurrentAvatarThumbnailImageUrl": string_field(previous.get("currentAvatarThumbnailImageUrl")),
+            "currentAvatarTags": current_avatar_tags,
+            "previousCurrentAvatarTags": previous_avatar_tags,
         }));
     }
 }
