@@ -2,12 +2,6 @@ name: Package
 
 on:
     workflow_dispatch:
-        inputs:
-            version:
-                description: 'Stable release version, for example 1.0.0'
-                required: true
-                type: string
-                default: '1.0.0'
 
 concurrency:
     group: ${{ github.ref }}-package
@@ -33,10 +27,15 @@ jobs:
                   node-version: 24.x
 
             - id: version
-              name: Validate release version
+              name: Read release version
               run: |
+                  version="$(node -p "require('./src-tauri/tauri.conf.json').version")"
+                  if [[ -z "$version" ]]; then
+                      echo "Missing Tauri config version." >&2
+                      exit 1
+                  fi
                   node build-scripts/prepare-release-version.ts \
-                      --version "${{ inputs.version }}" \
+                      --version "$version" \
                       --dry-run
 
     package:
@@ -136,11 +135,6 @@ jobs:
                       gir1.2-webkit2-4.1="$webkitgtk_version"
 
             - run: npm ci
-
-            - name: Apply release version
-              run: |
-                  node build-scripts/prepare-release-version.ts \
-                      --version "${{ inputs.version }}"
 
             - name: Inject updater public key
               env:
