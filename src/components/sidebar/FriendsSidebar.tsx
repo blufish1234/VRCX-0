@@ -44,7 +44,9 @@ function useFriendsSidebarRuntimeSnapshot() {
     const currentUser = useRuntimeStore(
         (state: any) => state.auth.currentUserSnapshot
     );
-    const currentUserId = useRuntimeStore((state: any) => state.auth.currentUserId);
+    const currentUserId = useRuntimeStore(
+        (state: any) => state.auth.currentUserId
+    );
     const currentEndpoint = useRuntimeStore(
         (state: any) => state.auth.currentUserEndpoint
     );
@@ -271,7 +273,8 @@ export function FriendsSidebar({
     );
 
     const rows = useMemo(
-        () => orderedFriendIds.map((id: any) => friendsById[id]).filter(Boolean),
+        () =>
+            orderedFriendIds.map((id: any) => friendsById[id]).filter(Boolean),
         [friendsById, orderedFriendIds]
     );
     const favoriteIds = useMemo(
@@ -730,7 +733,7 @@ export function FriendsSidebar({
         t
     ]);
 
-    const { measureElement, viewportRef, virtualItems, totalSize } =
+    const { getRowRef, viewportRef, virtualItems, totalSize } =
         useVirtualSidebarRows(virtualRows, estimateFriendSidebarRowSize);
     const visibleLocationMetadataEntries = useMemo(
         () =>
@@ -794,7 +797,7 @@ export function FriendsSidebar({
                     {virtualItems.map((item: any) => (
                         <div
                             key={item.key}
-                            ref={(element: any) => measureElement(item.key, element)}
+                            ref={getRowRef(item.key)}
                             className="absolute top-0 left-0 w-full"
                             style={{ transform: `translateY(${item.start}px)` }}
                         >

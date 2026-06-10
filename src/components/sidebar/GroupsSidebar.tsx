@@ -5,10 +5,10 @@ import { toast } from 'sonner';
 
 import { Location } from '@/components/Location';
 import { useVirtualSidebarRows } from '@/components/sidebar/useVirtualSidebarRows';
-import { convertFileUrlToImageUrl } from '@/services/entityMediaService';
 import { cn } from '@/lib/utils';
 import { openGroupDialog } from '@/services/dialogService';
 import { tryOpenLaunchLocation } from '@/services/directAccessService';
+import { convertFileUrlToImageUrl } from '@/services/entityMediaService';
 import { selfInviteToInstance } from '@/services/launchService';
 import { checkCanInviteSelf } from '@/shared/utils/invite';
 import { parseLocation } from '@/shared/utils/locationParser';
@@ -494,7 +494,7 @@ export function GroupsSidebar() {
         return nextRows;
     }, [collapsedGroups, error, groups, status]);
 
-    const { measureElement, viewportRef, virtualItems, totalSize } =
+    const { getRowRef, viewportRef, virtualItems, totalSize } =
         useVirtualSidebarRows(virtualRows, estimateGroupSidebarRowSize);
 
     function renderVirtualRow(row: any) {
@@ -544,9 +544,7 @@ export function GroupsSidebar() {
                     {virtualItems.map((item: any) => (
                         <div
                             key={item.key}
-                            ref={(element: any) =>
-                                measureElement(item.key, element)
-                            }
+                            ref={getRowRef(item.key)}
                             className="absolute top-0 left-0 w-full"
                             style={{ transform: `translateY(${item.start}px)` }}
                         >

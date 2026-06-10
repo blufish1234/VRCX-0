@@ -3,10 +3,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 const DEFAULT_ROW_SIZE = 48;
 const DEFAULT_OVERSCAN = 8;
 
-export function useVirtualSidebarRows(rows: any, estimateSize: any, options: any = {}) {
+export function useVirtualSidebarRows(
+    rows: any,
+    estimateSize: any,
+    options: any = {}
+) {
     const viewportRef = useRef(null);
     const measuredSizesRef = useRef(new Map());
     const rowObserversRef = useRef(new Map());
+    const rowRefCallbacksRef = useRef(new Map());
     const [viewport, setViewport] = useState<any>({ scrollTop: 0, height: 0 });
     const [measureVersion, setMeasureVersion] = useState(0);
     const overscan = Number.isFinite(options.overscan)
@@ -48,7 +53,7 @@ export function useVirtualSidebarRows(rows: any, estimateSize: any, options: any
         }
 
         const updateSize = () => {
-            const nextSize = Math.ceil(element.getBoundingClientRect().height);
+            const nextSize = element.offsetHeight;
             if (!Number.isFinite(nextSize) || nextSize <= 0) {
                 return;
             }
@@ -70,8 +75,23 @@ export function useVirtualSidebarRows(rows: any, estimateSize: any, options: any
         }
     }, []);
 
+    const getRowRef = useCallback(
+        (key: any) => {
+            const cache = rowRefCallbacksRef.current;
+            let callback = cache.get(key);
+            if (!callback) {
+                callback = (element: any) => measureElement(key, element);
+                cache.set(key, callback);
+            }
+            return callback;
+        },
+        [measureElement]
+    );
+
     useEffect(() => {
-        const liveKeys = new Set(rows.map((row: any, index: any) => row?.key ?? index));
+        const liveKeys = new Set(
+            rows.map((row: any, index: any) => row?.key ?? index)
+        );
         let changed = false;
 
         for (const key of measuredSizesRef.current.keys()) {
@@ -79,7 +99,14 @@ export function useVirtualSidebarRows(rows: any, estimateSize: any, options: any
                 measuredSizesRef.current.delete(key);
                 rowObserversRef.current.get(key)?.disconnect();
                 rowObserversRef.current.delete(key);
+                rowRefCallbacksRef.current.delete(key);
                 changed = true;
+            }
+        }
+
+        for (const key of rowRefCallbacksRef.current.keys()) {
+            if (!liveKeys.has(key)) {
+                rowRefCallbacksRef.current.delete(key);
             }
         }
 
@@ -110,10 +137,13 @@ export function useVirtualSidebarRows(rows: any, estimateSize: any, options: any
             }
             frameId = requestAnimationFrame(() => {
                 frameId = 0;
-                setViewport({
-                    scrollTop: element.scrollTop,
-                    height: element.clientHeight || 0
-                });
+                const nextTop = element.scrollTop;
+                const nextHeight = element.clientHeight || 0;
+                setViewport((prev: any) =>
+                    prev.scrollTop === nextTop && prev.height === nextHeight
+                        ? prev
+                        : { scrollTop: nextTop, height: nextHeight }
+                );
             });
         };
 
@@ -146,10 +176,13 @@ export function useVirtualSidebarRows(rows: any, estimateSize: any, options: any
         if (!element) {
             return;
         }
-        setViewport({
-            scrollTop: element.scrollTop,
-            height: element.clientHeight || 0
-        });
+        const nextTop = element.scrollTop;
+        const nextHeight = element.clientHeight || 0;
+        setViewport((prev: any) =>
+            prev.scrollTop === nextTop && prev.height === nextHeight
+                ? prev
+                : { scrollTop: nextTop, height: nextHeight }
+        );
     }, [rows.length, rowMetrics.totalSize]);
 
     const virtualItems = useMemo(() => {
@@ -189,7 +222,7 @@ export function useVirtualSidebarRows(rows: any, estimateSize: any, options: any
     }, [overscan, rowMetrics, rows, viewport.height, viewport.scrollTop]);
 
     return {
-        measureElement,
+        getRowRef,
         viewportRef,
         virtualItems,
         totalSize: rowMetrics.totalSize
