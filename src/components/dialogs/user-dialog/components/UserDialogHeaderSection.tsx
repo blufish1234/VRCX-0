@@ -233,7 +233,7 @@ export function UserDialogHeaderSection(props: any) {
         profileTitle,
         pronounsText,
         recentDialogShortcut,
-        statusIndicatorClassName,
+        statusDotClassName,
         statusStateText,
         userSubtitle,
         userUrl
@@ -392,12 +392,20 @@ export function UserDialogHeaderSection(props: any) {
             <div className="flex min-w-0 items-start gap-2">
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                     <CardTitle className="flex min-w-0 flex-wrap items-center gap-1.5 text-lg leading-tight">
-                        {statusIndicatorClassName ? (
-                            <i
+                        {statusDotClassName ? (
+                            <span
                                 aria-label={statusStateText || undefined}
-                                className={statusIndicatorClassName}
                                 role={statusStateText ? 'img' : undefined}
                                 title={statusStateText || undefined}
+                                className={cn(
+                                    'inline-block size-2.5 shrink-0 rounded-full align-middle',
+                                    // Active-on-website statuses render as a hollow
+                                    // ring (border = status color, transparent center),
+                                    // matching the friends sidebar status dots.
+                                    statusDotClassName.includes('bg-background') &&
+                                        'border-2',
+                                    statusDotClassName
+                                )}
                             />
                         ) : null}
                         {onTitleClick ? (

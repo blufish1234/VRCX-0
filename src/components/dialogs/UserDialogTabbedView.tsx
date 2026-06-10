@@ -6,10 +6,11 @@ import {
     convertFileUrlToImageUrl,
     openExternalLink
 } from '@/services/entityMediaService';
-import { userStatusIndicatorClassName } from '@/shared/utils/userStatus';
+import { resolveSidebarStatusDotClassName } from '@/components/sidebar/friends-sidebar/friendsSidebarModel';
 import { openAvatarDialog, openGroupDialog } from '@/services/dialogService';
 import { isActionRecent } from '@/services/recentActionService';
 import { parseLocation } from '@/shared/utils/locationParser';
+import { useRuntimeStore } from '@/state/runtimeStore';
 
 import {
     EntityDialogScaffold,
@@ -144,6 +145,9 @@ export function UserDialogTabbedView({
     const [selfPanel, setSelfPanel] = useState('');
     const { copyUserText, openDiscordProfile } =
         useUserDialogClipboardActions();
+    const currentUserSnapshot = useRuntimeStore(
+        (state: any) => state.auth.currentUserSnapshot
+    );
 
     useEffect(() => {
         const intervalId = window.setInterval(() => {
@@ -273,9 +277,12 @@ export function UserDialogTabbedView({
             : null,
         nowMs
     });
-    const statusIndicatorClassName = userStatusIndicatorClassName(profile, {
-        showOffline: true
-    });
+    const statusDotClassName = resolveSidebarStatusDotClassName(
+        profile,
+        currentUserSnapshot,
+        isCurrentUser,
+        { hideNonFriend: false }
+    );
     const currentAvatarDisplayName = String(
         profile.currentAvatarName || profile.avatarName || ''
     ).trim();
@@ -420,7 +427,7 @@ export function UserDialogTabbedView({
         profileTitle,
         pronounsText,
         recentDialogShortcut,
-        statusIndicatorClassName,
+        statusDotClassName,
         statusStateText,
         userSubtitle,
         userUrl,
