@@ -375,15 +375,19 @@ fn normalize_friend_entry(
         .map(value_as_string)
         .unwrap_or_default();
     object.insert("displayName".into(), Value::String(display_name));
-    // Mirror upstream userStatusClass: an "online" with offline/empty location is really offline.
-    // "active" is untouched; a ws-confirmed active is restored in set_baseline.
+    // Clean dirty list state the way upstream does: a real world location is the source of truth,
+    // so it always means online (upstream's friend-active forces location "offline", so active and
+    // a world location never coexist). With no/offline location, "active" stays active and anything
+    // else is offline. A ws-confirmed active is still restored in set_baseline.
     let location = object.get("location").and_then(Value::as_str).unwrap_or("");
     let location_is_offline =
         location.trim().is_empty() || location.eq_ignore_ascii_case("offline");
-    let effective_state_bucket = if state_bucket == "online" && location_is_offline {
-        "offline"
+    let effective_state_bucket = if !location_is_offline {
+        "online"
+    } else if state_bucket == "active" {
+        "active"
     } else {
-        state_bucket
+        "offline"
     };
     object.insert(
         "state".into(),
@@ -876,6 +880,86 @@ mod tests {
         let priv_friend = friends_by_id.get("usr_priv").expect("usr_priv present");
         assert_eq!(
             object_field(priv_friend, "stateBucket").and_then(Value::as_str),
+            Some("online")
+        );
+    }
+
+    #[test]
+    fn friend_with_real_location_is_online_even_if_list_says_offline() {
+        // Dirty list/fetch marks a friend offline while they are in a world; the real location
+        // proves they are online (matches upstream userStatusClass).
+        let expected_ids = vec!["usr_inworld".to_string()];
+        let state_by_id = HashMap::from([("usr_inworld".to_string(), "offline".to_string())]);
+        let fetched_friends_by_id = HashMap::from([(
+            "usr_inworld".to_string(),
+            RemoteFriendProfile::from_raw(
+                json!({
+                    "id": "usr_inworld",
+                    "displayName": "InWorld",
+                    "location": "wrld_1b754e93:1",
+                    "status": "join me"
+                }),
+                Some("offline"),
+            )
+            .expect("valid profile"),
+        )]);
+
+        let snapshot = build_fast_roster_snapshot(
+            "usr_self",
+            &expected_ids,
+            &state_by_id,
+            &fetched_friends_by_id,
+        );
+
+        let friends_by_id = snapshot
+            .get("friendsById")
+            .and_then(Value::as_object)
+            .expect("friendsById object");
+        let friend = friends_by_id
+            .get("usr_inworld")
+            .expect("usr_inworld present");
+        assert_eq!(
+            object_field(friend, "stateBucket").and_then(Value::as_str),
+            Some("online")
+        );
+    }
+
+    #[test]
+    fn active_list_friend_with_world_location_is_online() {
+        // The activeFriends list can be stale and tag a friend "active" while they are in a world.
+        // Upstream's friend-active forces location offline, so a real location proves online.
+        let expected_ids = vec!["usr_active_inworld".to_string()];
+        let state_by_id = HashMap::from([("usr_active_inworld".to_string(), "active".to_string())]);
+        let fetched_friends_by_id = HashMap::from([(
+            "usr_active_inworld".to_string(),
+            RemoteFriendProfile::from_raw(
+                json!({
+                    "id": "usr_active_inworld",
+                    "displayName": "ActiveInWorld",
+                    "location": "wrld_929c02a8:1",
+                    "status": "join me"
+                }),
+                Some("active"),
+            )
+            .expect("valid profile"),
+        )]);
+
+        let snapshot = build_fast_roster_snapshot(
+            "usr_self",
+            &expected_ids,
+            &state_by_id,
+            &fetched_friends_by_id,
+        );
+
+        let friends_by_id = snapshot
+            .get("friendsById")
+            .and_then(Value::as_object)
+            .expect("friendsById object");
+        let friend = friends_by_id
+            .get("usr_active_inworld")
+            .expect("usr_active_inworld present");
+        assert_eq!(
+            object_field(friend, "stateBucket").and_then(Value::as_str),
             Some("online")
         );
     }

@@ -937,6 +937,61 @@ mod tests {
     }
 
     #[test]
+    fn in_world_baseline_overrides_stale_active() {
+        // existing ws "active", but the fresh baseline now shows a real world location (online):
+        // the friend is genuinely in-world, so online wins over the stale active.
+        let runtime = RealtimeFriendsRuntime::new();
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: [(
+                    "usr_friend".to_string(),
+                    FriendRecord {
+                        id: "usr_friend".into(),
+                        display_name: "Friend".into(),
+                        state: "active".into(),
+                        state_bucket: "active".into(),
+                        ..FriendRecord::default()
+                    },
+                )]
+                .into_iter()
+                .collect(),
+                ..FriendRosterBaseline::default()
+            },
+            1,
+            0,
+        );
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: [(
+                    "usr_friend".to_string(),
+                    FriendRecord {
+                        id: "usr_friend".into(),
+                        display_name: "Friend".into(),
+                        state: "online".into(),
+                        state_bucket: "online".into(),
+                        location: "wrld_929c02a8:1".into(),
+                        ..FriendRecord::default()
+                    },
+                )]
+                .into_iter()
+                .collect(),
+                ..FriendRosterBaseline::default()
+            },
+            1,
+            1,
+        );
+
+        let snapshot = runtime.snapshot().expect("baseline present");
+        let friend = snapshot
+            .friends_by_id
+            .get("usr_friend")
+            .expect("friend present");
+        assert_eq!(friend.state_bucket, "online");
+    }
+
+    #[test]
     fn websocket_friend_update_still_emits_status_feed() {
         let runtime = RealtimeFriendsRuntime::new();
         runtime.set_baseline(

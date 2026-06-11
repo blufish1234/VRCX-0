@@ -85,10 +85,11 @@ impl RealtimeFriendsRuntime {
                     .friend_presence_updated_ms
                     .get(user_id)
                     .is_some_and(|updated_ms| *updated_ms > baseline_started_ms);
-                // ws "active" is authoritative until a friend-offline; the lagging cached list
-                // must not demote it.
-                let existing_is_active = existing_record.state_bucket == "active";
-                if is_placeholder || has_newer_ws || existing_is_active {
+                // ws "active" outranks a stale list that would demote it — unless the fresh baseline
+                // carries a real world location (online), which proves the friend is now in-world.
+                let keep_active =
+                    existing_record.state_bucket == "active" && record.state_bucket != "online";
+                if is_placeholder || has_newer_ws || keep_active {
                     preserve_newer_presence_fields(record, existing_record);
                 }
             }
