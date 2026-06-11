@@ -2809,63 +2809,23 @@ impl Drop for ProfileLockGuard {
     }
 }
 
-#[cfg(target_os = "windows")]
 fn open_profile_lock_file(path: &Path) -> Result<File> {
-    use std::os::windows::fs::OpenOptionsExt as _;
-
-    OpenOptions::new()
+    let file = OpenOptions::new()
         .read(true)
         .write(true)
         .create(true)
-        .truncate(true)
-        .share_mode(0)
+        .truncate(false)
         .open(path)
-        .map_err(|error| {
-            if error.kind() == std::io::ErrorKind::PermissionDenied {
-                crate::Error::Custom(format!(
-                    "VRCX-0 profile is already in use: {}",
-                    path.display()
-                ))
-            } else {
-                crate::Error::Io(error)
-            }
-        })
-}
+        .map_err(crate::Error::Io)?;
 
-#[cfg(not(target_os = "windows"))]
-fn open_profile_lock_file(path: &Path) -> Result<File> {
-    match OpenOptions::new().write(true).create_new(true).open(path) {
-        Ok(file) => Ok(file),
-        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
-            if profile_lock_pid_is_stale(path) {
-                let _ = std::fs::remove_file(path);
-                return OpenOptions::new()
-                    .write(true)
-                    .create_new(true)
-                    .open(path)
-                    .map_err(crate::Error::Io);
-            }
-            Err(crate::Error::Custom(format!(
-                "VRCX-0 profile is already in use: {}",
-                path.display()
-            )))
-        }
-        Err(error) => Err(crate::Error::Io(error)),
+    match file.try_lock() {
+        Ok(()) => Ok(file),
+        Err(std::fs::TryLockError::WouldBlock) => Err(crate::Error::Custom(format!(
+            "VRCX-0 profile is already in use: {}",
+            path.display()
+        ))),
+        Err(std::fs::TryLockError::Error(error)) => Err(crate::Error::Io(error)),
     }
-}
-
-#[cfg(not(target_os = "windows"))]
-fn profile_lock_pid_is_stale(path: &Path) -> bool {
-    let Ok(contents) = std::fs::read_to_string(path) else {
-        return false;
-    };
-    let Ok(pid) = contents.trim().parse::<u32>() else {
-        return false;
-    };
-    if pid == std::process::id() {
-        return false;
-    }
-    !vrcx_0_host::process_status::is_process_running(pid)
 }
 
 struct AuthenticatedRuntimeSession {
