@@ -355,7 +355,6 @@ export function AppNavMenu({ isCollapsed }: any) {
         (state: any) => state.enabled
     );
     const dashboards = useDashboardStore((state: any) => state.dashboards);
-    const dashboardsLoaded = useDashboardStore((state: any) => state.loaded);
     const ensureDashboardsLoaded = useDashboardStore(
         (state: any) => state.ensureLoaded
     );
@@ -428,8 +427,7 @@ export function AppNavMenu({ isCollapsed }: any) {
         };
     }, []);
 
-    const shouldShowCreateDashboard =
-        showNewDashboardButton || (dashboardsLoaded && dashboards.length === 0);
+    const shouldShowCreateDashboard = showNewDashboardButton;
     const communityThemeAppearanceControlled = communityThemeControlsAppearance(
         communityThemeEnabled,
         installedCommunityTheme,
