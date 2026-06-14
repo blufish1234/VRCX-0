@@ -130,6 +130,30 @@ describe('realtimePresenceService projection boundary', () => {
         expect(useShellStore.getState().notifiedMenus).toContain('friend-log');
     });
 
+    it('bumps the friend-log revision so the active friend-log page refreshes in place', async () => {
+        const { useFriendLogStore } = await import('@/state/friendLogStore');
+        const { handleRealtimeFriendProjection } =
+            await import('./realtimePresenceService');
+
+        const before = useFriendLogStore.getState().revision;
+        handleRealtimeFriendProjection({
+            patches: [],
+            removals: [],
+            feedEntries: [],
+            friendLogChanged: true
+        });
+        expect(useFriendLogStore.getState().revision).toBe(before + 1);
+
+        handleRealtimeFriendProjection({
+            patches: [],
+            removals: [],
+            feedEntries: [],
+            friendLogChanged: false
+        });
+        // A projection without a friend-log change must not emit an extra refresh signal.
+        expect(useFriendLogStore.getState().revision).toBe(before + 1);
+    });
+
     it('applies runtime friend removals only to the roster', async () => {
         const { useFriendRosterStore } =
             await import('@/state/friendRosterStore');

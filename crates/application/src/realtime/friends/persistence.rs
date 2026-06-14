@@ -93,7 +93,7 @@ pub(super) fn friend_log_upsert(
             .or_else(|| previous.and_then(|previous| int_field(previous.get("friendNumber"))))
             .unwrap_or(0),
         created_at: created_at.to_string(),
-        force_history: true,
+        force_history: false,
     }
 }
 

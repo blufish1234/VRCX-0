@@ -111,7 +111,18 @@ fn upsert_friend_log_current(
     } else {
         next_friend_number(tx, user_prefix)?
     };
-    let display_name = first_non_empty([entry.display_name.as_str(), &target_user_id]);
+    let existing_display_name = existing
+        .as_ref()
+        .map(|existing| existing.display_name.trim())
+        .unwrap_or("");
+    let entry_display_name = entry.display_name.trim();
+    let display_name = if !entry_display_name.is_empty() && entry_display_name != "Unknown" {
+        entry_display_name
+    } else if !existing_display_name.is_empty() && existing_display_name != "Unknown" {
+        existing_display_name
+    } else {
+        "Unknown"
+    };
     let trust_level = first_non_empty([entry.trust_level.as_str(), "Visitor"]);
     let insert_count = tx.execute_non_query(
         &format!(
@@ -806,6 +817,66 @@ mod tests {
         )?;
         assert_eq!(location_counts.affected_count, 1);
         assert_eq!(location_counts.game_log_affected_count, 1);
+        Ok(())
+    }
+
+    #[test]
+    fn force_history_false_skips_history_on_update() -> Result<(), crate::Error> {
+        let dir = TestDir::new("realtime-force-history-false");
+        let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+
+        let upsert = |name: &str| RealtimePersistenceBatch {
+            friend_log_upserts: vec![FriendLogUpsert {
+                target_user_id: "usr_friend".into(),
+                display_name: name.into(),
+                trust_level: "Known".into(),
+                friend_number: 12,
+                created_at: "2026-05-15T00:00:00Z".into(),
+                force_history: false,
+            }],
+            ..RealtimePersistenceBatch::default()
+        };
+
+        write_realtime_batch(&db, "usr_self", &upsert("Friend"))?;
+        write_realtime_batch(&db, "usr_self", &upsert("Friend Renamed"))?;
+
+        let history = db.execute(
+            "SELECT user_id FROM usrself_friend_log_history WHERE user_id = @user_id",
+            &ParamsBuilder::new().set("user_id", "usr_friend").build(),
+        )?;
+        // New friend writes one Friend history row; the repeated upsert takes the UPDATE branch and,
+        // with force_history=false, must not append a duplicate.
+        assert_eq!(history.len(), 1);
+        Ok(())
+    }
+
+    #[test]
+    fn blank_display_name_persists_unknown_not_user_id() -> Result<(), crate::Error> {
+        let dir = TestDir::new("realtime-unknown-display-name");
+        let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+
+        write_realtime_batch(
+            &db,
+            "usr_self",
+            &RealtimePersistenceBatch {
+                friend_log_upserts: vec![FriendLogUpsert {
+                    target_user_id: "usr_friend".into(),
+                    display_name: String::new(),
+                    trust_level: "Known".into(),
+                    friend_number: 12,
+                    created_at: "2026-05-15T00:00:00Z".into(),
+                    force_history: false,
+                }],
+                ..RealtimePersistenceBatch::default()
+            },
+        )?;
+
+        let current = db.execute(
+            "SELECT display_name FROM usrself_friend_log_current WHERE user_id = @user_id",
+            &ParamsBuilder::new().set("user_id", "usr_friend").build(),
+        )?;
+        // A blank event name must never persist the raw user id; it lands as "Unknown".
+        assert_eq!(current[0][0], json!("Unknown"));
         Ok(())
     }
 

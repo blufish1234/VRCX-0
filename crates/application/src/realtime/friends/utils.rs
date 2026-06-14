@@ -243,6 +243,83 @@ mod tests {
     }
 
     #[test]
+    fn friend_add_twice_logs_single_friend_entry() {
+        let runtime = RealtimeFriendsRuntime::new();
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: Default::default(),
+                ..FriendRosterBaseline::default()
+            },
+            1,
+            0,
+        );
+
+        let event = RealtimeWsMessagePayload {
+            json: json!({
+                "type": "friend-add",
+                "content": {
+                    "userId": "usr_added",
+                    "user": { "id": "usr_added", "displayName": "Added Friend" }
+                }
+            }),
+            raw: "{}".into(),
+            received_at: "2026-05-15T00:00:00Z".into(),
+        };
+
+        let RealtimeFriendApplyResult::Output(first) = runtime.apply_ws_message(&event) else {
+            panic!("first friend-add should produce an output");
+        };
+        assert_eq!(first.persistence.friend_log_upserts.len(), 1);
+        assert!(first.projection.friend_log_changed);
+
+        let RealtimeFriendApplyResult::Output(second) = runtime.apply_ws_message(&event) else {
+            panic!("repeated friend-add should still produce an output");
+        };
+        // Already a friend after the first event, so no duplicate Friend log/feed — mirrors upstream's
+        // `if (friendLog.has(id)) return`.
+        assert!(second.persistence.friend_log_upserts.is_empty());
+        assert!(second
+            .persistence
+            .feed_entries
+            .iter()
+            .all(|entry| entry["type"] != "Friend"));
+        assert!(!second.projection.friend_log_changed);
+    }
+
+    #[test]
+    fn friend_add_without_display_name_logs_unknown_not_id() {
+        let runtime = RealtimeFriendsRuntime::new();
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: Default::default(),
+                ..FriendRosterBaseline::default()
+            },
+            1,
+            0,
+        );
+
+        let RealtimeFriendApplyResult::Output(output) =
+            runtime.apply_ws_message(&RealtimeWsMessagePayload {
+                json: json!({
+                    "type": "friend-add",
+                    "content": { "userId": "usr_added" }
+                }),
+                raw: "{}".into(),
+                received_at: "2026-05-15T00:00:00Z".into(),
+            })
+        else {
+            panic!("friend-add should produce an output");
+        };
+
+        let upsert = &output.persistence.friend_log_upserts[0];
+        assert_eq!(upsert.target_user_id, "usr_added");
+        // Never surface the raw user id as a display name; fall back to "Unknown".
+        assert_eq!(upsert.display_name, "Unknown");
+    }
+
+    #[test]
     fn friend_delete_generates_unfriend_feed_entry() {
         let runtime = RealtimeFriendsRuntime::new();
         runtime.set_baseline(

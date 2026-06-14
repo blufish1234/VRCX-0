@@ -4,6 +4,9 @@ import {
     getSortedRowModel,
     useReactTable
 } from '@tanstack/react-table';
+import { useEffect, useRef } from 'react';
+
+import { useFriendLogStore } from '@/state/friendLogStore';
 
 import { useFriendLogColumns } from './components/FriendLogColumns';
 import { useFriendLogFilters } from './useFriendLogFilters';
@@ -14,6 +17,19 @@ import { useFriendLogTableState } from './useFriendLogTableState';
 
 export function useFriendLogPageController() {
     const filters = useFriendLogFilters();
+
+    const friendLogRevision = useFriendLogStore((state) => state.revision);
+    const refreshFriendLogRef = useRef(filters.refreshFriendLog);
+    refreshFriendLogRef.current = filters.refreshFriendLog;
+    const seenRevisionRef = useRef(friendLogRevision);
+    useEffect(() => {
+        if (seenRevisionRef.current === friendLogRevision) {
+            return;
+        }
+        seenRevisionRef.current = friendLogRevision;
+        refreshFriendLogRef.current();
+    }, [friendLogRevision]);
+
     const rows = useFriendLogRows({
         refreshToken: filters.refreshToken,
         searchQuery: filters.searchQuery,

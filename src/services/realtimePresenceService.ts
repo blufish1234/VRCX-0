@@ -1,5 +1,6 @@
 import configRepository from '@/repositories/configRepository';
 import { useFeedLiveStore } from '@/state/feedLiveStore';
+import { useFriendLogStore } from '@/state/friendLogStore';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useShellStore } from '@/state/shellStore';
@@ -247,6 +248,7 @@ function handleRealtimeFriendProjection(payload: unknown) {
 
     if (projection.friendLogChanged) {
         useShellStore.getState().notifyMenu('friend-log');
+        useFriendLogStore.getState().bumpRevision();
     }
 }
 

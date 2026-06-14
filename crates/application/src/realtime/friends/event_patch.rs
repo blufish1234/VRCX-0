@@ -93,28 +93,31 @@ fn apply_friend_event_with_options(
                 event_user_patch(content, &user_id).unwrap_or_else(|| json!({ "id": user_id }));
             let previous = get_friend_value(state, &user_id);
             let state_bucket = resolve_state_bucket(content, &patch, previous.as_ref(), "offline");
+            let already_friend = previous.is_some();
             apply_patch_to_state(state, &mut output, &user_id, patch.clone(), &state_bucket);
-            output
-                .persistence
-                .friend_log_upserts
-                .push(friend_log_upsert(
-                    &user_id,
-                    &patch,
-                    previous.as_ref(),
-                    &state_bucket,
-                    &now.iso,
-                ));
-            output
-                .persistence
-                .feed_entries
-                .push(friend_relationship_feed_entry(
-                    "Friend",
-                    &user_id,
-                    &patch,
-                    previous.as_ref(),
-                    &now.iso,
-                ));
-            output.projection.friend_log_changed = true;
+            if !already_friend {
+                output
+                    .persistence
+                    .friend_log_upserts
+                    .push(friend_log_upsert(
+                        &user_id,
+                        &patch,
+                        previous.as_ref(),
+                        &state_bucket,
+                        &now.iso,
+                    ));
+                output
+                    .persistence
+                    .feed_entries
+                    .push(friend_relationship_feed_entry(
+                        "Friend",
+                        &user_id,
+                        &patch,
+                        previous.as_ref(),
+                        &now.iso,
+                    ));
+                output.projection.friend_log_changed = true;
+            }
         }
         "friend-delete" => {
             let user_id = event_user_id(content)?;
