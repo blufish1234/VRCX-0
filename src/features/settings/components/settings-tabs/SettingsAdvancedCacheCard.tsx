@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
+import { cn } from '@/lib/utils';
 import { Button } from '@/ui/shadcn/button';
 
 import { Field } from '../SettingsField';
@@ -26,6 +27,7 @@ const CACHE_STAT_ROWS = [
 export function SettingsAdvancedCacheCard({
     cacheStats,
     cacheStatsVisible,
+    autoSweepEnabled,
     onClearVrcxCache,
     onPromptAutoClearVrcxCacheFrequency,
     onRefreshCacheSize
@@ -35,10 +37,28 @@ export function SettingsAdvancedCacheCard({
         <>
             <Field
                 label={t(
-                    'view.settings.advanced.advanced.cache_debug.header'
+                    'view.settings.advanced_groups.diagnostics_maintenance.configure_auto_clear'
+                )}
+                className={cn(
+                    !autoSweepEnabled && 'pointer-events-none opacity-50'
                 )}
             >
-                <div className="flex flex-wrap gap-2">
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={onPromptAutoClearVrcxCacheFrequency}
+                >
+                    {t(
+                        'view.settings.advanced_groups.diagnostics_maintenance.configure_auto_clear'
+                    )}
+                </Button>
+            </Field>
+            <Field
+                label={t('view.settings.advanced.advanced.cache_debug.header')}
+                controlClassName="flex-wrap gap-2"
+            >
+                <div className="flex flex-wrap justify-end gap-2">
                     <Button
                         type="button"
                         variant="outline"
@@ -47,16 +67,6 @@ export function SettingsAdvancedCacheCard({
                     >
                         {t(
                             'view.settings.advanced_groups.diagnostics_maintenance.clear_vrcx_cache'
-                        )}
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={onPromptAutoClearVrcxCacheFrequency}
-                    >
-                        {t(
-                            'view.settings.advanced_groups.diagnostics_maintenance.configure_auto_clear'
                         )}
                     </Button>
                     <Button
@@ -72,28 +82,30 @@ export function SettingsAdvancedCacheCard({
                 </div>
             </Field>
             {cacheStatsVisible ? (
-                <div className="text-muted-foreground grid gap-x-6 gap-y-1 rounded-lg border p-3 text-sm [grid-template-columns:repeat(auto-fit,minmax(12rem,1fr))]">
-                    {CACHE_STAT_ROWS.map(([key, labelKey, fallbackLabel]: any) => {
-                        const value =
-                            key === 'assetBundleCacheSize'
-                                ? cacheStats[key] ||
-                                  t(
-                                      'view.settings.advanced_groups.diagnostics_maintenance.not_refreshed'
-                                  )
-                                : cacheStats[key];
+                <div className="text-muted-foreground grid [grid-template-columns:repeat(auto-fit,minmax(12rem,1fr))] gap-x-6 gap-y-1 rounded-lg border p-3 text-sm">
+                    {CACHE_STAT_ROWS.map(
+                        ([key, labelKey, fallbackLabel]: any) => {
+                            const value =
+                                key === 'assetBundleCacheSize'
+                                    ? cacheStats[key] ||
+                                      t(
+                                          'view.settings.advanced_groups.diagnostics_maintenance.not_refreshed'
+                                      )
+                                    : cacheStats[key];
 
-                        return (
-                            <div
-                                key={key}
-                                className="grid grid-cols-[minmax(0,1fr)_auto] gap-3"
-                            >
-                                <span>
-                                    {labelKey ? t(labelKey) : fallbackLabel}
-                                </span>
-                                <span className="font-mono">{value}</span>
-                            </div>
-                        );
-                    })}
+                            return (
+                                <div
+                                    key={key}
+                                    className="grid grid-cols-[minmax(0,1fr)_auto] gap-3"
+                                >
+                                    <span>
+                                        {labelKey ? t(labelKey) : fallbackLabel}
+                                    </span>
+                                    <span className="font-mono">{value}</span>
+                                </div>
+                            );
+                        }
+                    )}
                 </div>
             ) : null}
         </>

@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/ui/shadcn/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/shadcn/card';
 import {
     Select,
     SelectContent,
@@ -12,7 +11,7 @@ import {
 } from '@/ui/shadcn/select';
 import { Switch } from '@/ui/shadcn/switch';
 
-import { Field, SegmentedPreference } from '../SettingsField';
+import { Field, SegmentedPreference, SettingsGroup } from '../SettingsField';
 
 const weekStartOptions = [
     ['1', 'common.days.monday'],
@@ -40,302 +39,259 @@ export function SettingsInterfaceDisplayCards({
     const { t } = useTranslation();
     return (
         <>
-            <Card>
-                <CardHeader>
-                    <CardTitle>
-                        {t('view.settings.appearance.display.header')}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col">
-                    <Field
-                        label={t(
-                            'view.settings.appearance.appearance.show_instance_id'
-                        )}
-                    >
-                        <Switch
-                            checked={prefs.showInstanceIdInLocation}
-                            onCheckedChange={onShowInstanceIdInLocationChange}
-                        />
-                    </Field>
+            <SettingsGroup title={t('view.settings.appearance.display.header')}>
+                <Field
+                    label={t(
+                        'view.settings.appearance.appearance.show_instance_id'
+                    )}
+                >
+                    <Switch
+                        checked={prefs.showInstanceIdInLocation}
+                        onCheckedChange={onShowInstanceIdInLocationChange}
+                    />
+                </Field>
 
-                    <Field
-                        label={t(
-                            'view.settings.appearance.appearance.age_gated_instances'
-                        )}
-                        description={t(
-                            'view.settings.appearance.appearance.age_gated_instances_description'
-                        )}
-                    >
-                        <Switch
-                            checked={prefs.isAgeGatedInstancesVisible}
-                            onCheckedChange={onAgeGatedInstancesVisibleChange}
-                        />
-                    </Field>
+                <Field
+                    label={t(
+                        'view.settings.appearance.appearance.age_gated_instances'
+                    )}
+                    description={t(
+                        'view.settings.appearance.appearance.age_gated_instances_description'
+                    )}
+                >
+                    <Switch
+                        checked={prefs.isAgeGatedInstancesVisible}
+                        onCheckedChange={onAgeGatedInstancesVisibleChange}
+                    />
+                </Field>
 
-                    <Field
-                        label={t(
-                            'view.settings.appearance.appearance.nicknames'
-                        )}
-                        description={t(
-                            'view.settings.appearance.appearance.nicknames_description'
-                        )}
-                    >
-                        <Switch
-                            checked={!prefs.hideNicknames}
-                            onCheckedChange={onHideNicknamesChange}
-                        />
-                    </Field>
+                <Field
+                    label={t('view.settings.appearance.appearance.nicknames')}
+                    description={t(
+                        'view.settings.appearance.appearance.nicknames_description'
+                    )}
+                >
+                    <Switch
+                        checked={!prefs.hideNicknames}
+                        onCheckedChange={onHideNicknamesChange}
+                    />
+                </Field>
 
-                    <Field
-                        label={t(
-                            'view.settings.appearance.appearance.vrcplus_profile_icons'
-                        )}
-                        description={t(
-                            'view.settings.appearance.appearance.vrcplus_profile_icons_description'
-                        )}
-                    >
-                        <Switch
-                            checked={prefs.displayVRCPlusIconsAsAvatar}
-                            onCheckedChange={
-                                onDisplayVrcPlusIconsAsAvatarChange
-                            }
-                        />
-                    </Field>
-                </CardContent>
-            </Card>
+                <Field
+                    label={t(
+                        'view.settings.appearance.appearance.vrcplus_profile_icons'
+                    )}
+                    description={t(
+                        'view.settings.appearance.appearance.vrcplus_profile_icons_description'
+                    )}
+                >
+                    <Switch
+                        checked={prefs.displayVRCPlusIconsAsAvatar}
+                        onCheckedChange={onDisplayVrcPlusIconsAsAvatarChange}
+                    />
+                </Field>
+            </SettingsGroup>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>
-                        {t('view.settings.interface.navigation.header')}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col">
-                    <Field
-                        label={t(
-                            'view.settings.interface.navigation.show_new_dashboard_button'
-                        )}
-                    >
-                        <Switch
-                            checked={prefs.showNewDashboardButton}
-                            onCheckedChange={onShowNewDashboardButtonChange}
-                        />
-                    </Field>
-                </CardContent>
-            </Card>
+            <SettingsGroup
+                title={t('view.settings.interface.navigation.header')}
+            >
+                <Field
+                    label={t(
+                        'view.settings.interface.navigation.show_new_dashboard_button'
+                    )}
+                >
+                    <Switch
+                        checked={prefs.showNewDashboardButton}
+                        onCheckedChange={onShowNewDashboardButtonChange}
+                    />
+                </Field>
+            </SettingsGroup>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>
-                        {t('view.settings.interface.lists_tables.header')}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col">
-                    <Field
-                        label={t(
-                            'view.settings.appearance.appearance.table_page_sizes'
-                        )}
+            <SettingsGroup
+                title={t('view.settings.interface.lists_tables.header')}
+            >
+                <Field
+                    label={t(
+                        'view.settings.appearance.appearance.table_page_sizes'
+                    )}
+                >
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={onOpenTablePageSizes}
                     >
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={onOpenTablePageSizes}
+                        {t('common.actions.configure')}
+                    </Button>
+                </Field>
+
+                <Field
+                    label={t(
+                        'view.settings.appearance.appearance.table_entries_settings'
+                    )}
+                    description={t(
+                        'view.settings.appearance.appearance.table_entries_settings_description'
+                    )}
+                >
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={onOpenTableLimits}
+                    >
+                        {t('common.actions.configure')}
+                    </Button>
+                </Field>
+            </SettingsGroup>
+
+            <SettingsGroup
+                title={t('view.settings.appearance.timedate.header')}
+            >
+                <Field
+                    label={t('view.settings.appearance.timedate.time_format')}
+                    controlId="settings-time-format"
+                >
+                    <Select
+                        value={prefs.dtHour12 ? '12' : '24'}
+                        onValueChange={onHour12Change}
+                    >
+                        <SelectTrigger
+                            id="settings-time-format"
+                            className="w-56"
                         >
-                            {t('common.actions.configure')}
-                        </Button>
-                    </Field>
-
-                    <Field
-                        label={t(
-                            'view.settings.appearance.appearance.table_entries_settings'
-                        )}
-                        description={t(
-                            'view.settings.appearance.appearance.table_entries_settings_description'
-                        )}
-                    >
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={onOpenTableLimits}
-                        >
-                            {t('common.actions.configure')}
-                        </Button>
-                    </Field>
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>
-                        {t('view.settings.appearance.timedate.header')}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col">
-                    <Field
-                        label={t(
-                            'view.settings.appearance.timedate.time_format'
-                        )}
-                        controlId="settings-time-format"
-                    >
-                        <Select
-                            value={prefs.dtHour12 ? '12' : '24'}
-                            onValueChange={onHour12Change}
-                        >
-                            <SelectTrigger
-                                id="settings-time-format"
-                                className="w-56"
-                            >
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    <SelectItem value="12">
-                                        {t(
-                                            'view.settings.appearance.timedate.time_format_12'
-                                        )}
-                                    </SelectItem>
-                                    <SelectItem value="24">
-                                        {t(
-                                            'view.settings.appearance.timedate.time_format_24'
-                                        )}
-                                    </SelectItem>
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                    </Field>
-
-                    <Field
-                        label={t(
-                            'view.settings.appearance.timedate.force_iso_date_format'
-                        )}
-                    >
-                        <Switch
-                            checked={prefs.dtIsoFormat}
-                            onCheckedChange={onIsoFormatChange}
-                        />
-                    </Field>
-
-                    <Field
-                        label={t(
-                            'view.settings.appearance.timedate.week_starts_on'
-                        )}
-                        description={t(
-                            'view.settings.appearance.timedate.week_starts_on_description'
-                        )}
-                        controlId="settings-week-starts-on"
-                    >
-                        <Select
-                            value={String(prefs.weekStartsOn)}
-                            onValueChange={onWeekStartsOnChange}
-                        >
-                            <SelectTrigger
-                                id="settings-week-starts-on"
-                                className="w-56"
-                            >
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    {weekStartOptions.map(
-                                        ([value, labelKey]: any) => (
-                                            <SelectItem
-                                                key={value}
-                                                value={value}
-                                            >
-                                                {t(labelKey)}
-                                            </SelectItem>
-                                        )
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectGroup>
+                                <SelectItem value="12">
+                                    {t(
+                                        'view.settings.appearance.timedate.time_format_12'
                                     )}
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                    </Field>
+                                </SelectItem>
+                                <SelectItem value="24">
+                                    {t(
+                                        'view.settings.appearance.timedate.time_format_24'
+                                    )}
+                                </SelectItem>
+                            </SelectGroup>
+                        </SelectContent>
+                    </Select>
+                </Field>
 
-                    <Field
-                        label={t(
-                            'view.settings.appearance.timedate.feed_time_display'
-                        )}
+                <Field
+                    label={t(
+                        'view.settings.appearance.timedate.force_iso_date_format'
+                    )}
+                >
+                    <Switch
+                        checked={prefs.dtIsoFormat}
+                        onCheckedChange={onIsoFormatChange}
+                    />
+                </Field>
+
+                <Field
+                    label={t(
+                        'view.settings.appearance.timedate.week_starts_on'
+                    )}
+                    description={t(
+                        'view.settings.appearance.timedate.week_starts_on_description'
+                    )}
+                    controlId="settings-week-starts-on"
+                >
+                    <Select
+                        value={String(prefs.weekStartsOn)}
+                        onValueChange={onWeekStartsOnChange}
                     >
-                        <SegmentedPreference
-                            value={prefs.feedTimeDisplayMode || 'relative'}
-                            onChange={onFeedTimeDisplayModeChange}
-                            options={[
-                                {
-                                    value: 'exact',
-                                    label: t(
-                                        'view.settings.appearance.timedate.feed_time_display_exact'
+                        <SelectTrigger
+                            id="settings-week-starts-on"
+                            className="w-56"
+                        >
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectGroup>
+                                {weekStartOptions.map(
+                                    ([value, labelKey]: any) => (
+                                        <SelectItem key={value} value={value}>
+                                            {t(labelKey)}
+                                        </SelectItem>
                                     )
-                                },
-                                {
-                                    value: 'relative',
-                                    label: t(
-                                        'view.settings.appearance.timedate.feed_time_display_relative'
-                                    )
-                                }
-                            ]}
-                        />
-                    </Field>
-                </CardContent>
-            </Card>
+                                )}
+                            </SelectGroup>
+                        </SelectContent>
+                    </Select>
+                </Field>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>
-                        {t('view.settings.appearance.user_dialog.header')}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col">
-                    <Field
-                        label={t(
-                            'view.settings.appearance.user_dialog.vrchat_notes'
-                        )}
-                        description={t(
-                            'view.settings.appearance.user_dialog.vrchat_notes_description'
-                        )}
-                    >
-                        <Switch
-                            checked={!prefs.hideUserNotes}
-                            onCheckedChange={onHideUserNotesChange}
-                        />
-                    </Field>
+                <Field
+                    label={t(
+                        'view.settings.appearance.timedate.feed_time_display'
+                    )}
+                >
+                    <SegmentedPreference
+                        value={prefs.feedTimeDisplayMode || 'relative'}
+                        onChange={onFeedTimeDisplayModeChange}
+                        options={[
+                            {
+                                value: 'exact',
+                                label: t(
+                                    'view.settings.appearance.timedate.feed_time_display_exact'
+                                )
+                            },
+                            {
+                                value: 'relative',
+                                label: t(
+                                    'view.settings.appearance.timedate.feed_time_display_relative'
+                                )
+                            }
+                        ]}
+                    />
+                </Field>
+            </SettingsGroup>
 
-                    <Field
-                        label={t(
-                            'view.settings.appearance.user_dialog.vrcx_memos'
-                        )}
-                        description={t(
-                            'view.settings.appearance.user_dialog.vrcx_memos_description'
-                        )}
-                    >
-                        <Switch
-                            checked={!prefs.hideUserMemos}
-                            onCheckedChange={onHideUserMemosChange}
-                        />
-                    </Field>
-                </CardContent>
-            </Card>
+            <SettingsGroup
+                title={t('view.settings.appearance.user_dialog.header')}
+            >
+                <Field
+                    label={t(
+                        'view.settings.appearance.user_dialog.vrchat_notes'
+                    )}
+                    description={t(
+                        'view.settings.appearance.user_dialog.vrchat_notes_description'
+                    )}
+                >
+                    <Switch
+                        checked={!prefs.hideUserNotes}
+                        onCheckedChange={onHideUserNotesChange}
+                    />
+                </Field>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>
-                        {t('view.settings.appearance.friend_log.header')}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col">
-                    <Field
-                        label={t(
-                            'view.settings.appearance.friend_log.hide_unfriends'
-                        )}
-                    >
-                        <Switch
-                            checked={prefs.hideUnfriends}
-                            onCheckedChange={onHideUnfriendsChange}
-                        />
-                    </Field>
-                </CardContent>
-            </Card>
+                <Field
+                    label={t('view.settings.appearance.user_dialog.vrcx_memos')}
+                    description={t(
+                        'view.settings.appearance.user_dialog.vrcx_memos_description'
+                    )}
+                >
+                    <Switch
+                        checked={!prefs.hideUserMemos}
+                        onCheckedChange={onHideUserMemosChange}
+                    />
+                </Field>
+            </SettingsGroup>
+
+            <SettingsGroup
+                title={t('view.settings.appearance.friend_log.header')}
+            >
+                <Field
+                    label={t(
+                        'view.settings.appearance.friend_log.hide_unfriends'
+                    )}
+                >
+                    <Switch
+                        checked={prefs.hideUnfriends}
+                        onCheckedChange={onHideUnfriendsChange}
+                    />
+                </Field>
+            </SettingsGroup>
         </>
     );
 }

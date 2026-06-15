@@ -1630,6 +1630,7 @@
         },
         "settings": {
             "header": "設定",
+            "subtitle": "環境設定、診断、アプリのオプション。",
             "category": {
                 "general": "一般",
                 "appearance": "外観",
@@ -1716,7 +1717,7 @@
                 },
                 "diagnostics_maintenance": {
                     "header": "メンテナンス",
-                    "clear_vrcx_cache": "VRCX キャッシュを消去",
+                    "clear_vrcx_cache": "VRCX-0 キャッシュを消去",
                     "configure_auto_clear": "自動消去間隔を設定",
                     "refresh_cache_size": "キャッシュサイズを更新",
                     "not_refreshed": "未更新",
@@ -1724,6 +1725,10 @@
                     "purge_avatar_history": "アバター履歴を削除",
                     "refresh_sqlite_tables": "テーブルサイズを更新",
                     "migrate_legacy_vrcx": "旧 VRCX データを移行"
+                },
+                "danger": {
+                    "header": "危険ゾーン",
+                    "cannot_be_undone": "この操作は元に戻せません。"
                 },
                 "database": {
                     "header": "データベース"

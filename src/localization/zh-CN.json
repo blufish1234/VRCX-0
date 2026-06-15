@@ -1630,6 +1630,7 @@
         },
         "settings": {
             "header": "设置",
+            "subtitle": "偏好设置、诊断与应用选项。",
             "category": {
                 "general": "通用",
                 "appearance": "外观",
@@ -1716,7 +1717,7 @@
                 },
                 "diagnostics_maintenance": {
                     "header": "维护",
-                    "clear_vrcx_cache": "清除 VRCX 缓存",
+                    "clear_vrcx_cache": "清除 VRCX-0 缓存",
                     "configure_auto_clear": "设置自动清理周期",
                     "refresh_cache_size": "刷新缓存大小",
                     "not_refreshed": "未刷新",
@@ -1724,6 +1725,10 @@
                     "purge_avatar_history": "清理模型记录",
                     "refresh_sqlite_tables": "刷新表大小",
                     "migrate_legacy_vrcx": "迁移旧版 VRCX 数据"
+                },
+                "danger": {
+                    "header": "危险区",
+                    "cannot_be_undone": "此操作不可撤销。"
                 },
                 "database": {
                     "header": "数据库"

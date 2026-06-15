@@ -1,8 +1,12 @@
+import {
+    FolderOpenIcon,
+    RefreshCwIcon,
+    RotateCcwIcon,
+    Trash2Icon
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { FolderOpenIcon, RefreshCwIcon, RotateCcwIcon } from 'lucide-react';
 
 import { Button } from '@/ui/shadcn/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/shadcn/card';
 import {
     Select,
     SelectContent,
@@ -13,7 +17,7 @@ import {
 } from '@/ui/shadcn/select';
 import { Switch } from '@/ui/shadcn/switch';
 
-import { Field } from '../SettingsField';
+import { Field, SettingsGroup } from '../SettingsField';
 import { SettingsTabContent } from '../SettingsViewParts';
 import { SettingsAdvancedDataCards } from './SettingsAdvancedDataCards';
 
@@ -75,233 +79,207 @@ export function SettingsAdvancedTab({ advanced }: any) {
 
     return (
         <SettingsTabContent value="advanced">
-            <Card>
-                <CardHeader>
-                    <CardTitle>
-                        {t(
-                            'view.settings.advanced.advanced.vrchat_settings.header'
-                        )}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col">
-                    <Field
-                        label={t(
-                            'view.settings.advanced.advanced.relaunch_vrchat.header'
-                        )}
-                        description={t(
-                            'view.settings.advanced.advanced.relaunch_vrchat.description'
-                        )}
-                    >
-                        <Switch
-                            checked={prefs.relaunchVRChatAfterCrash}
-                            onCheckedChange={onRelaunchVRChatAfterCrashChange}
-                        />
-                    </Field>
+            <SettingsGroup
+                title={t(
+                    'view.settings.advanced.advanced.vrchat_settings.header'
+                )}
+            >
+                <Field
+                    label={t(
+                        'view.settings.advanced.advanced.relaunch_vrchat.header'
+                    )}
+                    description={t(
+                        'view.settings.advanced.advanced.relaunch_vrchat.description'
+                    )}
+                >
+                    <Switch
+                        checked={prefs.relaunchVRChatAfterCrash}
+                        onCheckedChange={onRelaunchVRChatAfterCrashChange}
+                    />
+                </Field>
 
-                    <Field
-                        label={t(
-                            'view.settings.advanced.advanced.vrchat_quit_fix.header'
-                        )}
-                        description={t(
-                            'view.settings.advanced.advanced.vrchat_quit_fix.description'
-                        )}
-                    >
-                        <Switch
-                            checked={prefs.vrcQuitFix}
-                            onCheckedChange={onVrcQuitFixChange}
-                        />
-                    </Field>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardTitle>
-                        {t(
-                            'view.settings.advanced.advanced.data_directory.header'
-                        )}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col">
-                    <Field
-                        label={t(
-                            'view.settings.advanced.advanced.data_directory.current'
-                        )}
-                        description={t(
-                            'view.settings.advanced.advanced.data_directory.description',
-                            {
-                                source: appDataDirSourceLabel
-                            }
-                        )}
-                        controlClassName="lg:max-w-[34rem]"
-                    >
-                        <DataDirectoryPath value={appDataDirState?.currentDir} />
-                    </Field>
-                    <Field
-                        label={t(
-                            'view.settings.advanced.advanced.data_directory.default'
-                        )}
-                        controlClassName="lg:max-w-[34rem]"
-                    >
-                        <DataDirectoryPath value={appDataDirState?.defaultDir} />
-                    </Field>
-                    <Field
-                        label={t(
-                            'view.settings.advanced.advanced.data_directory.persisted'
-                        )}
-                        description={
-                            appDataDirState?.cliOverride
-                                ? t(
-                                      'view.settings.advanced.advanced.data_directory.cli_override'
-                                  )
-                                : undefined
+                <Field
+                    label={t(
+                        'view.settings.advanced.advanced.vrchat_quit_fix.header'
+                    )}
+                    description={t(
+                        'view.settings.advanced.advanced.vrchat_quit_fix.description'
+                    )}
+                >
+                    <Switch
+                        checked={prefs.vrcQuitFix}
+                        onCheckedChange={onVrcQuitFixChange}
+                    />
+                </Field>
+            </SettingsGroup>
+            <SettingsGroup
+                title={t(
+                    'view.settings.advanced.advanced.data_directory.header'
+                )}
+            >
+                <Field
+                    label={t(
+                        'view.settings.advanced.advanced.data_directory.current'
+                    )}
+                    description={t(
+                        'view.settings.advanced.advanced.data_directory.description',
+                        {
+                            source: appDataDirSourceLabel
                         }
-                        controlClassName="lg:max-w-[34rem]"
-                    >
-                        <DataDirectoryPath
-                            value={
-                                appDataDirState?.persistedDir ||
-                                t(
-                                    'view.settings.advanced.advanced.data_directory.not_set'
-                                )
-                            }
-                        />
-                    </Field>
-                    <Field
-                        label={t(
-                            'view.settings.advanced.advanced.data_directory.actions'
-                        )}
-                        description={t(
-                            'view.settings.advanced.advanced.data_directory.restart_hint'
-                        )}
-                        controlClassName="flex-wrap gap-2"
-                    >
-                        <div className="flex flex-wrap justify-end gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                disabled={appDataDirActionsDisabled}
-                                onClick={onOpenAppDataDirSelector}
-                            >
-                                <FolderOpenIcon className="size-4" />
-                                {t(
-                                    'view.settings.advanced.advanced.data_directory.choose'
-                                )}
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                disabled={appDataDirActionsDisabled}
-                                onClick={onResetAppDataDir}
-                            >
-                                <RotateCcwIcon className="size-4" />
-                                {t(
-                                    'view.settings.advanced.advanced.data_directory.reset'
-                                )}
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={onRestartForAppDataDir}
-                            >
-                                <RefreshCwIcon className="size-4" />
-                                {t(
-                                    'view.settings.advanced.advanced.data_directory.restart'
-                                )}
-                            </Button>
-                        </div>
-                    </Field>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardTitle>
-                        {t('view.settings.general.logging.header')}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col">
-                    <Field
-                        label={t(
-                            'view.settings.advanced.advanced.cache_debug.udon_exception_logging'
-                        )}
-                    >
-                        <Switch
-                            checked={prefs.udonExceptionLogging}
-                            onCheckedChange={onUdonExceptionLoggingChange}
-                        />
-                    </Field>
-                    <Field
-                        label={t('view.settings.general.logging.resource_load')}
-                    >
-                        <Switch
-                            checked={prefs.logResourceLoad}
-                            onCheckedChange={onLogResourceLoadChange}
-                        />
-                    </Field>
-                    <Field
-                        label={gameLogDisabledLabel}
-                        description={gameLogDisabledDescription}
-                    >
-                        <Switch
-                            checked={prefs.gameLogDisabled}
-                            onCheckedChange={onGameLogDisabledChange}
-                        />
-                    </Field>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardTitle>
-                        {t(
-                            'view.settings.advanced.advanced.launch_commands.header'
-                        )}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col">
-                    <Field
-                        label={t(
-                            'view.settings.advanced.advanced.launch_commands.default_launch_mode'
-                        )}
-                    >
-                        <Select
-                            value={prefs.defaultLaunchMode}
-                            onValueChange={onDefaultLaunchModeChange}
+                    )}
+                    controlClassName="lg:max-w-[34rem]"
+                >
+                    <DataDirectoryPath value={appDataDirState?.currentDir} />
+                </Field>
+                <Field
+                    label={t(
+                        'view.settings.advanced.advanced.data_directory.default'
+                    )}
+                    controlClassName="lg:max-w-[34rem]"
+                >
+                    <DataDirectoryPath value={appDataDirState?.defaultDir} />
+                </Field>
+                <Field
+                    label={t(
+                        'view.settings.advanced.advanced.data_directory.persisted'
+                    )}
+                    description={
+                        appDataDirState?.cliOverride
+                            ? t(
+                                  'view.settings.advanced.advanced.data_directory.cli_override'
+                              )
+                            : undefined
+                    }
+                    controlClassName="lg:max-w-[34rem]"
+                >
+                    <DataDirectoryPath
+                        value={
+                            appDataDirState?.persistedDir ||
+                            t(
+                                'view.settings.advanced.advanced.data_directory.not_set'
+                            )
+                        }
+                    />
+                </Field>
+                <Field
+                    label={t(
+                        'view.settings.advanced.advanced.data_directory.actions'
+                    )}
+                    description={t(
+                        'view.settings.advanced.advanced.data_directory.restart_hint'
+                    )}
+                    controlClassName="flex-wrap gap-2"
+                >
+                    <div className="flex flex-wrap justify-end gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            disabled={appDataDirActionsDisabled}
+                            onClick={onOpenAppDataDirSelector}
                         >
-                            <SelectTrigger className="w-44">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    <SelectItem value="vr">
-                                        {t(
-                                            'view.settings.advanced.advanced.launch_commands.default_launch_mode_vr'
-                                        )}
-                                    </SelectItem>
-                                    <SelectItem value="desktop">
-                                        {t(
-                                            'view.settings.advanced.advanced.launch_commands.default_launch_mode_desktop'
-                                        )}
-                                    </SelectItem>
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                    </Field>
-                    <Field
-                        label={t(
-                            'view.settings.advanced.advanced.launch_commands.show_confirmation_on_switch_avatar_enable'
-                        )}
-                        description={t(
-                            'view.settings.advanced.advanced.launch_commands.show_confirmation_on_switch_avatar_tooltip'
-                        )}
+                            <FolderOpenIcon className="size-4" />
+                            {t(
+                                'view.settings.advanced.advanced.data_directory.choose'
+                            )}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            disabled={appDataDirActionsDisabled}
+                            onClick={onResetAppDataDir}
+                        >
+                            <RotateCcwIcon className="size-4" />
+                            {t(
+                                'view.settings.advanced.advanced.data_directory.reset'
+                            )}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={onRestartForAppDataDir}
+                        >
+                            <RefreshCwIcon className="size-4" />
+                            {t(
+                                'view.settings.advanced.advanced.data_directory.restart'
+                            )}
+                        </Button>
+                    </div>
+                </Field>
+            </SettingsGroup>
+            <SettingsGroup title={t('view.settings.general.logging.header')}>
+                <Field
+                    label={t(
+                        'view.settings.advanced.advanced.cache_debug.udon_exception_logging'
+                    )}
+                >
+                    <Switch
+                        checked={prefs.udonExceptionLogging}
+                        onCheckedChange={onUdonExceptionLoggingChange}
+                    />
+                </Field>
+                <Field label={t('view.settings.general.logging.resource_load')}>
+                    <Switch
+                        checked={prefs.logResourceLoad}
+                        onCheckedChange={onLogResourceLoadChange}
+                    />
+                </Field>
+                <Field
+                    label={gameLogDisabledLabel}
+                    description={gameLogDisabledDescription}
+                >
+                    <Switch
+                        checked={prefs.gameLogDisabled}
+                        onCheckedChange={onGameLogDisabledChange}
+                    />
+                </Field>
+            </SettingsGroup>
+            <SettingsGroup
+                title={t(
+                    'view.settings.advanced.advanced.launch_commands.header'
+                )}
+            >
+                <Field
+                    label={t(
+                        'view.settings.advanced.advanced.launch_commands.default_launch_mode'
+                    )}
+                >
+                    <Select
+                        value={prefs.defaultLaunchMode}
+                        onValueChange={onDefaultLaunchModeChange}
                     >
-                        <Switch
-                            checked={prefs.showConfirmationOnSwitchAvatar}
-                            onCheckedChange={
-                                onShowConfirmationOnSwitchAvatarChange
-                            }
-                        />
-                    </Field>
-                </CardContent>
-            </Card>
+                        <SelectTrigger className="w-44">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectGroup>
+                                <SelectItem value="vr">
+                                    {t(
+                                        'view.settings.advanced.advanced.launch_commands.default_launch_mode_vr'
+                                    )}
+                                </SelectItem>
+                                <SelectItem value="desktop">
+                                    {t(
+                                        'view.settings.advanced.advanced.launch_commands.default_launch_mode_desktop'
+                                    )}
+                                </SelectItem>
+                            </SelectGroup>
+                        </SelectContent>
+                    </Select>
+                </Field>
+                <Field
+                    label={t(
+                        'view.settings.advanced.advanced.launch_commands.show_confirmation_on_switch_avatar_enable'
+                    )}
+                    description={t(
+                        'view.settings.advanced.advanced.launch_commands.show_confirmation_on_switch_avatar_tooltip'
+                    )}
+                >
+                    <Switch
+                        checked={prefs.showConfirmationOnSwitchAvatar}
+                        onCheckedChange={onShowConfirmationOnSwitchAvatarChange}
+                    />
+                </Field>
+            </SettingsGroup>
             <SettingsAdvancedDataCards
                 prefs={prefs}
                 cacheStats={cacheStats}
@@ -319,7 +297,6 @@ export function SettingsAdvancedTab({ advanced }: any) {
                 }
                 onRefreshCacheSize={onRefreshCacheSize}
                 onAvatarAutoCleanupChange={onAvatarAutoCleanupChange}
-                onOpenPurgeDialog={onOpenPurgeDialog}
                 onMigrateLegacyVrcxData={onMigrateLegacyVrcxData}
                 onRefreshSqliteTableSizes={onRefreshSqliteTableSizes}
                 onRefreshOnlineVisits={onRefreshOnlineVisits}
@@ -327,30 +304,53 @@ export function SettingsAdvancedTab({ advanced }: any) {
                 onRefreshRuntimeAppSnapshot={onRefreshRuntimeAppSnapshot}
                 onClearConfigTreeData={onClearConfigTreeData}
             />
-            <Card>
-                <CardHeader>
-                    <CardTitle>
-                        {t(
-                            'view.settings.advanced.advanced.improvement.header'
-                        )}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col">
+            <SettingsGroup
+                title={t('view.settings.advanced.advanced.improvement.header')}
+            >
+                <Field
+                    label={t(
+                        'view.settings.advanced.advanced.anonymous_usage_telemetry.header'
+                    )}
+                    description={t(
+                        'view.settings.advanced.advanced.anonymous_usage_telemetry.description'
+                    )}
+                >
+                    <Switch
+                        checked={prefs.anonymousUsageTelemetry}
+                        onCheckedChange={onAnonymousUsageTelemetryChange}
+                    />
+                </Field>
+            </SettingsGroup>
+            {/* Danger zone: destructive, irreversible actions kept visually separate at the bottom. */}
+            <section className="border-destructive/30 flex shrink-0 flex-col rounded-lg border">
+                <div className="px-4 pt-4 pb-1">
+                    <h3 className="text-destructive font-heading text-base leading-snug font-medium">
+                        {t('view.settings.advanced_groups.danger.header')}
+                    </h3>
+                </div>
+                <div className="flex flex-col px-4 pb-2">
                     <Field
                         label={t(
-                            'view.settings.advanced.advanced.anonymous_usage_telemetry.header'
+                            'view.settings.advanced_groups.diagnostics_maintenance.purge_avatar_history'
                         )}
                         description={t(
-                            'view.settings.advanced.advanced.anonymous_usage_telemetry.description'
+                            'view.settings.advanced_groups.danger.cannot_be_undone'
                         )}
                     >
-                        <Switch
-                            checked={prefs.anonymousUsageTelemetry}
-                            onCheckedChange={onAnonymousUsageTelemetryChange}
-                        />
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={onOpenPurgeDialog}
+                        >
+                            <Trash2Icon data-icon="inline-start" />
+                            {t(
+                                'view.settings.advanced_groups.diagnostics_maintenance.purge_avatar_history'
+                            )}
+                        </Button>
                     </Field>
-                </CardContent>
-            </Card>
+                </div>
+            </section>
         </SettingsTabContent>
     );
 }

@@ -1,6 +1,7 @@
 import { Children, cloneElement, isValidElement, useId } from 'react';
 
 import { cn } from '@/lib/utils';
+import { Card, CardContent } from '@/ui/shadcn/card';
 import {
     Field as ShadcnField,
     FieldContent,
@@ -89,6 +90,40 @@ export function Field({
                 {applyControlProps(children, labelControlId, isInvalid)}
             </div>
         </ShadcnField>
+    );
+}
+
+export function SettingsGroup({
+    title,
+    description,
+    action,
+    bodyClassName = 'flex flex-col',
+    className = '',
+    children
+}: any) {
+    return (
+        <section className={cn('flex flex-col gap-2.5', className)}>
+            {title || action ? (
+                <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-col gap-0.5">
+                        {title ? (
+                            <h2 className="font-heading text-base leading-snug font-medium">
+                                {title}
+                            </h2>
+                        ) : null}
+                        {description ? (
+                            <div className="text-muted-foreground text-sm">
+                                {description}
+                            </div>
+                        ) : null}
+                    </div>
+                    {action}
+                </div>
+            ) : null}
+            <Card className="py-2.5">
+                <CardContent className={bodyClassName}>{children}</CardContent>
+            </Card>
+        </section>
     );
 }
 

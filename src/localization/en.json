@@ -1630,6 +1630,7 @@
         },
         "settings": {
             "header": "Settings",
+            "subtitle": "Preferences, diagnostics and app options.",
             "category": {
                 "general": "General",
                 "appearance": "Appearance",
@@ -1716,7 +1717,7 @@
                 },
                 "diagnostics_maintenance": {
                     "header": "Maintenance",
-                    "clear_vrcx_cache": "Clear VRCX cache",
+                    "clear_vrcx_cache": "Clear VRCX-0 cache",
                     "configure_auto_clear": "Set auto-clear interval",
                     "refresh_cache_size": "Refresh cache size",
                     "not_refreshed": "Not refreshed",
@@ -1724,6 +1725,10 @@
                     "purge_avatar_history": "Purge avatar history",
                     "refresh_sqlite_tables": "Refresh table sizes",
                     "migrate_legacy_vrcx": "Migrate legacy VRCX data"
+                },
+                "danger": {
+                    "header": "Danger zone",
+                    "cannot_be_undone": "This action cannot be undone."
                 },
                 "database": {
                     "header": "Database"

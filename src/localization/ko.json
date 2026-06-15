@@ -1672,7 +1672,7 @@
                     "purge_avatar_history_description": "기존 아바타 변경 기록을 삭제하기 전에 정리 확인을 엽니다.",
                     "purge_avatar_history": "아바타 기록 삭제",
                     "refresh_sqlite_tables": "테이블 크기 새로 고침",
-                    "clear_vrcx_cache": "VRCX 캐시 지우기",
+                    "clear_vrcx_cache": "VRCX-0 캐시 지우기",
                     "migrate_legacy_vrcx": "기존 VRCX 데이터 마이그레이션"
                 },
                 "database": {

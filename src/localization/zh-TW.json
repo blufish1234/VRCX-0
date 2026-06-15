@@ -1630,6 +1630,7 @@
         },
         "settings": {
             "header": "設定",
+            "subtitle": "偏好設定、診斷與應用程式選項。",
             "category": {
                 "general": "一般",
                 "appearance": "外觀",
@@ -1716,7 +1717,7 @@
                 },
                 "diagnostics_maintenance": {
                     "header": "維護",
-                    "clear_vrcx_cache": "清除 VRCX 快取",
+                    "clear_vrcx_cache": "清除 VRCX-0 快取",
                     "configure_auto_clear": "設定自動清理周期",
                     "refresh_cache_size": "重新整理快取大小",
                     "not_refreshed": "未重新整理",
@@ -1724,6 +1725,10 @@
                     "purge_avatar_history": "清理角色紀錄",
                     "refresh_sqlite_tables": "重新整理表大小",
                     "migrate_legacy_vrcx": "遷移舊版 VRCX 資料"
+                },
+                "danger": {
+                    "header": "危險區",
+                    "cannot_be_undone": "此操作無法復原。"
                 },
                 "database": {
                     "header": "資料庫"

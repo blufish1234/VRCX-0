@@ -5,7 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { useBackgroundImageStore } from '@/state/backgroundImageStore';
 import { useCommunityThemeStore } from '@/state/communityThemeStore';
 import { Button } from '@/ui/shadcn/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/shadcn/card';
+
+import { SettingsGroup } from '../SettingsField';
 
 export function SettingsInterfaceThemesCard() {
     const { t } = useTranslation();
@@ -32,34 +33,34 @@ export function SettingsInterfaceThemesCard() {
             : t('view.themes.source.built_in');
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+        <SettingsGroup
+            title={
+                <span className="flex items-center gap-2">
                     <PaletteIcon data-icon="inline-start" />
                     {t('view.themes.settings.header')}
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-                <p className="text-muted-foreground text-sm">
-                    {t('view.themes.settings.description')}
-                </p>
-                <p className="text-sm">
-                    <span className="text-muted-foreground">
-                        {t('view.themes.settings.current_source')}:{' '}
-                    </span>
-                    <span className="font-medium">{sourceLabel}</span>
-                </p>
-                <div className="flex flex-wrap gap-2">
-                    <Button
-                        type="button"
-                        size="sm"
-                        onClick={() => navigate('/themes')}
-                    >
-                        <PaletteIcon data-icon="inline-start" />
-                        {t('view.themes.action.open_themes')}
-                    </Button>
-                </div>
-            </CardContent>
-        </Card>
+                </span>
+            }
+            bodyClassName="flex flex-col gap-3"
+        >
+            <p className="text-muted-foreground text-sm">
+                {t('view.themes.settings.description')}
+            </p>
+            <p className="text-sm">
+                <span className="text-muted-foreground">
+                    {t('view.themes.settings.current_source')}:{' '}
+                </span>
+                <span className="font-medium">{sourceLabel}</span>
+            </p>
+            <div className="flex flex-wrap gap-2">
+                <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => navigate('/themes')}
+                >
+                    <PaletteIcon data-icon="inline-start" />
+                    {t('view.themes.action.open_themes')}
+                </Button>
+            </div>
+        </SettingsGroup>
     );
 }
