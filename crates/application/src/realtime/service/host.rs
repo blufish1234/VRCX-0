@@ -5,7 +5,6 @@ use serde_json::Value;
 use tokio::sync::watch;
 
 use vrcx_0_core::friends::{FriendRecord, FriendRosterBaseline};
-use vrcx_0_core::json::RawJson;
 use vrcx_0_core::realtime::RealtimeWsMessagePayload;
 use vrcx_0_persistence::config as config_store;
 use vrcx_0_persistence::realtime::{
@@ -40,9 +39,6 @@ use crate::realtime::{
     RealtimeWsStatusPayload,
 };
 use crate::session::HostSessionRuntime;
-use crate::social_baseline::{
-    build_friend_roster_baseline, SocialBaselineDeps, SocialFriendRosterBaselineInput,
-};
 use crate::sync::RuntimeSyncEngine;
 use crate::task_supervisor::TaskSupervisor;
 use crate::web_client::WebClient;

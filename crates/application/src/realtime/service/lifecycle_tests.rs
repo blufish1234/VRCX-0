@@ -428,8 +428,8 @@ mod tests {
     }
 
     #[test]
-    fn stale_reconnect_baseline_refresh_cannot_replace_active_friend_cache() -> Result<()> {
-        let (_dir, runtime, active_session) = runtime_with_active_session("stale-reconnect")?;
+    fn passive_reconnect_resumes_stream_without_refetching_roster() -> Result<()> {
+        let (_dir, runtime, active_session) = runtime_with_active_session("reconnect-no-refetch")?;
         let active = runtime
             .state
             .lock()
@@ -437,15 +437,15 @@ mod tests {
             .active_context
             .clone()
             .unwrap();
-        let mut initial_friends = HashMap::new();
-        initial_friends.insert(
+        let mut friends_by_id = HashMap::new();
+        friends_by_id.insert(
             "usr_friend".to_string(),
             FriendRecord {
                 id: "usr_friend".to_string(),
                 display_name: "Friend".to_string(),
                 state: "online".to_string(),
                 state_bucket: "online".to_string(),
-                location: "wrld_old:123".to_string(),
+                location: "wrld_1:123".to_string(),
                 ..FriendRecord::default()
             },
         );
@@ -454,39 +454,34 @@ mod tests {
             active_session.endpoint.clone(),
             active_session.websocket.clone(),
             Some(active.generation),
-            initial_friends,
+            friends_by_id,
         )?;
-        {
-            let mut state = runtime.state.lock().unwrap();
-            state.friend_messages_paused = true;
-            state.friend_reconnect_refresh_token = 2;
-            state.friend_reconnect_baseline_refresh_in_flight = true;
-        }
 
-        let mut stale_refresh_friends = HashMap::new();
-        stale_refresh_friends.insert(
-            "usr_friend".to_string(),
-            FriendRecord {
-                id: "usr_friend".to_string(),
-                display_name: "Friend".to_string(),
-                state: "offline".to_string(),
-                state_bucket: "offline".to_string(),
-                location: "offline".to_string(),
-                ..FriendRecord::default()
-            },
+        let sink = RealtimeHostRuntimeMessageSink {
+            runtime: Arc::clone(&runtime),
+        };
+        // A passive reconnect (reconnecting -> connected) must only resume the event stream; it must
+        // not re-pull /auth/user to overwrite the roster the ws established, so the friend keeps the
+        // state/location the ws set.
+        sink.handle_realtime_transport_status(
+            active.generation,
+            active.session_generation,
+            &active_session,
+            "reconnecting",
         );
-        let result = runtime.sync_reconnect_friend_baseline_if_current(
-            active.clone(),
-            1,
-            123,
-            stale_refresh_friends,
-        )?;
+        assert!(runtime.state.lock().unwrap().friend_messages_paused);
+        sink.handle_realtime_transport_status(
+            active.generation,
+            active.session_generation,
+            &active_session,
+            "connected",
+        );
 
+        assert!(!runtime.state.lock().unwrap().friend_messages_paused);
         let snapshot = runtime.friend_snapshot().unwrap();
         let friend = snapshot.friends_by_id.get("usr_friend").unwrap();
-        assert!(result.is_none());
         assert_eq!(friend.state_bucket, "online");
-        assert!(runtime.state.lock().unwrap().friend_messages_paused);
+        assert_eq!(friend.location, "wrld_1:123");
         Ok(())
     }
 

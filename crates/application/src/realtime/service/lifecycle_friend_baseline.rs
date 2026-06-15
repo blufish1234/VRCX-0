@@ -1,4 +1,4 @@
-use super::types::{ActiveRealtimeContext, PendingFriendBaseline};
+use super::types::PendingFriendBaseline;
 use super::*;
 
 impl RealtimeHostRuntime {
@@ -116,7 +116,6 @@ impl RealtimeHostRuntime {
             } else {
                 None
             };
-            state.friend_reconnect_baseline_refresh_in_flight = false;
             (result, active, baseline_projection)
         };
 
@@ -146,14 +145,14 @@ impl RealtimeHostRuntime {
         Ok(result)
     }
 
-    pub(super) fn schedule_reconnect_friend_baseline_refresh(
+    pub(super) fn resume_friend_messages_after_reconnect(
         self: &Arc<Self>,
         generation: u64,
         session_generation: u64,
         session: &RealtimeSessionContext,
     ) {
-        let (active, refresh_token, current_user_snapshot) = {
-            let mut state = match self.state.lock() {
+        let active = {
+            let state = match self.state.lock() {
                 Ok(state) => state,
                 Err(error) => {
                     tracing::warn!("realtime state lock failed: {error}");
@@ -166,184 +165,17 @@ impl RealtimeHostRuntime {
             if !state.friend_messages_paused {
                 return;
             }
-            if state.friend_reconnect_baseline_refresh_in_flight {
-                return;
-            }
             let Some(active) = state.active_context.clone() else {
                 return;
             };
-            let Some(current_user_snapshot) = self.current_user.snapshot_value() else {
-                drop(state);
-                self.drain_queued_friend_messages(active);
-                return;
-            };
-            state.friend_reconnect_baseline_refresh_in_flight = true;
-            (
-                active,
-                state.friend_reconnect_refresh_token,
-                current_user_snapshot,
-            )
+            active
         };
-
-        let runtime = Arc::clone(self);
-        self.deps.tasks.spawn(async move {
-            runtime
-                .refresh_friend_baseline_after_reconnect(
-                    active,
-                    refresh_token,
-                    current_user_snapshot,
-                )
-                .await;
-        });
-    }
-
-    async fn refresh_friend_baseline_after_reconnect(
-        self: Arc<Self>,
-        active: ActiveRealtimeContext,
-        refresh_token: u64,
-        current_user_snapshot: Value,
-    ) {
-        let baseline_started_ms = chrono::Utc::now().timestamp_millis();
-        let result = build_friend_roster_baseline(
-            SocialBaselineDeps {
-                db: Arc::clone(&self.deps.db),
-                web: Arc::clone(&self.deps.web),
-                auth_scope: self.deps.auth_scope.clone(),
-                session: self.deps.session.clone(),
-            },
-            SocialFriendRosterBaselineInput {
-                user_id: active.session.user_id.clone(),
-                endpoint: active.session.endpoint.clone(),
-                websocket: active.session.websocket.clone(),
-                current_user_snapshot: RawJson::from(current_user_snapshot),
-            },
-        )
-        .await;
-        let output = match result {
-            Ok(output) => output,
-            Err(error) => {
-                tracing::warn!(
-                    generation = active.generation,
-                    session_generation = active.session_generation,
-                    refresh_token,
-                    "[Realtime] reconnect friend baseline recovery failed: {error}"
-                );
-                self.finish_reconnect_friend_baseline_refresh(active, refresh_token, true);
-                return;
-            }
-        };
-        let Some(snapshot) = output.snapshot.as_ref().filter(|_| !output.stale) else {
-            self.finish_reconnect_friend_baseline_refresh(active, refresh_token, true);
-            return;
-        };
-        let friends_value = snapshot
-            .as_value()
-            .get("friendsById")
-            .cloned()
-            .unwrap_or_else(|| serde_json::json!({}));
-        let friends_by_id =
-            match serde_json::from_value::<HashMap<String, FriendRecord>>(friends_value) {
-                Ok(friends_by_id) => friends_by_id,
-                Err(error) => {
-                    tracing::warn!(
-                        generation = active.generation,
-                        session_generation = active.session_generation,
-                        refresh_token,
-                        "[Realtime] reconnect friend baseline recovery decode failed: {error}"
-                    );
-                    self.finish_reconnect_friend_baseline_refresh(active, refresh_token, true);
-                    return;
-                }
-            };
-        let sync_result = self.sync_reconnect_friend_baseline_if_current(
-            active.clone(),
-            refresh_token,
-            baseline_started_ms,
-            friends_by_id,
-        );
-        match sync_result {
-            Ok(Some(result)) if result.accepted => {
-                self.finish_reconnect_friend_baseline_refresh(active, refresh_token, false);
-            }
-            Ok(Some(_result)) => {
-                self.finish_reconnect_friend_baseline_refresh(active, refresh_token, true);
-            }
-            Ok(None) => {}
-            Err(error) => {
-                tracing::warn!(
-                    generation = active.generation,
-                    session_generation = active.session_generation,
-                    refresh_token,
-                    "[Realtime] reconnect friend baseline recovery sync failed: {error}"
-                );
-                self.finish_reconnect_friend_baseline_refresh(active, refresh_token, true);
-            }
-        }
-    }
-
-    pub(super) fn sync_reconnect_friend_baseline_if_current(
-        self: &Arc<Self>,
-        active: ActiveRealtimeContext,
-        refresh_token: u64,
-        baseline_started_ms: i64,
-        friends_by_id: HashMap<String, FriendRecord>,
-    ) -> Result<Option<FriendBaselineResult>> {
-        {
-            let state = self
-                .state
-                .lock()
-                .map_err(|error| Error::Custom(format!("realtime state lock: {error}")))?;
-            if !self.is_message_current_locked(
-                &state,
-                active.generation,
-                active.session_generation,
-                &active.session,
-            ) || state.friend_reconnect_refresh_token != refresh_token
-                || !state.friend_reconnect_baseline_refresh_in_flight
-            {
-                return Ok(None);
-            }
-        }
-        self.sync_friend_snapshot_with_started_at(
-            active.session.user_id.clone(),
-            active.session.endpoint.clone(),
-            active.session.websocket.clone(),
-            Some(active.generation),
-            baseline_started_ms,
-            friends_by_id,
-        )
-        .map(Some)
-    }
-
-    fn finish_reconnect_friend_baseline_refresh(
-        self: &Arc<Self>,
-        active: ActiveRealtimeContext,
-        refresh_token: u64,
-        drain_queued_messages: bool,
-    ) {
-        let should_drain = {
-            let mut state = match self.state.lock() {
-                Ok(state) => state,
-                Err(error) => {
-                    tracing::warn!("realtime state lock failed: {error}");
-                    return;
-                }
-            };
-            if !self.is_message_current_locked(
-                &state,
-                active.generation,
-                active.session_generation,
-                &active.session,
-            ) || state.friend_reconnect_refresh_token != refresh_token
-            {
-                return;
-            }
-            state.friend_reconnect_baseline_refresh_in_flight = false;
-            drain_queued_messages && state.friend_messages_paused
-        };
-        if should_drain {
-            self.drain_queued_friend_messages(active);
-        }
+        // A passive reconnect only resumes the event stream: replay the frames that queued during
+        // the handshake, then unpause. It must NOT re-pull /auth/user to overwrite the roster — a
+        // lagging onlineFriends list (eventual consistency) would otherwise revive a friend that a
+        // ws friend-offline already took offline. Mirrors upstream, where onclose just re-opens the
+        // socket; roster gap recovery is left to a manual refresh.
+        self.drain_queued_friend_messages(active);
     }
 }
 

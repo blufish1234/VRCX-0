@@ -42,13 +42,10 @@ impl RealtimeMessageSink for RealtimeHostRuntimeMessageSink {
                 }
                 state.friend_messages_paused = true;
                 state.queued_friend_messages.clear();
-                state.friend_reconnect_refresh_token =
-                    state.friend_reconnect_refresh_token.saturating_add(1);
-                state.friend_reconnect_baseline_refresh_in_flight = false;
             }
             "connected" => {
                 self.runtime.deps.overlay_activity.set_delivery_armed(true);
-                self.runtime.schedule_reconnect_friend_baseline_refresh(
+                self.runtime.resume_friend_messages_after_reconnect(
                     generation,
                     session_generation,
                     session,
