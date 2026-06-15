@@ -8,15 +8,18 @@ import { StaticSidebarLocation } from './FriendsSidebarLocation';
 
 const FRIEND_ROW_SIZE = 49;
 const SECTION_HEADER_ROW_SIZE = 38;
+const SECTION_HEADER_TOP_GAP = 16;
 const INSTANCE_HEADER_ROW_SIZE = 26;
 const FAVORITE_GROUP_HEADER_ROW_SIZE = 26;
 const SIDEBAR_MESSAGE_ROW_SIZE = 64;
 const SIDEBAR_FOOTER_ROW_SIZE = 16;
 
-export function estimateFriendSidebarRowSize(row: any) {
+export function estimateFriendSidebarRowSize(row: any, index: any) {
     switch (row?.type) {
         case 'section':
-            return SECTION_HEADER_ROW_SIZE;
+            return index === 0
+                ? SECTION_HEADER_ROW_SIZE
+                : SECTION_HEADER_ROW_SIZE + SECTION_HEADER_TOP_GAP;
         case 'instance-header':
             return INSTANCE_HEADER_ROW_SIZE;
         case 'favorite-group-header':
@@ -31,7 +34,14 @@ export function estimateFriendSidebarRowSize(row: any) {
     }
 }
 
-export function FriendSectionHeader({ id, title, count, open, onToggle }: any) {
+export function FriendSectionHeader({
+    id,
+    title,
+    count,
+    open,
+    isFirst = false,
+    onToggle
+}: any) {
     const isOpen = Boolean(open);
 
     return (
@@ -42,6 +52,7 @@ export function FriendSectionHeader({ id, title, count, open, onToggle }: any) {
                     onToggle(id);
                 }
             }}
+            className={isFirst ? undefined : 'pt-2'}
         >
             <CollapsibleTrigger asChild>
                 <Button

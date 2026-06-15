@@ -803,6 +803,7 @@ export function FriendsSidebar({
                         >
                             <FriendsSidebarVirtualRow
                                 row={item.row}
+                                isFirstRow={item.index === 0}
                                 appearance={appearanceView}
                                 friendCommands={friendRowCommands}
                                 location={locationView}

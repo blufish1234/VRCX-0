@@ -71,23 +71,23 @@ function FriendVirtualRow({
                 isGroupByInstance,
                 canSendInvite: Boolean(
                     runtime.gameState.isGameRunning &&
-                        runtime.currentInviteLocation &&
-                        runtime.canInviteFromCurrentLocation
+                    runtime.currentInviteLocation &&
+                    runtime.canInviteFromCurrentLocation
                 ),
                 canRequestInvite: isOnlineFriend,
                 canBoop: Boolean(runtime.currentUser?.isBoopingEnabled),
                 canUseFriendInstance: Boolean(
                     isOnlineFriend &&
-                        checkCanInviteSelf(
-                            isCurrentUser
-                                ? resolvePresenceLocation(friend)
-                                : readFriendRefLocation(friend),
-                            {
-                                currentUserId: runtime.currentUserId,
-                                cachedInstances: new Map(),
-                                friends: runtime.friendsMap
-                            }
-                        )
+                    checkCanInviteSelf(
+                        isCurrentUser
+                            ? resolvePresenceLocation(friend)
+                            : readFriendRefLocation(friend),
+                        {
+                            currentUserId: runtime.currentUserId,
+                            cachedInstances: new Map(),
+                            friends: runtime.friendsMap
+                        }
+                    )
                 )
             }}
             rowCommands={{
@@ -98,14 +98,10 @@ function FriendVirtualRow({
                 onRequestInvite: friendCommands.onRequestInvite,
                 onBoop: friendCommands.onBoop,
                 onChangeStatus: statusCommands.onChangeStatus,
-                onSetStatusDescription:
-                    statusCommands.onSetStatusDescription,
-                onEditStatusDescription:
-                    statusCommands.onEditStatusDescription,
+                onSetStatusDescription: statusCommands.onSetStatusDescription,
+                onEditStatusDescription: statusCommands.onEditStatusDescription,
                 onApplyStatusPreset: statusCommands.onApplyStatusPreset,
-                statusPresets: isCurrentUser
-                    ? statusCommands.statusPresets
-                    : []
+                statusPresets: isCurrentUser ? statusCommands.statusPresets : []
             }}
             appearance={{
                 randomUserColours: appearance.randomUserColours,
@@ -116,8 +112,7 @@ function FriendVirtualRow({
                 recentActionVersion: appearance.recentActionVersion,
                 locationMetadata:
                     location.locationMetadataByKey.get(metadataKey),
-                showInstanceIdInLocation:
-                    appearance.showInstanceIdInLocation,
+                showInstanceIdInLocation: appearance.showInstanceIdInLocation,
                 ageGatedInstancesVisible: appearance.ageGatedInstancesVisible
             }}
         />
@@ -127,6 +122,7 @@ function FriendVirtualRow({
 function FriendsSidebarVirtualRow({
     appearance,
     friendCommands,
+    isFirstRow = false,
     location,
     row,
     runtime,
@@ -140,6 +136,7 @@ function FriendsSidebarVirtualRow({
                     title={row.title}
                     count={row.count}
                     open={row.open}
+                    isFirst={isFirstRow}
                     onToggle={friendCommands.onToggleSection}
                 />
             );
