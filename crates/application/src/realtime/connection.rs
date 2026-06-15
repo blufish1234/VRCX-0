@@ -399,6 +399,14 @@ async fn connect_once(
 
     let mut parser = RealtimeMessageParser::default();
     let ws_event_log_path = crate::realtime::ws_event_log::resolve_path(deps.db.db_path());
+    if let Some(path) = &ws_event_log_path {
+        crate::realtime::ws_event_log::append_connect_marker(
+            path,
+            &chrono::Utc::now().to_rfc3339(),
+            attempt.generation,
+            attempt.session_generation,
+        );
+    }
     loop {
         tokio::select! {
             changed = attempt.cancel_rx.changed() => {
