@@ -33,5 +33,6 @@
     "editor.quickSuggestions": {
         "strings": "on"
     },
-    "js/ts.experimental.useTsgo": true
+    "js/ts.experimental.useTsgo": true,
+    "typescript.native-preview.tsdk": "node_modules\\@typescript\\native-preview"
 }
