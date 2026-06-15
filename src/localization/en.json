@@ -269,6 +269,7 @@
         "logout": "Log Out",
         "quit": "Quit VRCX-0",
         "quick_search": "Quick Search",
+        "keyboard_shortcuts": "Keyboard Shortcuts",
         "notification_center": "Notification Center",
         "expand_friends_sidebar": "Show Friends Sidebar",
         "collapse_friends_sidebar": "Hide Friends Sidebar",
@@ -304,8 +305,18 @@
             "close_window": "Close window"
         }
     },
+    "shortcuts": {
+        "title": "Keyboard Shortcuts",
+        "group": {
+            "general": "General",
+            "layout": "Layout"
+        }
+    },
     "side_panel": {
         "search_placeholder": "Quick Search...",
+        "search_input_placeholder": "Search or jump to a page…",
+        "search_pages": "Pages",
+        "search_scope_pages": "Jump to a page",
         "search_no_results": "No results found",
         "search_min_chars": "Type at least 2 characters",
         "search_categories": "Search for...",

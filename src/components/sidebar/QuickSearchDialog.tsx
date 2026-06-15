@@ -1,15 +1,24 @@
-import { GlobeIcon, PersonStandingIcon, UsersIcon } from 'lucide-react';
+import {
+    CompassIcon,
+    GlobeIcon,
+    PersonStandingIcon,
+    UsersIcon
+} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
 import { useKnownUserFacts } from '@/domain/users/useKnownUser';
-import { convertFileUrlToImageUrl, userImage } from '@/services/entityMediaService';
 import {
     openAvatarDialog,
     openGroupDialog,
     openUserDialog,
     openWorldDialog
 } from '@/services/dialogService';
+import {
+    convertFileUrlToImageUrl,
+    userImage
+} from '@/services/entityMediaService';
 import { useFavoriteStore } from '@/state/favoriteStore';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -35,6 +44,7 @@ import {
     createEmptyCatalog,
     loadQuickSearchCatalog
 } from './quickSearchCatalog';
+import { NavResultGroup, useNavCommands } from './QuickSearchNavCommands';
 import { entityTypeLabel, ResultGroup } from './QuickSearchResults';
 
 const RESULT_LIMIT = 8;
@@ -211,7 +221,11 @@ function buildGroupInstanceResults(groupInstances: any) {
     return Array.from(groupsById.values());
 }
 
-function useQuickSearchCatalogState({ currentEndpoint, currentUserId, open }: any) {
+function useQuickSearchCatalogState({
+    currentEndpoint,
+    currentUserId,
+    open
+}: any) {
     const [catalog, setCatalog] = useState(() => createEmptyCatalog());
 
     useEffect(() => {
@@ -248,10 +262,7 @@ function useQuickSearchCatalogState({ currentEndpoint, currentUserId, open }: an
     return catalog;
 }
 
-function useQuickSearchResults({
-    catalog,
-    normalizedQuery
-}: any) {
+function useQuickSearchResults({ catalog, normalizedQuery }: any) {
     const friendsById = useFriendRosterStore((state: any) => state.friendsById);
     const remoteFavoritesByObjectId = useFavoriteStore(
         (state: any) => state.remoteFavoritesByObjectId
@@ -262,7 +273,9 @@ function useQuickSearchResults({
     const localAvatarDetailsById = useFavoriteStore(
         (state: any) => state.localAvatarDetailsById
     );
-    const currentUserId = useRuntimeStore((state: any) => state.auth.currentUserId);
+    const currentUserId = useRuntimeStore(
+        (state: any) => state.auth.currentUserId
+    );
     const currentEndpoint = useRuntimeStore(
         (state: any) => state.auth.currentUserEndpoint
     );
@@ -366,7 +379,9 @@ function useQuickSearchResults({
                 ),
                 ...remoteFavorites
                     .filter((row: any) => row?.type === 'avatar')
-                    .map((row: any) => buildEntityResult(row, 'avatar', 'favorite')),
+                    .map((row: any) =>
+                        buildEntityResult(row, 'avatar', 'favorite')
+                    ),
                 ...localAvatars.map((row: any) =>
                     buildEntityResult(row, 'avatar', 'local')
                 )
@@ -387,7 +402,9 @@ function useQuickSearchResults({
                             row?.type === 'world' ||
                             row?.type === 'vrcPlusWorld'
                     )
-                    .map((row: any) => buildEntityResult(row, 'world', 'favorite')),
+                    .map((row: any) =>
+                        buildEntityResult(row, 'world', 'favorite')
+                    ),
                 ...localWorlds.map((row: any) =>
                     buildEntityResult(row, 'world', 'local')
                 )
@@ -487,12 +504,16 @@ function useQuickSearchSelectResult({ onOpenChange, setQuery }: any) {
 
 export function QuickSearchDialog({ open, onOpenChange }: any) {
     const { t } = useTranslation();
-    const currentUserId = useRuntimeStore((state: any) => state.auth.currentUserId);
+    const currentUserId = useRuntimeStore(
+        (state: any) => state.auth.currentUserId
+    );
     const currentEndpoint = useRuntimeStore(
         (state: any) => state.auth.currentUserEndpoint
     );
+    const navigate = useNavigate();
     const [query, setQuery] = useState('');
     const normalizedQuery = query.trim().toLowerCase();
+    const navCommands = useNavCommands(normalizedQuery);
     const catalog = useQuickSearchCatalogState({
         currentEndpoint,
         currentUserId,
@@ -504,6 +525,7 @@ export function QuickSearchDialog({ open, onOpenChange }: any) {
     });
 
     const hasResults =
+        navCommands.length ||
         results.friends.length ||
         results.ownAvatars.length ||
         results.favoriteAvatars.length ||
@@ -540,8 +562,8 @@ export function QuickSearchDialog({ open, onOpenChange }: any) {
                     <CommandInput
                         autoFocus
                         value={query}
-                        aria-label={t('side_panel.search_placeholder')}
-                        placeholder={t('side_panel.search_placeholder')}
+                        aria-label={t('side_panel.search_input_placeholder')}
+                        placeholder={t('side_panel.search_input_placeholder')}
                         onValueChange={setQuery}
                     />
                     <CommandList className="max-h-[min(400px,50vh)]">
@@ -549,6 +571,19 @@ export function QuickSearchDialog({ open, onOpenChange }: any) {
                             <CommandGroup
                                 heading={t('side_panel.search_categories')}
                             >
+                                <CommandItem
+                                    value="hint-pages"
+                                    disabled
+                                    className="gap-3 opacity-70"
+                                >
+                                    <CompassIcon />
+                                    <span className="min-w-0 flex-1 truncate">
+                                        {t('side_panel.search_pages')}
+                                    </span>
+                                    <CommandShortcut className="max-w-[45%] truncate tracking-normal">
+                                        {t('side_panel.search_scope_pages')}
+                                    </CommandShortcut>
+                                </CommandItem>
                                 <CommandItem
                                     value="hint-friends"
                                     disabled
@@ -604,6 +639,15 @@ export function QuickSearchDialog({ open, onOpenChange }: any) {
                             </CommandGroup>
                         ) : hasResults ? (
                             <>
+                                <NavResultGroup
+                                    title={t('side_panel.search_pages')}
+                                    items={navCommands}
+                                    onSelect={(item: any) => {
+                                        onOpenChange(false);
+                                        setQuery('');
+                                        navigate(item.path);
+                                    }}
+                                />
                                 <ResultGroup
                                     title={t('side_panel.friends')}
                                     items={results.friends}

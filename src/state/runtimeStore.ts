@@ -148,10 +148,14 @@ type RuntimeStore = {
     setInstanceQueueState(patch: Partial<InstanceQueueState>): void;
     clearInstanceQueueState(): void;
     setVrcStatusState(patch: Record<string, unknown>): void;
-    setGroupInstancesState(patch: Partial<RuntimeStore['groupInstances']>): void;
+    setGroupInstancesState(
+        patch: Partial<RuntimeStore['groupInstances']>
+    ): void;
     setChangelogTargetVersion(version: unknown): void;
     setSystemHostOpen(name: string, value: unknown): void;
-    setDatabaseUpgradeState(patch: Partial<RuntimeStore['databaseUpgrade']>): void;
+    setDatabaseUpgradeState(
+        patch: Partial<RuntimeStore['databaseUpgrade']>
+    ): void;
     resetRuntimeState(): void;
 };
 
@@ -258,7 +262,9 @@ const HOST_CAPABILITY_KEYS = Object.freeze([
     'screenshotCache'
 ]);
 
-function createCapabilityStatus(reason: any = 'Host capabilities have not loaded.') {
+function createCapabilityStatus(
+    reason: any = 'Host capabilities have not loaded.'
+) {
     return {
         supported: false,
         enabled: false,
@@ -364,6 +370,7 @@ const initialState = {
         databaseUpgradeOpen: false,
         updaterOpen: false,
         changelogOpen: false,
+        keyboardShortcutsOpen: false,
         registryBackupOpen: false,
         appLauncherOpen: false,
         launchOptionsOpen: false,

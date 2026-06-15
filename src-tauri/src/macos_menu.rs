@@ -38,6 +38,7 @@ pub(crate) fn configure_macos_app_menu(app: &AppHandle) -> tauri::Result<()> {
 
     let mut help_menu = SubmenuBuilder::new(app, "Help")
         .text("mac-menu-changelog", "Changelog")
+        .text("mac-menu-keyboard-shortcuts", "Keyboard Shortcuts")
         .separator()
         .text("mac-menu-report-issue", "Report Issue")
         .text("mac-menu-github", "GitHub")

@@ -269,6 +269,7 @@
         "logout": "退出登录",
         "quit": "退出 VRCX-0",
         "quick_search": "快速搜索",
+        "keyboard_shortcuts": "键盘快捷键",
         "notification_center": "通知中心",
         "expand_friends_sidebar": "显示好友侧栏",
         "collapse_friends_sidebar": "隐藏好友侧栏",
@@ -304,8 +305,18 @@
             "close_window": "关闭窗口"
         }
     },
+    "shortcuts": {
+        "title": "键盘快捷键",
+        "group": {
+            "general": "常规",
+            "layout": "布局"
+        }
+    },
     "side_panel": {
         "search_placeholder": "搜索",
+        "search_input_placeholder": "搜索或跳转到页面…",
+        "search_pages": "页面",
+        "search_scope_pages": "跳转到页面",
         "search_no_results": "未找到结果",
         "search_min_chars": "请输入至少 2 个字符",
         "search_categories": "搜点什么...",

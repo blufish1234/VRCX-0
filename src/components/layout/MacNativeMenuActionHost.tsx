@@ -167,6 +167,7 @@ export function MacNativeMenuActionHost() {
                 action !== 'changelog' &&
                 action !== 'support-vrcx' &&
                 action !== 'open-source-licenses' &&
+                action !== 'keyboard-shortcuts' &&
                 action !== 'about' &&
                 action !== 'open-devtools';
 
@@ -240,6 +241,9 @@ export function MacNativeMenuActionHost() {
                     break;
                 case 'changelog':
                     openExternalLink(links.releases);
+                    break;
+                case 'keyboard-shortcuts':
+                    setSystemHostOpen('keyboardShortcutsOpen', true);
                     break;
                 case 'support-vrcx':
                     setSupportOpen(true);

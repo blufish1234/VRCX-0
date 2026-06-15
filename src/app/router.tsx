@@ -5,14 +5,11 @@ import { GlobalHosts } from '@/components/hosts/GlobalHosts';
 import { AppTitleBar } from '@/components/layout/AppTitleBar';
 import { MacNativeMenuActionHost } from '@/components/layout/MacNativeMenuActionHost';
 import { MacOverlayTitleBar } from '@/components/layout/MacOverlayTitleBar';
+import { useGlobalKeyboardShortcuts } from '@/components/layout/useGlobalKeyboardShortcuts';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 
-import {
-    protectedRoutes,
-    publicRoutes,
-    RouteLoadingFallback
-} from './routes';
+import { protectedRoutes, publicRoutes, RouteLoadingFallback } from './routes';
 
 const AppShellLayout = lazy(() =>
     import('@/components/layout/AppShellLayout').then((module: any) => ({
@@ -74,6 +71,7 @@ function AppRouterContent() {
     const isMacHost = useRuntimeStore(
         (state: any) => state.hostCapabilities.platform === 'macos'
     );
+    useGlobalKeyboardShortcuts();
 
     return (
         <div

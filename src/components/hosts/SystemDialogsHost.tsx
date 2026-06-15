@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
+import { KeyboardShortcutsDialog } from '@/components/keyboard/KeyboardShortcutsDialog';
 import {
     getHostCapabilityUnavailableReason,
     isHostCapabilityAvailable,
@@ -8,8 +9,8 @@ import {
 } from '@/services/hostCapabilityService';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
-import { DatabaseUpgradeDialog } from './system-dialogs/DatabaseUpgradeDialog';
 import { ChangelogDialog } from './system-dialogs/ChangelogDialog';
+import { DatabaseUpgradeDialog } from './system-dialogs/DatabaseUpgradeDialog';
 import { LaunchOptionsDialog } from './system-dialogs/LaunchOptionsDialog';
 import { RegistryBackupDialog } from './system-dialogs/RegistryBackupDialog';
 import { UpdaterDialog } from './system-dialogs/UpdaterDialog';
@@ -21,6 +22,9 @@ export function SystemDialogsHost() {
     );
     const changelogOpen = useRuntimeStore(
         (state: any) => state.systemHosts.changelogOpen
+    );
+    const keyboardShortcutsOpen = useRuntimeStore(
+        (state: any) => state.systemHosts.keyboardShortcutsOpen
     );
     const changelogTargetVersion = useRuntimeStore(
         (state: any) => state.changelogTargetVersion
@@ -46,7 +50,9 @@ export function SystemDialogsHost() {
     const setChangelogTargetVersion = useRuntimeStore(
         (state: any) => state.setChangelogTargetVersion
     );
-    const hostCapabilities = useRuntimeStore((state: any) => state.hostCapabilities);
+    const hostCapabilities = useRuntimeStore(
+        (state: any) => state.hostCapabilities
+    );
 
     useEffect(() => {
         const guards = [
@@ -77,7 +83,9 @@ export function SystemDialogsHost() {
         <>
             <UpdaterDialog
                 open={Boolean(updaterOpen)}
-                onOpenChange={(open: any) => setSystemHostOpen('updaterOpen', open)}
+                onOpenChange={(open: any) =>
+                    setSystemHostOpen('updaterOpen', open)
+                }
             />
             <ChangelogDialog
                 open={Boolean(changelogOpen)}
@@ -111,6 +119,12 @@ export function SystemDialogsHost() {
                 open={Boolean(
                     databaseUpgradeOpen || systemHostDatabaseUpgradeOpen
                 )}
+            />
+            <KeyboardShortcutsDialog
+                open={Boolean(keyboardShortcutsOpen)}
+                onOpenChange={(open: any) =>
+                    setSystemHostOpen('keyboardShortcutsOpen', open)
+                }
             />
         </>
     );

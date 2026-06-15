@@ -269,6 +269,7 @@
         "logout": "ログアウト",
         "quit": "VRCX-0 を終了",
         "quick_search": "クイック検索",
+        "keyboard_shortcuts": "キーボードショートカット",
         "notification_center": "通知センター",
         "expand_friends_sidebar": "フレンドサイドバーを表示",
         "collapse_friends_sidebar": "フレンドサイドバーを非表示",
@@ -304,8 +305,18 @@
             "close_window": "ウィンドウを閉じる"
         }
     },
+    "shortcuts": {
+        "title": "キーボードショートカット",
+        "group": {
+            "general": "一般",
+            "layout": "レイアウト"
+        }
+    },
     "side_panel": {
         "search_placeholder": "検索...",
+        "search_input_placeholder": "検索またはページへ移動…",
+        "search_pages": "ページ",
+        "search_scope_pages": "ページへ移動",
         "search_no_results": "結果が見つかりません",
         "search_min_chars": "少なくとも2文字入力してください",
         "search_categories": "検索...",

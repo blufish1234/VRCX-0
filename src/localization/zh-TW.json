@@ -269,6 +269,7 @@
         "logout": "登出",
         "quit": "退出 VRCX-0",
         "quick_search": "快速搜尋",
+        "keyboard_shortcuts": "鍵盤快捷鍵",
         "notification_center": "通知中心",
         "expand_friends_sidebar": "顯示好友側欄",
         "collapse_friends_sidebar": "隱藏好友側欄",
@@ -304,8 +305,18 @@
             "close_window": "關閉視窗"
         }
     },
+    "shortcuts": {
+        "title": "鍵盤快捷鍵",
+        "group": {
+            "general": "一般",
+            "layout": "版面配置"
+        }
+    },
     "side_panel": {
         "search_placeholder": "快速搜尋...",
+        "search_input_placeholder": "搜尋或跳轉到頁面…",
+        "search_pages": "頁面",
+        "search_scope_pages": "跳轉到頁面",
         "search_no_results": "沒有找到結果",
         "search_min_chars": "請至少輸入 2 個字元",
         "search_categories": "搜尋...",

@@ -265,6 +265,7 @@
         "start_background_mode": "배경 모드로 전환",
         "logout": "로그아웃",
         "quick_search": "빠른 검색",
+        "keyboard_shortcuts": "키보드 단축키",
         "notification_center": "알림 센터",
         "expand_friends_sidebar": "친구 사이드바 표시",
         "show_side_panel": "측면 패널 표시",
@@ -303,8 +304,18 @@
         "about_title": "VRCX-0 정보",
         "about_description": "VRChat용 데스크탑 컴패니언입니다."
     },
+    "shortcuts": {
+        "title": "키보드 단축키",
+        "group": {
+            "general": "일반",
+            "layout": "레이아웃"
+        }
+    },
     "side_panel": {
         "search_placeholder": "검색",
+        "search_input_placeholder": "검색하거나 페이지로 이동…",
+        "search_pages": "페이지",
+        "search_scope_pages": "페이지로 이동",
         "search_no_results": "검색결과가 없습니다",
         "search_min_chars": "2자 이상 입력하세요.",
         "search_categories": "검색...",

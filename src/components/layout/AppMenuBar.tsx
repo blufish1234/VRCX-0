@@ -455,6 +455,16 @@ export function AppMenuBar({
                             >
                                 {t('nav_menu.changelog')}
                             </MenuItem>
+                            <MenuItem
+                                onSelect={() =>
+                                    setSystemHostOpen(
+                                        'keyboardShortcutsOpen',
+                                        true
+                                    )
+                                }
+                            >
+                                {t('app_menu.keyboard_shortcuts')}
+                            </MenuItem>
                         </MenubarGroup>
                         <MenubarSeparator />
                         <MenubarGroup>
