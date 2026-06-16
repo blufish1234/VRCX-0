@@ -121,7 +121,11 @@ export default defineConfig(({ mode }) => {
         base: '',
         plugins: [
             createReactDevtoolsStandalonePlugin(enableReactDevtoolsStandalone),
-            react(),
+            react({
+                babel: {
+                    plugins: [['babel-plugin-react-compiler', {}]]
+                }
+            }),
             tailwindcss()
         ],
         resolve: {
