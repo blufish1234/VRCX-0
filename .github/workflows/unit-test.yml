@@ -17,7 +17,7 @@ concurrency:
     cancel-in-progress: true
 
 permissions:
-    contents: read
+    contents: write
 
 jobs:
     frontend:
@@ -29,8 +29,85 @@ jobs:
               with:
                   node-version: 24.x
                   cache: npm
-            - run: npm ci
-            - run: npm run test
+            - run: npm install
+            - run: npm run test -- --coverage
+            - name: Publish coverage badge to badge-data branch
+              if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  set -euo pipefail
+                  pct=$(node -pe "require('./coverage/coverage-summary.json').total.lines.pct.toFixed(1)")
+                  color=$(node -pe "const p=require('./coverage/coverage-summary.json').total.lines.pct;p>=80?'brightgreen':p>=50?'yellow':'red'")
+                  work="$(mktemp -d)"
+                  cd "$work"
+                  git init -q
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  repo_url="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+                  if git fetch -q "$repo_url" badge-data 2>/dev/null; then
+                      git checkout -q -b badge-data FETCH_HEAD
+                  else
+                      git checkout -q --orphan badge-data
+                      git rm -rf . --quiet 2>/dev/null || true
+                  fi
+                  printf '{"schemaVersion":1,"label":"ts coverage","message":"%s%%","color":"%s"}\n' "$pct" "$color" > coverage.json
+                  git add coverage.json
+                  git diff --cached --quiet && exit 0
+                  git commit -q -m "chore(badge): coverage = ${pct}%"
+                  git push -q -f "$repo_url" badge-data
+
+    rust-coverage:
+        name: Rust Coverage
+        runs-on: ubuntu-24.04
+        steps:
+            - uses: actions/checkout@v5
+            - name: Install Linux dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y --no-install-recommends \
+                      clang \
+                      cmake \
+                      g++ \
+                      libclang-dev \
+                      libwebkit2gtk-4.1-dev \
+                      libgtk-3-dev \
+                      libayatana-appindicator3-dev \
+                      librsvg2-dev
+            - uses: dtolnay/rust-toolchain@stable
+              with:
+                  components: llvm-tools-preview
+            - uses: Swatinem/rust-cache@v2
+              with:
+                  workspaces: . -> target
+            - uses: taiki-e/install-action@cargo-llvm-cov
+            - name: Generate coverage report
+              run: cargo llvm-cov --workspace --exclude vrcx-0 --locked --json --summary-only > rust-coverage-summary.json
+            - name: Publish Rust coverage badge to badge-data branch
+              if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  set -euo pipefail
+                  pct=$(node -pe "require('./rust-coverage-summary.json').data[0].totals.lines.percent.toFixed(1)")
+                  color=$(node -pe "const p=require('./rust-coverage-summary.json').data[0].totals.lines.percent;p>=80?'brightgreen':p>=50?'yellow':'red'")
+                  work="$(mktemp -d)"
+                  cd "$work"
+                  git init -q
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  repo_url="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+                  if git fetch -q "$repo_url" badge-data 2>/dev/null; then
+                      git checkout -q -b badge-data FETCH_HEAD
+                  else
+                      git checkout -q --orphan badge-data
+                      git rm -rf . --quiet 2>/dev/null || true
+                  fi
+                  printf '{"schemaVersion":1,"label":"rust coverage","message":"%s%%","color":"%s"}\n' "$pct" "$color" > rust-coverage.json
+                  git add rust-coverage.json
+                  git diff --cached --quiet && exit 0
+                  git commit -q -m "chore(badge): rust coverage = ${pct}%"
+                  git push -q -f "$repo_url" badge-data
 
     rust-windows:
         name: Rust Backend (Windows)

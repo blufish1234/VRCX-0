@@ -26,19 +26,39 @@ jobs:
                       --jq '[.[].assets[] | select(.name | test("\\.(exe|msi|rpm|deb|dmg|AppImage)$"; "i")) | .download_count] | add // 0')"
                   echo "count=$count" >> "$GITHUB_OUTPUT"
 
-            - name: Publish badge endpoint to badge-data branch
+            - name: Compute latest release version
+              id: version
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  version="$(gh api "repos/${{ github.repository }}/releases/latest" \
+                      --jq '.tag_name | ltrimstr("v")' 2>/dev/null || echo "")"
+                  echo "version=$version" >> "$GITHUB_OUTPUT"
+
+            - name: Publish badge endpoints to badge-data branch
               env:
                   GH_TOKEN: ${{ github.token }}
                   COUNT: ${{ steps.count.outputs.count }}
+                  VERSION: ${{ steps.version.outputs.version }}
               run: |
                   set -euo pipefail
                   work="$(mktemp -d)"
-                  printf '{"schemaVersion":1,"label":"downloads","message":"%s","color":"blue"}\n' "$COUNT" > "$work/downloads.json"
                   cd "$work"
                   git init -q
                   git config user.name "github-actions[bot]"
                   git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-                  git checkout -q -b badge-data
-                  git add downloads.json
-                  git commit -q -m "chore(badge): downloads = ${COUNT}"
-                  git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" badge-data
+                  repo_url="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+                  if git fetch -q "$repo_url" badge-data 2>/dev/null; then
+                      git checkout -q -b badge-data FETCH_HEAD
+                  else
+                      git checkout -q --orphan badge-data
+                      git rm -rf . --quiet 2>/dev/null || true
+                  fi
+                  printf '{"schemaVersion":1,"label":"downloads","message":"%s","color":"blue"}\n' "$COUNT" > downloads.json
+                  if [[ -n "$VERSION" ]]; then
+                      printf '{"schemaVersion":1,"label":"release","message":"%s","color":"blue"}\n' "$VERSION" > version.json
+                  fi
+                  git add downloads.json version.json 2>/dev/null || git add downloads.json
+                  git diff --cached --quiet && exit 0
+                  git commit -q -m "chore(badge): downloads = ${COUNT}, version = ${VERSION}"
+                  git push -q -f "$repo_url" badge-data
