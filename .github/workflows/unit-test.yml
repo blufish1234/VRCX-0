@@ -31,31 +31,12 @@ jobs:
                   cache: npm
             - run: npm install
             - run: npm run test -- --coverage
-            - name: Publish coverage badge to badge-data branch
-              if: github.ref == 'refs/heads/master' && github.event_name == 'push'
-              env:
-                  GH_TOKEN: ${{ github.token }}
-              run: |
-                  set -euo pipefail
-                  pct=$(node -pe "require('./coverage/coverage-summary.json').total.lines.pct.toFixed(1)")
-                  color=$(node -pe "const p=require('./coverage/coverage-summary.json').total.lines.pct;p>=80?'brightgreen':p>=50?'yellow':'red'")
-                  work="$(mktemp -d)"
-                  cd "$work"
-                  git init -q
-                  git config user.name "github-actions[bot]"
-                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-                  repo_url="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
-                  if git fetch -q "$repo_url" badge-data 2>/dev/null; then
-                      git checkout -q -b badge-data FETCH_HEAD
-                  else
-                      git checkout -q --orphan badge-data
-                      git rm -rf . --quiet 2>/dev/null || true
-                  fi
-                  printf '{"schemaVersion":1,"label":"ts coverage","message":"%s%%","color":"%s"}\n' "$pct" "$color" > coverage.json
-                  git add coverage.json
-                  git diff --cached --quiet && exit 0
-                  git commit -q -m "chore(badge): coverage = ${pct}%"
-                  git push -q -f "$repo_url" badge-data
+            - uses: actions/upload-artifact@v7
+              with:
+                  name: ts-coverage-summary
+                  path: coverage/coverage-summary.json
+                  if-no-files-found: error
+                  retention-days: 7
 
     rust-coverage:
         name: Rust Coverage
@@ -83,14 +64,46 @@ jobs:
             - uses: taiki-e/install-action@cargo-llvm-cov
             - name: Generate coverage report
               run: cargo llvm-cov --workspace --exclude vrcx-0 --locked --json --summary-only > rust-coverage-summary.json
-            - name: Publish Rust coverage badge to badge-data branch
+            - uses: actions/upload-artifact@v7
+              with:
+                  name: rust-coverage-summary
+                  path: rust-coverage-summary.json
+                  if-no-files-found: error
+                  retention-days: 7
+
+    combined-coverage:
+        name: Combined Coverage Badge
+        runs-on: ubuntu-latest
+        needs:
+            - frontend
+            - rust-coverage
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: 24.x
+            - uses: actions/download-artifact@v8
+              with:
+                  name: ts-coverage-summary
+                  path: coverage-artifacts/ts
+            - uses: actions/download-artifact@v8
+              with:
+                  name: rust-coverage-summary
+                  path: coverage-artifacts/rust
+            - name: Generate combined coverage badge
+              run: |
+                  node build-scripts/generate-combined-coverage-badge.mjs \
+                      --ts coverage-artifacts/ts/coverage-summary.json \
+                      --rust coverage-artifacts/rust/rust-coverage-summary.json \
+                      --out coverage.json
+            - name: Publish coverage badge to badge-data branch
               if: github.ref == 'refs/heads/master' && github.event_name == 'push'
               env:
                   GH_TOKEN: ${{ github.token }}
               run: |
                   set -euo pipefail
-                  pct=$(node -pe "require('./rust-coverage-summary.json').data[0].totals.lines.percent.toFixed(1)")
-                  color=$(node -pe "const p=require('./rust-coverage-summary.json').data[0].totals.lines.percent;p>=80?'brightgreen':p>=50?'yellow':'red'")
+                  pct=$(node -pe "require('./coverage.json').message")
                   work="$(mktemp -d)"
                   cd "$work"
                   git init -q
@@ -103,10 +116,10 @@ jobs:
                       git checkout -q --orphan badge-data
                       git rm -rf . --quiet 2>/dev/null || true
                   fi
-                  printf '{"schemaVersion":1,"label":"rust coverage","message":"%s%%","color":"%s"}\n' "$pct" "$color" > rust-coverage.json
-                  git add rust-coverage.json
+                  cp "$GITHUB_WORKSPACE/coverage.json" coverage.json
+                  git add coverage.json
                   git diff --cached --quiet && exit 0
-                  git commit -q -m "chore(badge): rust coverage = ${pct}%"
+                  git commit -q -m "chore(badge): coverage = ${pct}"
                   git push -q -f "$repo_url" badge-data
 
     rust-windows:
