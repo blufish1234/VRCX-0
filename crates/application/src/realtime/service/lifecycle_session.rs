@@ -68,6 +68,7 @@ impl RealtimeHostRuntime {
             state.friend_messages_paused = false;
             state.queued_friend_messages.clear();
             state.friend_profile_refetches.clear();
+            state.world_name_fetches.clear();
             state.invite_automation.clear_all();
             self.friends.clear();
             self.current_user.clear();
@@ -224,6 +225,7 @@ impl RealtimeHostRuntime {
             state.friend_messages_paused = false;
             state.queued_friend_messages.clear();
             state.friend_profile_refetches.clear();
+            state.world_name_fetches.clear();
             let _ = self.cancel_tx.send(state.generation);
             self.deps.session.clear_realtime_context();
             self.friends.clear();

@@ -239,6 +239,8 @@ pub struct OverlayActivityContent {
     pub summary: String,
     pub detail: String,
     pub location: String,
+    pub world_id: String,
+    pub display_location: String,
     pub world_name: String,
     pub group_name: String,
     pub status: String,

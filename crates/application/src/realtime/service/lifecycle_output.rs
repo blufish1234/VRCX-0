@@ -12,8 +12,9 @@ impl RealtimeHostRuntime {
                 .clear_baseline_if_revision(projection.generation, projection.baseline_revision);
             return;
         }
-        self.enrich_projection_world_names(&mut projection.feed_entries);
-        self.enrich_persistence_world_names(&mut output.persistence);
+        let mut world_name_fetch_ids =
+            self.enrich_projection_world_names(&mut projection.feed_entries);
+        world_name_fetch_ids.extend(self.enrich_persistence_world_names(&mut output.persistence));
         let persistence_attempted = !output.persistence.is_empty();
         match write_realtime_batch(&self.deps.db, &output.owner_user_id, &output.persistence) {
             Ok(counts) => {
@@ -71,6 +72,7 @@ impl RealtimeHostRuntime {
             });
         }
         self.schedule_friend_profile_refetches(projection_generation, profile_refetch_user_ids);
+        self.schedule_world_name_warm(world_name_fetch_ids);
     }
 
     pub(super) fn apply_notification_output(
@@ -78,9 +80,9 @@ impl RealtimeHostRuntime {
         mut output: RealtimeNotificationOutput,
     ) {
         let mut projection = output.projection;
-        self.enrich_notification_world_names(&mut projection);
+        let mut world_name_fetch_ids = self.enrich_notification_world_names(&mut projection);
         self.enrich_notification_sender_names(&mut projection);
-        self.enrich_persistence_world_names(&mut output.persistence);
+        world_name_fetch_ids.extend(self.enrich_persistence_world_names(&mut output.persistence));
         let persistence_attempted = !output.persistence.is_empty();
         match write_realtime_batch(&self.deps.db, &output.owner_user_id, &output.persistence) {
             Ok(counts) => {
@@ -106,6 +108,7 @@ impl RealtimeHostRuntime {
             .event_bus
             .emit_realtime_notification_projection(projection.clone());
         self.schedule_invite_automation(&projection);
+        self.schedule_world_name_warm(world_name_fetch_ids);
     }
 
     pub(super) fn apply_current_user_output(&self, mut output: RealtimeCurrentUserOutput) {

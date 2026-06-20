@@ -1,5 +1,5 @@
 use serde_json::{json, Value};
-use vrcx_0_core::location::parse_location;
+use vrcx_0_core::location::{parse_location, ParsedLocation};
 
 use super::types::{
     OverlayActivityCandidate, OverlayActivityCategory, OverlayActivityContent, OverlayActivityText,
@@ -34,7 +34,8 @@ pub(super) fn build_activity_content(
         string_field(payload, "groupName"),
         nested_string(payload, &["details", "groupName"]),
     ]);
-    let display_location = display_location(&location, &world_name, &group_name);
+    let parsed_location = parse_location(&location);
+    let display_location = display_location(&parsed_location, &world_name, &group_name);
 
     let mut content = match activity_type {
         "OnPlayerJoining" => titled_body(
@@ -348,6 +349,8 @@ pub(super) fn build_activity_content(
     };
 
     content.location = location;
+    content.world_id = parsed_location.world_id;
+    content.display_location = display_location.clone();
     content.world_name = world_name;
     content.group_name = group_name;
     content.status = string_field(payload, "status");
@@ -489,8 +492,7 @@ fn detail_message(payload: &Value) -> String {
     ])
 }
 
-fn display_location(location: &str, world_name: &str, group_name: &str) -> String {
-    let parsed = parse_location(location);
+fn display_location(parsed: &ParsedLocation, world_name: &str, group_name: &str) -> String {
     if parsed.is_offline {
         return "Offline".to_string();
     }

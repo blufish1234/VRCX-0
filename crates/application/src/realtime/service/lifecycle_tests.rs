@@ -353,6 +353,23 @@ mod tests {
     }
 
     #[test]
+    fn enrich_projection_world_names_returns_unresolved_world_ids() -> Result<()> {
+        let (_dir, runtime, _active_session) =
+            runtime_with_active_session("world-name-enrichment")?;
+        let mut entries = vec![json!({
+            "type": "GPS",
+            "location": "wrld_missing:123",
+            "worldName": "wrld_missing"
+        })];
+
+        let unresolved_world_ids = runtime.enrich_projection_world_names(&mut entries);
+
+        assert_eq!(unresolved_world_ids, vec!["wrld_missing"]);
+        assert_eq!(entries[0]["worldName"], "wrld_missing");
+        Ok(())
+    }
+
+    #[test]
     fn connected_after_reconnect_without_snapshot_resumes_queued_friend_events() -> Result<()> {
         let (_dir, runtime, active_session) = runtime_with_active_session("reconnect-drain")?;
         let active = runtime

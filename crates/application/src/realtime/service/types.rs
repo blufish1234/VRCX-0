@@ -25,6 +25,7 @@ pub(super) struct RealtimeHostRuntimeState {
     pub(super) friend_messages_paused: bool,
     pub(super) queued_friend_messages: Vec<RealtimeWsMessagePayload>,
     pub(super) friend_profile_refetches: HashMap<String, i64>,
+    pub(super) world_name_fetches: HashMap<String, i64>,
     pub(super) invite_automation: InviteAutomationState,
 }
 

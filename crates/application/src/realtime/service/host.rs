@@ -11,7 +11,6 @@ use vrcx_0_persistence::realtime::{
     lookup_game_log_world_name, write_realtime_batch, NotificationExpiration,
     RealtimePersistenceBatch, RealtimeWriteCounts,
 };
-use vrcx_0_persistence::worlds::world_cache_get;
 use vrcx_0_persistence::DatabaseService;
 use vrcx_0_vrchat_client::auth::current_user_get_input;
 use vrcx_0_vrchat_client::http_api::ApiScope;
@@ -69,6 +68,8 @@ mod lifecycle_invite_automation;
 mod lifecycle_output;
 #[path = "lifecycle_session.rs"]
 mod lifecycle_session;
+#[path = "lifecycle_world_cache.rs"]
+mod lifecycle_world_cache;
 #[path = "lifecycle_tests.rs"]
 mod lifecycle_tests;
 #[path = "message_dispatch.rs"]
@@ -77,5 +78,7 @@ mod message_dispatch;
 mod persistence;
 #[path = "types.rs"]
 mod types;
+
+use lifecycle_world_cache::{is_meaningful_world_name, lookup_cached_world_name};
 
 pub use types::{RealtimeHostRuntime, RealtimeHostRuntimeDeps, RealtimeStopRequest};

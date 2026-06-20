@@ -589,6 +589,8 @@ fn webhook_payload(
             "displayName": &entry.actor_display_name,
         },
         "location": &entry.content.location,
+        "worldId": &entry.content.world_id,
+        "displayLocation": &entry.content.display_location,
         "worldName": &entry.content.world_name,
         "timestamp": &entry.created_at,
     })
@@ -599,7 +601,9 @@ fn discord_webhook_payload(
     render: &RenderedNotification,
 ) -> Value {
     let entry = &delivery.entry;
-    let description = if !entry.content.world_name.trim().is_empty() {
+    let description = if !entry.content.display_location.trim().is_empty() {
+        format!("\u{2192} {}", entry.content.display_location)
+    } else if !entry.content.world_name.trim().is_empty() {
         format!("\u{2192} {}", entry.content.world_name)
     } else if !render.body.trim().is_empty() {
         render.body.clone()

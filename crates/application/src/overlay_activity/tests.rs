@@ -228,6 +228,45 @@ fn notification_projection_uses_nested_sender_display_name() {
 }
 
 #[test]
+fn friend_projection_location_content_exposes_raw_and_display_location() {
+    let runtime = OverlayActivityRuntime::with_filters(OverlayActivityFilters::from_json(json!({
+        "version": 1,
+        "wrist": {
+            "types": {
+                "GPS": {
+                    "scope": "friends",
+                    "favoriteGroupKeys": "all"
+                }
+            }
+        }
+    })));
+    runtime.set_friend_user_ids(["usr_location"]);
+    let projection = FriendProjection {
+        feed_entries: vec![json!({
+            "type": "GPS",
+            "created_at": "2026-05-31T00:02:30.000Z",
+            "userId": "usr_location",
+            "displayName": "Location User",
+            "location": "wrld_world:12345",
+            "worldName": "World Name",
+            "groupName": "Group Name"
+        })],
+        ..FriendProjection::default()
+    };
+
+    runtime.ingest_friend_projection(&projection);
+
+    let entries = runtime.snapshot().entries;
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].content.location, "wrld_world:12345");
+    assert_eq!(entries[0].content.world_id, "wrld_world");
+    assert_eq!(
+        entries[0].content.display_location,
+        "World Name public(Group Name)"
+    );
+}
+
+#[test]
 fn snapshot_marks_favorite_relation_before_friend_relation() {
     let runtime = OverlayActivityRuntime::with_filters(OverlayActivityFilters::from_json(json!({
         "version": 1,

@@ -4,7 +4,6 @@ use std::sync::Arc;
 use serde_json::{json, Value};
 use vrcx_0_core::json::RawJson;
 use vrcx_0_vrchat_client::notifications::{invite_send_input, notification_hide_remote_input};
-use vrcx_0_vrchat_client::worlds::world_get_input;
 
 use crate::social_baseline::{
     build_favorites_baseline, SocialBaselineDeps, SocialFavoritesBaselineInput,
@@ -305,37 +304,9 @@ impl RealtimeHostRuntime {
     }
 
     async fn resolve_invite_world_name(&self, endpoint: &str, world_id: &str) -> String {
-        if let Some(name) = lookup_cached_world_name(self.deps.db.as_ref(), world_id) {
-            return name;
-        }
-        let Ok((_, request)) = world_get_input(endpoint.to_string(), world_id.to_string()) else {
-            return world_id.to_string();
-        };
-        match self
-            .deps
-            .web
-            .execute_api(request, ApiScope::Vrchat, self.deps.db.as_ref())
+        self.fetch_and_cache_world(endpoint.to_string(), world_id.to_string())
             .await
-        {
-            Ok(response) if (200..=299).contains(&response.status) => {
-                serde_json::from_str::<Value>(&response.data)
-                    .ok()
-                    .map(|value| string_field(value.get("name")))
-                    .filter(|name| !name.is_empty())
-                    .unwrap_or_else(|| world_id.to_string())
-            }
-            Ok(response) => {
-                tracing::warn!(
-                    "invite automation world lookup returned HTTP {}",
-                    response.status
-                );
-                world_id.to_string()
-            }
-            Err(error) => {
-                tracing::warn!("invite automation world lookup failed: {error}");
-                world_id.to_string()
-            }
-        }
+            .unwrap_or_else(|| world_id.to_string())
     }
 
     async fn cleanup_invite_request_notification(
@@ -506,17 +477,4 @@ fn int_field(value: Option<&Value>) -> Option<i64> {
     value
         .and_then(Value::as_i64)
         .or_else(|| string_field(value).parse().ok())
-}
-
-fn lookup_cached_world_name(db: &DatabaseService, world_id: &str) -> Option<String> {
-    world_cache_get(db, world_id.to_string())
-        .ok()
-        .flatten()
-        .map(|world| world.name)
-        .filter(|name| !name.trim().is_empty() && name.trim() != world_id)
-        .or_else(|| {
-            lookup_game_log_world_name(db, world_id)
-                .ok()
-                .filter(|name| !name.trim().is_empty() && name.trim() != world_id)
-        })
 }

@@ -2,19 +2,27 @@ use super::message_dispatch::json_string_field;
 use super::*;
 
 impl RealtimeHostRuntime {
-    pub(super) fn enrich_projection_world_names(&self, entries: &mut [Value]) {
+    pub(super) fn enrich_projection_world_names(&self, entries: &mut [Value]) -> Vec<String> {
+        let mut unresolved_world_ids = Vec::new();
         for entry in entries {
-            self.enrich_world_name(entry);
+            if let Some(world_id) = self.enrich_world_name(entry) {
+                unresolved_world_ids.push(world_id);
+            }
         }
+        unresolved_world_ids
     }
 
     pub(super) fn enrich_notification_world_names(
         &self,
         projection: &mut RealtimeNotificationProjection,
-    ) {
+    ) -> Vec<String> {
+        let mut unresolved_world_ids = Vec::new();
         for upsert in &mut projection.upserts {
-            self.enrich_world_name(&mut upsert.notification);
+            if let Some(world_id) = self.enrich_world_name(&mut upsert.notification) {
+                unresolved_world_ids.push(world_id);
+            }
         }
+        unresolved_world_ids
     }
 
     pub(super) fn enrich_notification_sender_names(
@@ -73,31 +81,38 @@ impl RealtimeHostRuntime {
     pub(super) fn enrich_persistence_world_names(
         &self,
         persistence: &mut RealtimePersistenceBatch,
-    ) {
-        self.enrich_projection_world_names(&mut persistence.feed_entries);
+    ) -> Vec<String> {
+        let mut unresolved_world_ids =
+            self.enrich_projection_world_names(&mut persistence.feed_entries);
         for notification in &mut persistence.notification_v1_upserts {
-            self.enrich_world_name(notification);
+            if let Some(world_id) = self.enrich_world_name(notification) {
+                unresolved_world_ids.push(world_id);
+            }
         }
         for notification in &mut persistence.notification_v2_upserts {
-            self.enrich_world_name(notification);
+            if let Some(world_id) = self.enrich_world_name(notification) {
+                unresolved_world_ids.push(world_id);
+            }
         }
         for update in &mut persistence.notification_v2_updates {
-            self.enrich_world_name(&mut update.updates);
+            if let Some(world_id) = self.enrich_world_name(&mut update.updates) {
+                unresolved_world_ids.push(world_id);
+            }
         }
+        unresolved_world_ids
     }
 
-    fn enrich_world_name(&self, value: &mut Value) {
-        let Some(object) = value.as_object_mut() else {
-            return;
-        };
+    fn enrich_world_name(&self, value: &mut Value) -> Option<String> {
+        let object = value.as_object_mut()?;
         let top_level_name = object_string(object, "worldName");
         let details_name = nested_object_string(object, &["details", "worldName"]);
         let top_level_is_meaningful = is_meaningful_world_name(&top_level_name);
         let details_is_meaningful = is_meaningful_world_name(&details_name);
         if top_level_is_meaningful && details_is_meaningful {
-            return;
+            return None;
         }
 
+        let mut unresolved_world_id = None;
         let world_name = if top_level_is_meaningful {
             Some(top_level_name)
         } else if details_is_meaningful {
@@ -115,7 +130,13 @@ impl RealtimeHostRuntime {
             if world_id.is_empty() {
                 None
             } else {
-                self.lookup_world_display_name(&world_id)
+                match lookup_cached_world_name(self.deps.db.as_ref(), &world_id) {
+                    Some(world_name) => Some(world_name),
+                    None => {
+                        unresolved_world_id = Some(world_id);
+                        None
+                    }
+                }
             }
         };
 
@@ -129,19 +150,7 @@ impl RealtimeHostRuntime {
                 }
             }
         }
-    }
-
-    fn lookup_world_display_name(&self, world_id: &str) -> Option<String> {
-        world_cache_get(self.deps.db.as_ref(), world_id.to_string())
-            .ok()
-            .flatten()
-            .map(|world| world.name)
-            .filter(|name| is_meaningful_world_name(name))
-            .or_else(|| {
-                lookup_game_log_world_name(self.deps.db.as_ref(), world_id)
-                    .ok()
-                    .filter(|name| is_meaningful_world_name(name))
-            })
+        unresolved_world_id
     }
 
     pub(super) fn enrich_current_user_location_output(
@@ -223,11 +232,6 @@ fn world_id_from_location_or_id(value: &str) -> String {
         .next()
         .unwrap_or_default()
         .to_string()
-}
-
-fn is_meaningful_world_name(value: &str) -> bool {
-    let trimmed = value.trim();
-    !trimmed.is_empty() && !trimmed.starts_with("wrld_")
 }
 
 fn is_meaningful_actor_name(value: &str) -> bool {
