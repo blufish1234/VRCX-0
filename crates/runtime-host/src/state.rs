@@ -28,8 +28,8 @@ use vrcx_0_application::{
     saved_snapshot, BackendRuntime, BackendRuntimeMode, BackendRuntimePhase,
     BackendRuntimeSnapshot, BackendRuntimeTelemetry, BackgroundCapabilitySession,
     BackgroundDiscordPresenceCommand, BackgroundDiscordPresenceState,
-    BackgroundPresenceAutomationState, BackgroundPresenceFactsInput, GameProcessEvent,
-    GameProcessEventSink, ImageCache, LoginSuccessRecordInput, LogoutRecordInput,
+    BackgroundPresenceAutomationState, BackgroundPresenceFactsInput, FriendProjection,
+    GameProcessEvent, GameProcessEventSink, ImageCache, LoginSuccessRecordInput, LogoutRecordInput,
     ModerationSyncDeps, ModerationSyncRefreshInput, OverlayActivitySnapshot, OverlayFavoriteGroups,
     ProcessMonitor, RealtimeHostRuntime, RealtimeHostRuntimeDeps, RealtimeStopRequest,
     RegistryBackupMaintenanceMode, RegistryBackupMaintenanceResult, RegistryBackupSnapshot,
@@ -2451,6 +2451,15 @@ async fn run_background_social_baseline_refresh(
     .await;
     let friend_count = match friend_output {
         Ok(output) => {
+            if output.friend_log_changed {
+                context
+                    .runtime_context
+                    .event_bus
+                    .emit_realtime_friend_projection(FriendProjection {
+                        friend_log_changed: true,
+                        ..Default::default()
+                    });
+            }
             if let Some(snapshot) = output.snapshot {
                 let value = snapshot.into_value();
                 let friends_value = value

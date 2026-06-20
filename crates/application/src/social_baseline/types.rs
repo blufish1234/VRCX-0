@@ -46,4 +46,5 @@ pub struct SocialFriendRosterBaselineOutput {
     pub count: usize,
     pub detail: String,
     pub snapshot: Option<RawJson>,
+    pub friend_log_changed: bool,
 }

@@ -1,5 +1,10 @@
 use super::*;
 use vrcx_0_core::trust::{compute_trust_level, compute_user_platform};
+use vrcx_0_persistence::config::get_bool as config_get_bool;
+use vrcx_0_persistence::friends::friend_log_current_list;
+use vrcx_0_persistence::realtime::{
+    write_realtime_batch, FriendLogDelete, FriendLogUpsert, RealtimePersistenceBatch,
+};
 use vrcx_0_vrchat_client::auth::current_user_get_input;
 
 fn add_state_bucket_ids(
@@ -615,6 +620,8 @@ pub async fn build_friend_roster_baseline(
         &state_by_id,
         &fetched_friends_by_id,
     );
+    let friend_log_changed =
+        reconcile_friend_log_against_current(&deps, &user_id, &expected_ids, &snapshot);
     let detail = String::new();
     let count = snapshot
         .get("orderedFriendIds")
@@ -627,7 +634,79 @@ pub async fn build_friend_roster_baseline(
         count,
         detail,
         snapshot: Some(RawJson::from(snapshot)),
+        friend_log_changed,
     })
+}
+
+fn reconcile_friend_log_against_current(
+    deps: &SocialBaselineDeps,
+    user_id: &str,
+    expected_ids: &[String],
+    snapshot: &Value,
+) -> bool {
+    let initialized = config_get_bool(deps.db.as_ref(), &format!("friendLogInit_{user_id}"), false)
+        .unwrap_or(false);
+    if !initialized {
+        return false;
+    }
+
+    let existing = match friend_log_current_list(deps.db.as_ref(), user_id.to_string()) {
+        Ok(rows) => rows,
+        Err(error) => {
+            tracing::warn!("friend-log reconciliation read failed: {error}");
+            return false;
+        }
+    };
+
+    let existing_ids: HashSet<&str> = existing.iter().map(|row| row.user_id.as_str()).collect();
+    let expected_set: HashSet<&str> = expected_ids.iter().map(String::as_str).collect();
+
+    let created_at = chrono::Utc::now().to_rfc3339();
+    let friends_by_id = snapshot.get("friendsById").and_then(Value::as_object);
+    let mut batch = RealtimePersistenceBatch::default();
+
+    for friend_id in expected_ids {
+        if friend_id == user_id || existing_ids.contains(friend_id.as_str()) {
+            continue;
+        }
+        let entry = friends_by_id.and_then(|map| map.get(friend_id));
+        let display_name = entry
+            .map(|value| object_field_string(value, &["displayName", "display_name"]))
+            .unwrap_or_default();
+        let trust_level = entry
+            .map(|value| object_field_string(value, &["$trustLevel", "trustLevel"]))
+            .unwrap_or_default();
+        batch.friend_log_upserts.push(FriendLogUpsert {
+            target_user_id: friend_id.clone(),
+            display_name,
+            trust_level,
+            friend_number: 0,
+            created_at: created_at.clone(),
+            force_history: false,
+        });
+    }
+
+    for row in &existing {
+        if row.user_id == user_id || expected_set.contains(row.user_id.as_str()) {
+            continue;
+        }
+        batch.friend_log_deletes.push(FriendLogDelete {
+            target_user_id: row.user_id.clone(),
+            created_at: created_at.clone(),
+        });
+    }
+
+    if batch.friend_log_upserts.is_empty() && batch.friend_log_deletes.is_empty() {
+        return false;
+    }
+
+    match write_realtime_batch(deps.db.as_ref(), user_id, &batch) {
+        Ok(counts) => counts.affected_count > 0,
+        Err(error) => {
+            tracing::warn!("friend-log reconciliation write failed: {error}");
+            false
+        }
+    }
 }
 
 #[cfg(test)]

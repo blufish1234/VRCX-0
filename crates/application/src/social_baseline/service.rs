@@ -145,6 +145,7 @@ fn stale_friend_output(user_id: String, detail: String) -> SocialFriendRosterBas
         count: 0,
         detail,
         snapshot: None,
+        friend_log_changed: false,
     }
 }
 
