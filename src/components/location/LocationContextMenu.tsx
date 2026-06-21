@@ -18,6 +18,7 @@ import {
 
 export function LocationContextMenu({
     canOpenWorld,
+    canOpenInstanceInGame,
     canUseCurrentInstance,
     children,
     isOpenPreviousInstanceInfoDialog,
@@ -36,6 +37,9 @@ export function LocationContextMenu({
     worldId
 }: any) {
     const { t } = useTranslation();
+    const newInstanceFollowUpLabelKey = canOpenInstanceInGame
+        ? 'dialog.world.actions.new_instance_and_open_ingame'
+        : 'dialog.world.actions.new_instance_and_self_invite';
 
     return (
         <>
@@ -76,9 +80,7 @@ export function LocationContextMenu({
                             onSelect={() => onNewInstance(true)}
                         >
                             <MessageSquareIcon />
-                            {t(
-                                'dialog.world.actions.new_instance_and_self_invite'
-                            )}
+                            {t(newInstanceFollowUpLabelKey)}
                         </ContextMenuItem>
                     </ContextMenuGroup>
                     <ContextMenuSeparator />

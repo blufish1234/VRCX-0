@@ -154,6 +154,7 @@ export function WorldDialogContentWorkflow({
         world,
         currentEndpoint,
         currentUserId,
+        isGameRunning,
         profileWorldId,
         newInstanceGroups,
         actionStatusRef,
@@ -325,6 +326,7 @@ export function WorldDialogContentWorkflow({
                     isInstanceLocation,
                     worldDialogShortName,
                     isHomeWorld,
+                    isGameRunning,
                     canUpdateHome,
                     canManageWorld,
                     hasPersistData

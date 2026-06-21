@@ -90,6 +90,16 @@ function groupLabel(group: any) {
     return normalizeText(group?.name || group?.displayName) || groupId;
 }
 
+function newInstanceDialogTitleKey(request: any) {
+    if (request?.afterCreateAction === 'openInGame') {
+        return 'dialog.world.actions.new_instance_and_open_ingame';
+    }
+    if (request?.selfInvite) {
+        return 'dialog.world.actions.new_instance_and_self_invite';
+    }
+    return 'dialog.new_instance.header';
+}
+
 export function WorldNewInstanceDialog({
     open,
     request,
@@ -281,13 +291,7 @@ export function WorldNewInstanceDialog({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[min(92vw,32rem)]">
                 <DialogHeader>
-                    <DialogTitle>
-                        {request?.selfInvite
-                            ? t(
-                                  'dialog.world.actions.new_instance_and_self_invite'
-                              )
-                            : t('dialog.new_instance.header')}
-                    </DialogTitle>
+                    <DialogTitle>{t(newInstanceDialogTitleKey(request))}</DialogTitle>
                     <DialogDescription>
                         {world?.name ||
                             world?.id ||

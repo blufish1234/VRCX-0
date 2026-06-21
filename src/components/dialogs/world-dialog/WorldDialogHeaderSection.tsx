@@ -198,6 +198,7 @@ function WorldOverviewActions(props: any) {
     const {
         actionStatus,
         canManageWorld,
+        canOpenInstanceInGame,
         canUpdateHome,
         hasPersistData,
         isHomeWorld,
@@ -223,6 +224,9 @@ function WorldOverviewActions(props: any) {
         onPublication,
         onRefresh
     } = commands;
+    const newInstanceFollowUpLabelKey = canOpenInstanceInGame
+        ? 'dialog.world.actions.new_instance_and_open_ingame'
+        : 'dialog.world.actions.new_instance_and_self_invite';
 
     return (
         <div className="flex flex-wrap items-center gap-2">
@@ -265,7 +269,7 @@ function WorldOverviewActions(props: any) {
                     disabled={actionStatus === 'new-instance'}
                     onSelect={onNewInstanceSelfInvite}
                 >
-                    {t('dialog.world.actions.new_instance_and_self_invite')}
+                    {t(newInstanceFollowUpLabelKey)}
                 </EntityActionItem>
                 <EntityActionItem
                     icon={HomeIcon}

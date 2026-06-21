@@ -170,6 +170,9 @@ const FavoriteCard = memo(function FavoriteCard({
     const canUseWorldActions = Boolean(
         item.kind === 'world' && !item.isUnavailable
     );
+    const worldFollowUpActionLabelKey = isGameRunning
+        ? 'dialog.world.actions.new_instance_and_open_ingame'
+        : 'dialog.world.actions.new_instance_and_self_invite';
     const canCopyUnavailableWorldId = Boolean(
         item.kind === 'world' && item.isUnavailable && item.id
     );
@@ -424,9 +427,7 @@ const FavoriteCard = memo(function FavoriteCard({
                                     disabled={!onWorldSelfInvite}
                                     onSelect={() => onWorldSelfInvite?.(item)}
                                 >
-                                    {t(
-                                        'dialog.world.actions.new_instance_and_self_invite'
-                                    )}
+                                    {t(worldFollowUpActionLabelKey)}
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>
                         ) : null}

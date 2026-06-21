@@ -187,6 +187,7 @@ export function WorldDialogTabbedView({
         isInstanceLocation,
         worldDialogShortName = '',
         isHomeWorld,
+        isGameRunning,
         canUpdateHome,
         canManageWorld,
         hasPersistData = false
@@ -841,6 +842,7 @@ export function WorldDialogTabbedView({
         imageUrl,
         isHomeWorld,
         isPublished,
+        canOpenInstanceInGame: Boolean(isGameRunning),
         packageUrl,
         platformRows,
         previousInstances,

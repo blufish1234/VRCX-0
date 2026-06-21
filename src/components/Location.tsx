@@ -22,6 +22,7 @@ import {
 } from '@/shared/utils/location';
 import { useLaunchStore } from '@/state/launchStore';
 import { usePreferencesStore } from '@/state/preferencesStore';
+import { useRuntimeStore } from '@/state/runtimeStore';
 
 export function Location({
     location = '',
@@ -48,6 +49,9 @@ export function Location({
     const { t } = useTranslation();
     const showLaunchDialog = useLaunchStore(
         (state: any) => state.showLaunchDialog
+    );
+    const isGameRunning = useRuntimeStore((state: any) =>
+        Boolean(state.gameState.isGameRunning)
     );
     const preferencesHydrated = usePreferencesStore(
         (state: any) => state.preferencesHydrated
@@ -288,6 +292,7 @@ export function Location({
     return (
         <LocationContextMenu
             canOpenWorld={canOpenWorld}
+            canOpenInstanceInGame={isGameRunning}
             canUseCurrentInstance={canUseCurrentInstance}
             isOpenPreviousInstanceInfoDialog={isOpenPreviousInstanceInfoDialog}
             onCopyShareLink={copyShareLink}

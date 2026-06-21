@@ -27,10 +27,31 @@ import {
     resolveInstanceLocation
 } from './worldInstances';
 
+export type NewInstanceAfterCreateAction = '' | 'selfInvite' | 'openInGame';
+
+export function resolveNewInstanceAfterCreateAction(
+    requestedFollowUp: any,
+    isGameRunning: any
+): NewInstanceAfterCreateAction {
+    if (!requestedFollowUp) {
+        return '';
+    }
+    return isGameRunning ? 'openInGame' : 'selfInvite';
+}
+
+export function isNewInstanceSelfInviteRequest(request: any): boolean {
+    return request?.afterCreateAction === 'selfInvite';
+}
+
+export function isNewInstanceOpenInGameRequest(request: any): boolean {
+    return request?.afterCreateAction === 'openInGame';
+}
+
 export function useWorldInstanceActions({
     world,
     currentEndpoint,
     currentUserId,
+    isGameRunning,
     profileWorldId,
     newInstanceGroups,
     actionStatusRef,
@@ -104,7 +125,7 @@ export function useWorldInstanceActions({
     }
 
     async function openNewInstanceDialog(
-        selfInvite: any = false,
+        requestedFollowUp: any = false,
         seed: any = null
     ) {
         if (!world.id || actionStatusRef.current !== 'idle') {
@@ -112,7 +133,15 @@ export function useWorldInstanceActions({
         }
         try {
             const defaults = await loadNewInstanceDefaults(seed);
-            setNewInstanceRequest({ selfInvite, defaults });
+            const afterCreateAction = resolveNewInstanceAfterCreateAction(
+                requestedFollowUp,
+                isGameRunning
+            );
+            setNewInstanceRequest({
+                selfInvite: afterCreateAction === 'selfInvite',
+                afterCreateAction,
+                defaults
+            });
         } catch (error) {
             toast.error(
                 error instanceof Error
@@ -205,7 +234,10 @@ export function useWorldInstanceActions({
         ) {
             return;
         }
-        const shouldSelfInvite = Boolean(newInstanceRequest.selfInvite);
+        const shouldSelfInvite =
+            isNewInstanceSelfInviteRequest(newInstanceRequest);
+        const shouldOpenInGame =
+            isNewInstanceOpenInGameRequest(newInstanceRequest);
         const targetWorldId = world.id;
         const targetEndpoint = currentEndpoint;
         if (form.accessType === 'group' && !normalizeEntityId(form.groupId)) {
@@ -296,7 +328,8 @@ export function useWorldInstanceActions({
             }
             setNewInstanceRequest((current: any) => ({
                 ...(current || {}),
-                selfInvite: Boolean(current?.selfInvite),
+                selfInvite: isNewInstanceSelfInviteRequest(current),
+                afterCreateAction: current?.afterCreateAction || '',
                 defaults: form,
                 created
             }));
@@ -336,6 +369,8 @@ export function useWorldInstanceActions({
                         );
                     }
                 }
+            } else if (shouldOpenInGame) {
+                await openCreatedInstanceInGameRequest(created);
             } else {
                 toast.success(t('dialog.world.success.instance_created'));
             }
@@ -349,6 +384,29 @@ export function useWorldInstanceActions({
             actionStatusRef.current = 'idle';
             setActionStatus('idle');
         }
+    }
+
+    async function openCreatedInstanceInGameRequest(created: any) {
+        const opened = await tryOpenLaunchLocation(
+            created.location,
+            created.shortName || created.secureOrShortName || '',
+            currentEndpoint
+        );
+        if (!opened) {
+            await selfInviteToInstance(
+                created.location,
+                created.shortName || created.secureOrShortName || '',
+                currentEndpoint
+            );
+            toast.warning(
+                t(
+                    'dialog.world.error.failed_open_instance_in_vrchat_falling_back_to_self_invite'
+                )
+            );
+            toast.success(t('message.invite.self_sent'));
+            return;
+        }
+        toast.success(t('dialog.world.success.vrchat_launch_request_sent'));
     }
 
     async function copyCreatedInstance(created: any) {
@@ -432,26 +490,7 @@ export function useWorldInstanceActions({
         actionStatusRef.current = 'new-instance';
         setActionStatus('new-instance');
         try {
-            const opened = await tryOpenLaunchLocation(
-                created.location,
-                created.shortName || created.secureOrShortName || '',
-                currentEndpoint
-            );
-            if (!opened) {
-                await selfInviteToInstance(
-                    created.location,
-                    created.shortName || created.secureOrShortName || '',
-                    currentEndpoint
-                );
-                toast.warning(
-                    t(
-                        'dialog.world.error.failed_open_instance_in_vrchat_falling_back_to_self_invite'
-                    )
-                );
-                toast.success(t('message.invite.self_sent'));
-                return;
-            }
-            toast.success(t('dialog.world.success.vrchat_launch_request_sent'));
+            await openCreatedInstanceInGameRequest(created);
         } catch (error) {
             toast.error(
                 error instanceof Error
