@@ -16,7 +16,9 @@ pub struct OvrToolkit {
 type WsSender =
     futures_util::stream::SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>;
 
-const VRCX_ICON_BYTES: &[u8] = include_bytes!("../assets/icon.png");
+const OVR_TOOLKIT_ICON_BYTES: &[u8] = include_bytes!("../assets/icon.png");
+const XS_NOTIFICATION_ICON_BYTES: &[u8] = include_bytes!("../assets/xs_notification_icon.png");
+const MAX_UDP_PAYLOAD_BYTES: usize = 65_507;
 
 impl OvrToolkit {
     pub fn new() -> Self {
@@ -37,7 +39,7 @@ impl OvrToolkit {
         image: Option<&str>,
     ) {
         let mut messages: Vec<serde_json::Value> = Vec::new();
-        let icon_b64 = notification_icon_base64(image);
+        let icon_b64 = ovr_toolkit_icon_base64(image);
 
         if wrist_notification {
             messages.push(serde_json::json!({
@@ -85,13 +87,35 @@ pub fn send_xs_notification(
     opacity: f64,
     image: Option<&str>,
 ) -> Result<(), String> {
+    let payload = xs_notification_payload(title, content, timeout, opacity, image);
+    let bytes = serde_json::to_vec(&payload).map_err(|error| format!("serialize: {error}"))?;
+    if bytes.len() > MAX_UDP_PAYLOAD_BYTES {
+        return Err(format!(
+            "payload too large: {} bytes exceeds UDP datagram limit",
+            bytes.len()
+        ));
+    }
+    let socket = UdpSocket::bind("127.0.0.1:0").map_err(|error| format!("bind: {error}"))?;
+    socket
+        .send_to(&bytes, "127.0.0.1:42069")
+        .map_err(|error| format!("send: {error}"))?;
+    Ok(())
+}
+
+fn xs_notification_payload(
+    title: &str,
+    content: &str,
+    timeout: i32,
+    opacity: f64,
+    image: Option<&str>,
+) -> serde_json::Value {
     let icon = image.map(str::trim).filter(|value| !value.is_empty());
     let use_base64_icon = icon.is_none();
     let icon = icon
         .map(ToOwned::to_owned)
-        .unwrap_or_else(|| B64.encode(VRCX_ICON_BYTES));
+        .unwrap_or_else(|| B64.encode(XS_NOTIFICATION_ICON_BYTES));
     let height = xs_notification_height(content);
-    let payload = serde_json::json!({
+    serde_json::json!({
         "messageType": 1,
         "title": title,
         "content": content,
@@ -103,12 +127,7 @@ pub fn send_xs_notification(
         "useBase64Icon": use_base64_icon,
         "icon": icon,
         "opacity": opacity
-    });
-    let socket = UdpSocket::bind("127.0.0.1:0").map_err(|error| format!("bind: {error}"))?;
-    socket
-        .send_to(payload.to_string().as_bytes(), "127.0.0.1:42069")
-        .map_err(|error| format!("send: {error}"))?;
-    Ok(())
+    })
 }
 
 fn xs_notification_height(content: &str) -> f32 {
@@ -120,13 +139,13 @@ fn xs_notification_height(content: &str) -> f32 {
     }
 }
 
-fn notification_icon_base64(image: Option<&str>) -> String {
+fn ovr_toolkit_icon_base64(image: Option<&str>) -> String {
     image
         .map(str::trim)
         .filter(|path| !path.is_empty() && Path::new(path).exists())
         .and_then(|path| std::fs::read(path).ok())
         .map(|bytes| B64.encode(bytes))
-        .unwrap_or_else(|| B64.encode(VRCX_ICON_BYTES))
+        .unwrap_or_else(|| B64.encode(OVR_TOOLKIT_ICON_BYTES))
 }
 
 async fn connect_ws() -> Result<WsSender, String> {
@@ -170,4 +189,35 @@ async fn send_with_persistent_conn(
     send_all(&mut ws, &messages).await?;
     *guard = Some(ws);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn xs_default_notification_payload_fits_udp_datagram() {
+        let payload = xs_notification_payload("VRCX-0", "Friend joined a world", 3, 1.0, None);
+        let bytes = serde_json::to_vec(&payload).expect("payload should serialize");
+
+        assert!(
+            bytes.len() <= MAX_UDP_PAYLOAD_BYTES,
+            "payload is {} bytes",
+            bytes.len()
+        );
+    }
+
+    #[test]
+    fn xs_image_path_payload_does_not_embed_default_icon() {
+        let payload = xs_notification_payload(
+            "VRCX-0",
+            "Friend joined a world",
+            3,
+            1.0,
+            Some("C:/avatar.png"),
+        );
+
+        assert_eq!(payload["useBase64Icon"], false);
+        assert_eq!(payload["icon"], "C:/avatar.png");
+    }
 }
