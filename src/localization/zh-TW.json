@@ -430,7 +430,7 @@
             "no_unseen_notifications": "沒有未讀通知"
         },
         "success": {
-            "vrchat_launch_request_sent": "已傳送 VRChat 啟動請求",
+            "vrchat_launch_request_sent": "已在 VRChat 中開啟",
             "invite_request_sent": "邀請請求已傳送",
             "boop_sent": "戳一戳已傳送",
             "friend_and_favorite_snapshots_refreshed": "已重新整理好友"
@@ -568,7 +568,7 @@
                 "favorites_only": "僅收藏"
             },
             "success": {
-                "vrchat_launch_request_sent": "已傳送 VRChat 啟動請求",
+                "vrchat_launch_request_sent": "已在 VRChat 中開啟",
                 "invite_request_sent": "請求加入已傳送",
                 "boop_sent": "戳一戳已傳送"
             },
@@ -961,7 +961,7 @@
                 "favorite_group_cleared": "收藏分組已清空",
                 "local_favorite_group_deleted": "本機收藏分組已刪除",
                 "avatar_history_cleared": "角色歷史已清空",
-                "vrchat_launch_request_sent": "已傳送 VRChat 啟動請求",
+                "vrchat_launch_request_sent": "已在 VRChat 中開啟",
                 "invite_request_sent": "邀請請求已傳送",
                 "boop_sent": "戳一戳已傳送",
                 "avatar_selected": "角色已選擇",
@@ -1195,7 +1195,7 @@
             "success": {
                 "friend_detail_loading_cancelled": "好友詳細資訊載入已取消",
                 "roster_bootstrap_did_not_complete": "好友列表初始化未完成",
-                "vrchat_launch_request_sent": "已傳送 VRChat 啟動請求",
+                "vrchat_launch_request_sent": "已在 VRChat 中開啟",
                 "invite_request_sent": "邀請請求已傳送",
                 "boop_sent": "戳一戳已傳送"
             },
@@ -2092,9 +2092,23 @@
                         "field_event": "event 與 category 用於識別通知的類型與分類。",
                         "field_title_message": "title 與 message 為已本地化的通知文字。",
                         "field_user": "user.id 與 user.displayName 用於識別相關的 VRChat 使用者；若有相關用戶，則會提供這些欄位。",
-                        "field_location": "location 與 worldName 用於描述相關的房間或世界；若有相關資訊，則會提供這些欄位。",
-                        "field_timestamp": "timestamp 表示通知建立時的 UTC 時間。",
-                        "field_discord": "Discord 格式會將相同的資料對應至 Discord Webhook 的 content 與 embeds 欄位。"
+                        "field_location": "location/locationId 保留原始房間 tag；worldId、worldName 與 displayLocation 會在可用時提供解析後的世界上下文。",
+                        "field_timestamp": "timestamp 是 UTC 時間；localTime 是同一時間的本地格式。",
+                        "field_discord": "Discord 格式會將相同的資料對應至 Discord Webhook 的 content 與 embeds 欄位。",
+                        "fields": "通用欄位",
+                        "field_option_version": "version",
+                        "field_option_event": "event",
+                        "field_option_category": "category",
+                        "field_option_title": "title",
+                        "field_option_message": "message",
+                        "field_option_user": "user",
+                        "field_option_location": "location",
+                        "field_option_location_id": "locationId",
+                        "field_option_world_id": "worldId",
+                        "field_option_display_location": "displayLocation",
+                        "field_option_world_name": "worldName",
+                        "field_option_timestamp": "timestamp",
+                        "field_option_local_time": "localTime"
                     },
                     "text_to_speech": {
                         "header": "文字轉語音",
@@ -3530,7 +3544,7 @@
             },
             "success": {
                 "world_refreshed": "世界已重新整理",
-                "vrchat_launch_request_sent": "已傳送 VRChat 啟動請求",
+                "vrchat_launch_request_sent": "已在 VRChat 中開啟",
                 "world_cache_deleted": "世界快取已刪除",
                 "world_persistent_data_deleted": "世界持久化資料已刪除",
                 "world_deleted": "世界已刪除",

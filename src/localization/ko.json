@@ -431,7 +431,7 @@
             "invite_request_sent": "초대 요청이 전송되었습니다.",
             "boop_sent": "삑삑 보냈어",
             "friend_and_favorite_snapshots_refreshed": "친구가 새로고침되었습니다.",
-            "vrchat_launch_request_sent": "VRChat 실행 요청이 전송되었습니다."
+            "vrchat_launch_request_sent": "VRChat에서 열었습니다."
         },
         "error": {
             "cannot_invite_from_the_current_instance_type": "현재 인스턴스 유형에서는 초대할 수 없습니다.",
@@ -563,7 +563,7 @@
             "success": {
                 "invite_request_sent": "초대 요청이 전송되었습니다.",
                 "boop_sent": "삑삑 보냈어",
-                "vrchat_launch_request_sent": "VRChat 실행 요청이 전송되었습니다."
+                "vrchat_launch_request_sent": "VRChat에서 열었습니다."
             },
             "loading": {
                 "loading_feed_rows": "피드 행 로드 중"
@@ -934,7 +934,7 @@
                 "copied_selected_favorite_ids": "선택한 즐겨찾기 ID를 복사했습니다.",
                 "selected_favorites_removed": "선택한 즐겨찾기가 삭제되었습니다.",
                 "vrchat_favorite_removed": "VRChat 즐겨찾기가 삭제되었습니다.",
-                "vrchat_launch_request_sent": "VRChat 실행 요청이 전송되었습니다."
+                "vrchat_launch_request_sent": "VRChat에서 열었습니다."
             },
             "action": {
                 "remove_favorite": "즐겨찾기 삭제",
@@ -1166,7 +1166,7 @@
                 "roster_bootstrap_did_not_complete": "명단 부트스트랩이 완료되지 않았습니다.",
                 "invite_request_sent": "초대 요청이 전송되었습니다.",
                 "boop_sent": "삑삑 보냈어",
-                "vrchat_launch_request_sent": "VRChat 실행 요청이 전송되었습니다."
+                "vrchat_launch_request_sent": "VRChat에서 열었습니다."
             },
             "empty": {
                 "no_friends_are_available_for_mutual_friends_loading": "서로 친구를 불러오는 데 사용할 수 있는 친구가 없습니다.",
@@ -2021,9 +2021,23 @@
                         "field_event": "event and category identify the notification type and grouping.",
                         "field_title_message": "title and message are the localized notification text.",
                         "field_user": "user.id and user.displayName identify the related VRChat user when one is available.",
-                        "field_location": "location and worldName describe the related instance or world when available.",
-                        "field_timestamp": "timestamp is the UTC time when the notification was created.",
-                        "field_discord": "Discord format maps the same data into content and embeds for Discord webhooks."
+                        "field_location": "location/locationId keep the raw instance tag; worldId, worldName, and displayLocation provide parsed world context when available.",
+                        "field_timestamp": "timestamp is UTC; localTime is the same time formatted locally.",
+                        "field_discord": "Discord format maps the same data into content and embeds for Discord webhooks.",
+                        "fields": "Generic fields",
+                        "field_option_version": "version",
+                        "field_option_event": "event",
+                        "field_option_category": "category",
+                        "field_option_title": "title",
+                        "field_option_message": "message",
+                        "field_option_user": "user",
+                        "field_option_location": "location",
+                        "field_option_location_id": "locationId",
+                        "field_option_world_id": "worldId",
+                        "field_option_display_location": "displayLocation",
+                        "field_option_world_name": "worldName",
+                        "field_option_timestamp": "timestamp",
+                        "field_option_local_time": "localTime"
                     },
                     "text_to_speech": {
                         "header": "텍스트 음성 변환",
@@ -3466,7 +3480,7 @@
                 "youtube_preview_updated": "YouTube 미리보기가 업데이트되었습니다.",
                 "world_tags_updated": "세계 태그가 업데이트되었습니다.",
                 "allowed_domains_updated": "허용된 도메인이 업데이트되었습니다.",
-                "vrchat_launch_request_sent": "VRChat 실행 요청이 전송되었습니다.",
+                "vrchat_launch_request_sent": "VRChat에서 열었습니다.",
                 "instance_url_copied": "인스턴스 URL 복사됨"
             },
             "description": {

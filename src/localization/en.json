@@ -430,7 +430,7 @@
             "no_unseen_notifications": "No unread notifications"
         },
         "success": {
-            "vrchat_launch_request_sent": "VRChat launch request sent",
+            "vrchat_launch_request_sent": "Opened in VRChat",
             "invite_request_sent": "Invite request sent",
             "boop_sent": "Boop sent",
             "friend_and_favorite_snapshots_refreshed": "Friends refreshed"
@@ -568,7 +568,7 @@
                 "favorites_only": "Favorites only"
             },
             "success": {
-                "vrchat_launch_request_sent": "VRChat launch request sent",
+                "vrchat_launch_request_sent": "Opened in VRChat",
                 "invite_request_sent": "Invite request sent",
                 "boop_sent": "Boop sent"
             },
@@ -961,7 +961,7 @@
                 "favorite_group_cleared": "Favorite group cleared",
                 "local_favorite_group_deleted": "Local favorite group deleted",
                 "avatar_history_cleared": "Avatar history cleared",
-                "vrchat_launch_request_sent": "VRChat launch request sent",
+                "vrchat_launch_request_sent": "Opened in VRChat",
                 "invite_request_sent": "Invite request sent",
                 "boop_sent": "Boop sent",
                 "avatar_selected": "Avatar selected",
@@ -1195,7 +1195,7 @@
             "success": {
                 "friend_detail_loading_cancelled": "Friend detail loading cancelled",
                 "roster_bootstrap_did_not_complete": "The roster bootstrap did not complete",
-                "vrchat_launch_request_sent": "VRChat launch request sent",
+                "vrchat_launch_request_sent": "Opened in VRChat",
                 "invite_request_sent": "Invite request sent",
                 "boop_sent": "Boop sent"
             },
@@ -2092,9 +2092,23 @@
                         "field_event": "event and category identify the notification type and grouping.",
                         "field_title_message": "title and message are the localized notification text.",
                         "field_user": "user.id and user.displayName identify the related VRChat user when one is available.",
-                        "field_location": "location and worldName describe the related instance or world when available.",
-                        "field_timestamp": "timestamp is the UTC time when the notification was created.",
-                        "field_discord": "Discord format maps the same data into content and embeds for Discord webhooks."
+                        "field_location": "location/locationId keep the raw instance tag; worldId, worldName, and displayLocation provide parsed world context when available.",
+                        "field_timestamp": "timestamp is UTC; localTime is the same time formatted locally.",
+                        "field_discord": "Discord format maps the same data into content and embeds for Discord webhooks.",
+                        "fields": "Generic fields",
+                        "field_option_version": "version",
+                        "field_option_event": "event",
+                        "field_option_category": "category",
+                        "field_option_title": "title",
+                        "field_option_message": "message",
+                        "field_option_user": "user",
+                        "field_option_location": "location",
+                        "field_option_location_id": "locationId",
+                        "field_option_world_id": "worldId",
+                        "field_option_display_location": "displayLocation",
+                        "field_option_world_name": "worldName",
+                        "field_option_timestamp": "timestamp",
+                        "field_option_local_time": "localTime"
                     },
                     "text_to_speech": {
                         "header": "Text-To-Speech",
@@ -3530,7 +3544,7 @@
             },
             "success": {
                 "world_refreshed": "World refreshed",
-                "vrchat_launch_request_sent": "VRChat launch request sent",
+                "vrchat_launch_request_sent": "Opened in VRChat",
                 "world_cache_deleted": "World cache deleted",
                 "world_persistent_data_deleted": "World persistent data deleted",
                 "world_deleted": "World deleted",

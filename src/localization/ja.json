@@ -430,7 +430,7 @@
             "no_unseen_notifications": "未読の通知はありません"
         },
         "success": {
-            "vrchat_launch_request_sent": "VRChat の起動リクエストを送信しました",
+            "vrchat_launch_request_sent": "VRChat で開きました",
             "invite_request_sent": "招待リクエストを送信しました",
             "boop_sent": "Boop を送信しました",
             "friend_and_favorite_snapshots_refreshed": "フレンドを更新しました"
@@ -568,7 +568,7 @@
                 "favorites_only": "お気に入りのみ"
             },
             "success": {
-                "vrchat_launch_request_sent": "VRChat の起動リクエストを送信しました",
+                "vrchat_launch_request_sent": "VRChat で開きました",
                 "invite_request_sent": "参加リクエストを送信しました",
                 "boop_sent": "Boop を送信しました"
             },
@@ -961,7 +961,7 @@
                 "favorite_group_cleared": "お気に入りグループをクリアしました",
                 "local_favorite_group_deleted": "ローカルお気に入りグループを削除しました",
                 "avatar_history_cleared": "アバター履歴をクリアしました",
-                "vrchat_launch_request_sent": "VRChat の起動リクエストを送信しました",
+                "vrchat_launch_request_sent": "VRChat で開きました",
                 "invite_request_sent": "参加リクエストを送信しました",
                 "boop_sent": "Boop を送信しました",
                 "avatar_selected": "アバターを選択しました",
@@ -1195,7 +1195,7 @@
             "success": {
                 "friend_detail_loading_cancelled": "フレンド詳細の読み込みをキャンセルしました",
                 "roster_bootstrap_did_not_complete": "フレンド一覧の初期化が完了しませんでした",
-                "vrchat_launch_request_sent": "VRChat の起動リクエストを送信しました",
+                "vrchat_launch_request_sent": "VRChat で開きました",
                 "invite_request_sent": "招待リクエストを送信しました",
                 "boop_sent": "Boop を送信しました"
             },
@@ -2092,9 +2092,23 @@
                         "field_event": "event と category は通知の種類と分類を示します。",
                         "field_title_message": "title と message はローカライズ済みの通知テキストです。",
                         "field_user": "user.id と user.displayName は関連する VRChat ユーザーを示します。関連ユーザーがない場合は空になることがあります。",
-                        "field_location": "location と worldName は関連するインスタンスまたはワールドを示します。ワールド情報がない場合は空になることがあります。",
-                        "field_timestamp": "timestamp は通知が作成された UTC 時刻です。",
-                        "field_discord": "Discord 形式では、同じデータを Discord Webhook の content と embeds に割り当てます。"
+                        "field_location": "location/locationId keep the raw instance tag; worldId, worldName, and displayLocation provide parsed world context when available.",
+                        "field_timestamp": "timestamp is UTC; localTime is the same time formatted locally.",
+                        "field_discord": "Discord 形式では、同じデータを Discord Webhook の content と embeds に割り当てます。",
+                        "fields": "Generic fields",
+                        "field_option_version": "version",
+                        "field_option_event": "event",
+                        "field_option_category": "category",
+                        "field_option_title": "title",
+                        "field_option_message": "message",
+                        "field_option_user": "user",
+                        "field_option_location": "location",
+                        "field_option_location_id": "locationId",
+                        "field_option_world_id": "worldId",
+                        "field_option_display_location": "displayLocation",
+                        "field_option_world_name": "worldName",
+                        "field_option_timestamp": "timestamp",
+                        "field_option_local_time": "localTime"
                     },
                     "text_to_speech": {
                         "header": "テキスト読み上げ",
@@ -3529,7 +3543,7 @@
             },
             "success": {
                 "world_refreshed": "ワールドを更新しました",
-                "vrchat_launch_request_sent": "VRChat の起動リクエストを送信しました",
+                "vrchat_launch_request_sent": "VRChat で開きました",
                 "world_cache_deleted": "ワールドキャッシュを削除しました",
                 "world_persistent_data_deleted": "ワールド永続データを削除しました",
                 "world_deleted": "ワールドを削除しました",
