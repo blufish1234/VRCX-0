@@ -47,7 +47,9 @@ describe('buildConfigSnapshot', () => {
             bools: {
                 backgroundModeEnabled: true,
                 ovrtWristNotifications: true,
-                discordActive: true
+                discordActive: true,
+                mcpServerEnabled: true,
+                webhookEnabled: true
             },
             strings: {
                 autoAcceptInviteRequests: 'Friends',
@@ -65,6 +67,8 @@ describe('buildConfigSnapshot', () => {
             ovrtHudNotifications: true,
             ovrtWristNotifications: true,
             discordActive: true,
+            mcpServerEnabled: true,
+            webhookEnabled: true,
             autoStateChangeEnabled: false,
             autoAcceptInviteRequests: 'friends',
             avatarAutoCleanup: 'off',

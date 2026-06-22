@@ -36,6 +36,8 @@ export type TelemetryConfigSnapshot = {
     ovrtHudNotifications: boolean;
     ovrtWristNotifications: boolean;
     discordActive: boolean;
+    mcpServerEnabled: boolean;
+    webhookEnabled: boolean;
     autoStateChangeEnabled: boolean;
     autoAcceptInviteRequests: string;
     avatarAutoCleanup: string;
