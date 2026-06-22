@@ -51,11 +51,11 @@ const TOP_WORLDS_LOADING_DELAY = 150;
 const OVERLAP_LOADING_DELAY = 120;
 const OVERLAP_RENDER_DELAY = 80;
 
-function getRangeDays(period: any) {
+export function getRangeDays(period: any) {
     return Number.parseInt(period, 10) || 30;
 }
 
-function getDisplayDayLabels(dayLabels: any, weekStartsOn: any) {
+export function getDisplayDayLabels(dayLabels: any, weekStartsOn: any) {
     return Array.from(
         { length: 7 },
         (_: any, index: any) => dayLabels[(weekStartsOn + index) % 7]

@@ -366,7 +366,7 @@ async function ensureSnapshot(
     return job;
 }
 
-function pickActivityNormalizeConfig(isSelf: any, rangeDays: any) {
+export function pickActivityNormalizeConfig(isSelf: any, rangeDays: any) {
     const common: any = {
         7: {
             floorPercentile: 10,
@@ -401,7 +401,7 @@ function pickActivityNormalizeConfig(isSelf: any, rangeDays: any) {
     );
 }
 
-function pickOverlapNormalizeConfig(rangeDays: any) {
+export function pickOverlapNormalizeConfig(rangeDays: any) {
     return (
         {
             7: {

@@ -4,8 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { Location } from '@/components/Location';
-import { userImage } from '@/services/entityMediaService';
 import worldProfileRepository from '@/repositories/worldProfileRepository';
+import { userImage } from '@/services/entityMediaService';
 import { sendInviteToLocation } from '@/services/inviteDeliveryService';
 import { selfInviteToInstance } from '@/services/launchService';
 import { parseLocation } from '@/shared/utils/locationParser';
@@ -42,41 +42,15 @@ import { Field, FieldLabel } from '@/ui/shadcn/field';
 import { Input } from '@/ui/shadcn/input';
 import { Spinner } from '@/ui/shadcn/spinner';
 
-function normalizeId(value: any) {
-    return typeof value === 'string'
-        ? value.trim()
-        : String(value ?? '').trim();
-}
-
-function onlineFriendIdsFromGroup(userIds: any, friendsById: any) {
-    return (Array.isArray(userIds) ? userIds : [])
-        .map(normalizeId)
-        .filter((userId: any, index: any, source: any) => {
-            const friend = friendsById[userId];
-            return (
-                userId &&
-                source.indexOf(userId) === index &&
-                (friend?.stateBucket === 'online' || friend?.state === 'online')
-            );
-        });
-}
-
-function displayNameForUser(userId: any, friendsById: any, currentUser: any) {
-    if (currentUser?.id === userId) {
-        return currentUser.displayName || currentUser.username || userId;
-    }
-    const friend = friendsById[userId];
-    const ref =
-        friend?.ref && typeof friend.ref === 'object' ? friend.ref : friend;
-    return ref?.displayName || ref?.username || friend?.name || userId;
-}
-
-function pushUniqueLabel(labels: string[], label: unknown) {
-    const normalizedLabel = normalizeId(label);
-    if (normalizedLabel && !labels.includes(normalizedLabel)) {
-        labels.push(normalizedLabel);
-    }
-}
+import {
+    buildFavoriteGroupItems,
+    buildFavoriteGroupLabelsByUserId,
+    buildFriendsInCurrentInstanceIds,
+    displayNameForUser,
+    filterInviteUserIds,
+    normalizeId,
+    sortInviteUserIdsWithSelectedFirst
+} from './inviteDialogModel';
 
 export function InstanceInviteDialog({
     open,
@@ -173,23 +147,16 @@ export function InstanceInviteDialog({
         return ids;
     }, [activeIds, currentUserId, onlineIds]);
 
-    const filteredUserIds = useMemo(() => {
-        const query = search.trim().toLowerCase();
-        if (!query) {
-            return selectableUserIds;
-        }
-        return selectableUserIds.filter((userId: any) => {
-            const displayName = displayNameForUser(
-                userId,
+    const filteredUserIds = useMemo(
+        () =>
+            filterInviteUserIds({
+                selectableUserIds,
+                search,
                 friendsById,
                 currentUser
-            );
-            return (
-                userId.toLowerCase().includes(query) ||
-                displayName.toLowerCase().includes(query)
-            );
-        });
-    }, [currentUser, friendsById, search, selectableUserIds]);
+            }),
+        [currentUser, friendsById, search, selectableUserIds]
+    );
 
     const selectedUserIdSet = useMemo(
         () => new Set(selectedUserIds.map(normalizeId).filter(Boolean)),
@@ -198,120 +165,55 @@ export function InstanceInviteDialog({
 
     const sortedFilteredUserIds = useMemo(
         () =>
-            [...filteredUserIds].sort((left: any, right: any) => {
-                const leftSelected = selectedUserIdSet.has(normalizeId(left));
-                const rightSelected = selectedUserIdSet.has(
-                    normalizeId(right)
-                );
-                if (leftSelected !== rightSelected) {
-                    return leftSelected ? -1 : 1;
-                }
-                return 0;
-            }),
+            sortInviteUserIdsWithSelectedFirst(
+                filteredUserIds,
+                selectedUserIdSet
+            ),
         [filteredUserIds, selectedUserIdSet]
     );
 
-    const favoriteGroupLabelsByUserId = useMemo(() => {
-        const labelsByUserId: Record<string, string[]> = {};
-        function addLabel(userId: unknown, label: unknown) {
-            const normalizedUserId = normalizeId(userId);
-            if (!normalizedUserId) {
-                return;
-            }
-            if (!labelsByUserId[normalizedUserId]) {
-                labelsByUserId[normalizedUserId] = [];
-            }
-            pushUniqueLabel(labelsByUserId[normalizedUserId], label);
-        }
+    const favoriteGroupLabelsByUserId = useMemo(
+        () =>
+            buildFavoriteGroupLabelsByUserId({
+                favoriteFriendGroups,
+                groupedFavoriteFriendIdsByGroupKey,
+                localFriendFavoriteGroups,
+                localFriendFavorites
+            }),
+        [
+            favoriteFriendGroups,
+            groupedFavoriteFriendIdsByGroupKey,
+            localFriendFavoriteGroups,
+            localFriendFavorites
+        ]
+    );
 
-        for (const group of Array.isArray(favoriteFriendGroups)
-            ? favoriteFriendGroups
-            : []) {
-            const key = normalizeId(group?.key);
-            const label = group?.displayName || key;
-            for (const userId of Array.isArray(
-                groupedFavoriteFriendIdsByGroupKey?.[key]
-            )
-                ? groupedFavoriteFriendIdsByGroupKey[key]
-                : []) {
-                addLabel(userId, label);
-            }
-        }
+    const friendsInCurrentInstanceIds = useMemo(
+        () =>
+            buildFriendsInCurrentInstanceIds({
+                currentLocationPlayerIds,
+                friendsById
+            }),
+        [currentLocationPlayerIds, friendsById]
+    );
 
-        for (const groupName of Array.isArray(localFriendFavoriteGroups)
-            ? localFriendFavoriteGroups
-            : Object.keys(localFriendFavorites || {})) {
-            const key = normalizeId(groupName);
-            for (const userId of Array.isArray(localFriendFavorites?.[key])
-                ? localFriendFavorites[key]
-                : []) {
-                addLabel(userId, key);
-            }
-        }
-
-        return labelsByUserId;
-    }, [
-        favoriteFriendGroups,
-        groupedFavoriteFriendIdsByGroupKey,
-        localFriendFavoriteGroups,
-        localFriendFavorites
-    ]);
-
-    const friendsInCurrentInstanceIds = useMemo(() => {
-        const ids = new Set(
-            (Array.isArray(currentLocationPlayerIds)
-                ? currentLocationPlayerIds
-                : []
-            ).map(normalizeId)
-        );
-        return [...ids].filter((userId: any) => userId && friendsById[userId]);
-    }, [currentLocationPlayerIds, friendsById]);
-
-    const favoriteGroupItems = useMemo(() => {
-        const remote = (
-            Array.isArray(favoriteFriendGroups) ? favoriteFriendGroups : []
-        )
-            .map((group: any) => {
-                const key = normalizeId(group?.key);
-                const userIds = onlineFriendIdsFromGroup(
-                    groupedFavoriteFriendIdsByGroupKey?.[key],
-                    friendsById
-                );
-                return {
-                    key: `remote:${key}`,
-                    label: group?.displayName || key,
-                    userIds
-                };
-            })
-            .filter((group: any) => group.key && group.userIds.length);
-
-        const local = (
-            Array.isArray(localFriendFavoriteGroups)
-                ? localFriendFavoriteGroups
-                : []
-        )
-            .map((groupName: any) => {
-                const key = normalizeId(groupName);
-                const userIds = onlineFriendIdsFromGroup(
-                    localFriendFavorites?.[key],
-                    friendsById
-                );
-                return {
-                    key: `local:${key}`,
-                    label: key,
-                    userIds
-                };
-            })
-            .filter((group: any) => group.key && group.userIds.length);
-
-        return { remote, local };
-    }, [
-        favoriteFriendGroups,
-        friendsById,
-        groupedFavoriteFriendIdsByGroupKey,
-        localFriendFavoriteGroups,
-        localFriendFavorites
-    ]);
+    const favoriteGroupItems = useMemo(
+        () =>
+            buildFavoriteGroupItems({
+                favoriteFriendGroups,
+                groupedFavoriteFriendIdsByGroupKey,
+                localFriendFavoriteGroups,
+                localFriendFavorites,
+                friendsById
+            }),
+        [
+            favoriteFriendGroups,
+            friendsById,
+            groupedFavoriteFriendIdsByGroupKey,
+            localFriendFavoriteGroups,
+            localFriendFavorites
+        ]
+    );
 
     function addUserIds(userIds: any) {
         const ids = (Array.isArray(userIds) ? userIds : [])

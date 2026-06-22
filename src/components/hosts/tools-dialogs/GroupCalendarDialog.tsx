@@ -5,17 +5,10 @@ import {
     endOfYear,
     format,
     isSameMonth,
-    isValid,
-    parse,
-    startOfDay,
-    startOfMonth,
     startOfYear,
     subYears
 } from 'date-fns';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { enUS } from 'react-day-picker/locale/en-US';
-import { ja } from 'react-day-picker/locale/ja';
-import { zhCN } from 'react-day-picker/locale/zh-CN';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { replaceBioSymbols } from '@/shared/utils/string';
@@ -44,6 +37,15 @@ import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
 
 import { GroupEventCard } from './GroupEventCard';
 import {
+    buildEventsByDate,
+    buildFollowedCountByDate,
+    calendarDateKey,
+    calendarLocaleForLanguage,
+    dateKeyToLocalDate,
+    formatCalendarRequestDate,
+    monthDateFromKey
+} from './groupCalendarModel';
+import {
     getEndpoint,
     getEventGroupId,
     getEventId,
@@ -51,60 +53,8 @@ import {
     updateArrayValue
 } from './toolsDialogUtils';
 
-const DATE_KEY_FORMAT = 'yyyy-MM-dd';
-
 function getLocalTimeZone() {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
-}
-
-function dateKeyToLocalDate(dateKey: any) {
-    const value = String(dateKey || '');
-    const parsed = parse(value, DATE_KEY_FORMAT, new Date());
-    const valid = isValid(parsed) && format(parsed, DATE_KEY_FORMAT) === value;
-    return startOfDay(valid ? parsed : new Date());
-}
-
-function monthDateFromKey(dateKey: any) {
-    return startOfMonth(dateKeyToLocalDate(dateKey));
-}
-
-function calendarDateKey(value: any, timeZone: any) {
-    try {
-        const parts = new Intl.DateTimeFormat('en-US', {
-            timeZone,
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        }).formatToParts(value || new Date());
-        const values = Object.fromEntries(
-            parts
-                .filter((part: any) => part.type !== 'literal')
-                .map((part: any) => [part.type, part.value])
-        );
-        if (values.year && values.month && values.day) {
-            return `${values.year}-${values.month}-${values.day}`;
-        }
-    } catch {
-        // Fall back to local formatting if Intl cannot resolve the zone.
-    }
-    return selectedDateKey(value || new Date());
-}
-
-function formatCalendarRequestDate(value: any) {
-    return format(value, "yyyy-MM-dd'T'HH:mm:ss'Z'");
-}
-
-function calendarLocaleForLanguage(language: any) {
-    const normalized = String(language || '')
-        .replace('_', '-')
-        .toLowerCase();
-    if (normalized.startsWith('zh')) {
-        return zhCN;
-    }
-    if (normalized.startsWith('ja')) {
-        return ja;
-    }
-    return enUS;
 }
 
 function GroupCalendarDayButton({
@@ -208,35 +158,14 @@ export function GroupCalendarDialog({ open, onOpenChange }: any) {
         () => dateKeyToLocalDate(selectedDate),
         [selectedDate]
     );
-    const eventsByDate = useMemo(() => {
-        const result: any = {};
-        for (const event of events) {
-            const dateKey = selectedDateKey(event.startsAt);
-            if (!Array.isArray(result[dateKey])) {
-                result[dateKey] = [];
-            }
-            result[dateKey].push(event);
-        }
-        for (const rows of Object.values(result) as any[]) {
-            rows.sort((left: any, right: any) =>
-                compareAsc(new Date(left.startsAt), new Date(right.startsAt))
-            );
-        }
-        return result;
-    }, [events]);
-    const followedCountByDate = useMemo(() => {
-        const followedSet = new Set(followingIds);
-        const result: any = {};
-        for (const event of events) {
-            const eventId = getEventId(event);
-            if (!eventId || !followedSet.has(eventId)) {
-                continue;
-            }
-            const dateKey = selectedDateKey(event.startsAt);
-            result[dateKey] = (result[dateKey] ?? 0) + 1;
-        }
-        return result;
-    }, [events, followingIds]);
+    const eventsByDate = useMemo(
+        () => buildEventsByDate(events, calendarTimeZone),
+        [calendarTimeZone, events]
+    );
+    const followedCountByDate = useMemo(
+        () => buildFollowedCountByDate(events, followingIds, calendarTimeZone),
+        [calendarTimeZone, events, followingIds]
+    );
     const selectedDayEvents = useMemo(
         () => eventsByDate[selectedDate] || [],
         [eventsByDate, selectedDate]

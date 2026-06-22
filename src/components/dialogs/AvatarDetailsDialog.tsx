@@ -2,6 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
+import {
+    authorTagsCsv,
+    authorTagsFromCsv,
+    normalizeString,
+    styleName,
+    tagsKey
+} from '@/components/dialogs/avatarDetailsModel';
 import avatarProfileRepository from '@/repositories/avatarProfileRepository';
 import { Button } from '@/ui/shadcn/button';
 import {
@@ -31,49 +38,6 @@ import { Spinner } from '@/ui/shadcn/spinner';
 import { Textarea } from '@/ui/shadcn/textarea';
 
 const noneValue = '__none__';
-
-function normalizeString(value: any) {
-    return typeof value === 'string'
-        ? value.trim()
-        : String(value ?? '').trim();
-}
-
-function normalizeTagName(value: any, prefix: any) {
-    const normalized = String(value || '')
-        .trim()
-        .toLowerCase()
-        .replace(new RegExp(`^${prefix}`), '');
-    return normalized ? `${prefix}${normalized}` : '';
-}
-
-function authorTagsFromCsv(value: any) {
-    return Array.from(
-        new Set(
-            String(value || '')
-                .split(',')
-                .map((entry: any) => normalizeTagName(entry, 'author_tag_'))
-                .filter(Boolean)
-        )
-    );
-}
-
-function authorTagsCsv(tags: any) {
-    return (Array.isArray(tags) ? tags : [])
-        .filter(
-            (tag: any) =>
-                typeof tag === 'string' && tag.startsWith('author_tag_')
-        )
-        .map((tag: any) => tag.replace(/^author_tag_/, ''))
-        .join(',');
-}
-
-function tagsKey(tags: any) {
-    return (Array.isArray(tags) ? tags : []).slice().sort().join('\n');
-}
-
-function styleName(style: any) {
-    return normalizeString(style?.styleName || style?.name || style?.id);
-}
 
 function hasOwn(object: any, key: any) {
     return Object.prototype.hasOwnProperty.call(object, key);
