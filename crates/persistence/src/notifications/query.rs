@@ -467,3 +467,184 @@ fn build_type_filter(filters: &[String]) -> (String, DbParams) {
         params,
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use chrono::{TimeZone, Utc};
+    use serde_json::json;
+
+    use super::*;
+
+    fn v1_row() -> NotificationV1RowOutput {
+        NotificationV1RowOutput {
+            id: "notif_v1".into(),
+            created_at: "2026-06-22T10:30:00Z".into(),
+            r#type: "friendRequest".into(),
+            sender_user_id: "usr_sender".into(),
+            sender_username: "Sender Name".into(),
+            receiver_user_id: "usr_receiver".into(),
+            message: "Let's be friends".into(),
+            world_id: "wrld_invite".into(),
+            world_name: "Invite World".into(),
+            image_url: "https://images.example/world.png".into(),
+            invite_message: "Join here".into(),
+            request_message: "Can I join?".into(),
+            response_message: "Accepted".into(),
+            expired: 1,
+        }
+    }
+
+    fn v2_row() -> NotificationV2RowOutput {
+        NotificationV2RowOutput {
+            id: "notif_v2".into(),
+            created_at: "2026-06-22T11:00:00Z".into(),
+            updated_at: "2026-06-22T11:01:00Z".into(),
+            expires_at: "2026-06-23T11:00:00Z".into(),
+            r#type: "invite".into(),
+            link: "https://vrchat.com/home/world/wrld_2".into(),
+            link_text: "Open World".into(),
+            message: "Meet at the portal".into(),
+            title: "World Invite".into(),
+            image_url: "https://images.example/invite.png".into(),
+            seen: 1,
+            sender_user_id: "usr_sender_v2".into(),
+            sender_username: "Sender Two".into(),
+            data: r#"{"groupName":"Group Alpha"}"#.into(),
+            responses: r#"[{"responseType":"accept"}]"#.into(),
+            details: r#"{"worldId":"wrld_2","worldName":"Second World"}"#.into(),
+        }
+    }
+
+    #[test]
+    fn builds_notification_select_sql_with_ordering_and_optional_limit() {
+        assert_eq!(
+            notification_select_sql(
+                "usr_notifications",
+                &["id", "created_at", "type"],
+                " WHERE type IN (@type_0)",
+                true,
+            ),
+            "SELECT id, created_at, type FROM usr_notifications WHERE type IN (@type_0) ORDER BY created_at DESC, id DESC LIMIT @limit"
+        );
+        assert_eq!(
+            notification_select_sql("usr_notifications_v2", &["id"], "", false),
+            "SELECT id FROM usr_notifications_v2 ORDER BY created_at DESC, id DESC"
+        );
+    }
+
+    #[test]
+    fn parses_notification_dates_and_expiration_boundaries() {
+        let now = Utc.with_ymd_and_hms(2026, 6, 22, 10, 30, 0).unwrap();
+
+        assert_eq!(
+            notification_date_millis("2026-06-22T10:30:00Z"),
+            1_782_124_200_000
+        );
+        assert_eq!(notification_date_millis("not-a-date"), 0);
+        assert!(notification_expires_at_expired("2026-06-22T10:30:00Z", now));
+        assert!(!notification_expires_at_expired(
+            "2026-06-22T10:30:01Z",
+            now
+        ));
+        assert!(!notification_expires_at_expired("", now));
+        assert!(!notification_expires_at_expired("not-a-date", now));
+    }
+
+    #[test]
+    fn maps_v1_rows_to_legacy_notification_list_items() {
+        let item = notification_v1_list_item(v1_row());
+
+        assert_eq!(item.id, "notif_v1");
+        assert_eq!(item.version, 1);
+        assert_eq!(item.created_at, "2026-06-22T10:30:00Z");
+        assert_eq!(item.created_at_legacy, "2026-06-22T10:30:00Z");
+        assert_eq!(item.r#type, "friendRequest");
+        assert_eq!(item.message, "Let's be friends");
+        assert!(!item.seen);
+        assert_eq!(item.sender_user_id, "usr_sender");
+        assert_eq!(item.sender_username, "Sender Name");
+        assert_eq!(item.receiver_user_id, "usr_receiver");
+        assert!(item.data.as_object().unwrap().is_empty());
+        assert_eq!(item.responses, json!([]));
+        assert_eq!(item.details["worldId"], "wrld_invite");
+        assert_eq!(item.details["worldName"], "Invite World");
+        assert_eq!(item.details["inviteMessage"], "Join here");
+        assert!(item.expired);
+    }
+
+    #[test]
+    fn maps_v2_rows_to_notification_list_items_and_sanitizes_json_shapes() {
+        let now = Utc.with_ymd_and_hms(2026, 6, 22, 12, 0, 0).unwrap();
+        let item = notification_v2_list_item(v2_row(), now);
+
+        assert_eq!(item.id, "notif_v2");
+        assert_eq!(item.version, 2);
+        assert_eq!(item.updated_at, "2026-06-22T11:01:00Z");
+        assert_eq!(item.expires_at, "2026-06-23T11:00:00Z");
+        assert_eq!(item.r#type, "invite");
+        assert_eq!(item.link_text, "Open World");
+        assert!(item.seen);
+        assert!(item.receiver_user_id.is_empty());
+        assert_eq!(item.data["groupName"], "Group Alpha");
+        assert_eq!(item.responses[0]["responseType"], "accept");
+        assert_eq!(item.details["worldName"], "Second World");
+        assert!(!item.expired);
+
+        let dirty_item = notification_v2_list_item(
+            NotificationV2RowOutput {
+                data: "[]".into(),
+                responses: "{}".into(),
+                details: "not-json".into(),
+                expires_at: "2026-06-22T10:00:00Z".into(),
+                ..v2_row()
+            },
+            now,
+        );
+
+        assert!(dirty_item.data.as_object().unwrap().is_empty());
+        assert_eq!(dirty_item.responses, json!([]));
+        assert!(dirty_item.details.as_object().unwrap().is_empty());
+        assert!(dirty_item.expired);
+    }
+
+    #[test]
+    fn matches_notification_search_and_filters_across_projected_fields() {
+        let item = notification_v2_list_item(v2_row(), Utc::now());
+
+        assert!(notification_matches_search(&item, ""));
+        assert!(notification_matches_search(&item, "sender two"));
+        assert!(notification_matches_search(&item, "wrld_2"));
+        assert!(notification_matches_search(&item, "second world"));
+        assert!(notification_matches_search(&item, "group alpha"));
+        assert!(!notification_matches_search(&item, "missing text"));
+
+        assert!(notification_matches_filters(&item, &[]));
+        assert!(notification_matches_filters(
+            &item,
+            &["".into(), "invite".into()]
+        ));
+        assert!(!notification_matches_filters(
+            &item,
+            &["friendRequest".into()]
+        ));
+    }
+
+    #[test]
+    fn extracts_text_from_json_values_for_known_keys() {
+        let value = json!({
+            "worldName": "World",
+            "count": 7,
+            "enabled": true,
+            "missing": null
+        });
+
+        assert_eq!(notification_value_text(&value, "worldName"), "World");
+        assert_eq!(notification_value_text(&value, "count"), "7");
+        assert_eq!(notification_value_text(&value, "enabled"), "true");
+        assert_eq!(notification_value_text(&value, "missing"), "");
+        assert_eq!(
+            notification_value_text(&json!("not-object"), "worldName"),
+            ""
+        );
+    }
+}
