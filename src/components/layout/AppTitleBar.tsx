@@ -19,13 +19,13 @@ import { toast } from 'sonner';
 import { QuickSearchDialog } from '@/components/sidebar/QuickSearchDialog';
 import { cn } from '@/lib/utils';
 import { setSidebarCollapsedPreference } from '@/services/preferencesService';
-import { openOrInstallLatestAvailableUpdate } from '@/services/updateInstallService';
 import {
     closeWindow,
     isWindowMaximized,
     minimizeWindow,
     toggleMaximizeWindow
 } from '@/services/shellIntegrationService';
+import { openOrInstallLatestAvailableUpdate } from '@/services/updateInstallService';
 import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
@@ -44,8 +44,8 @@ import { Kbd, KbdGroup } from '@/ui/shadcn/kbd';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import { AppMenuBar } from './AppMenuBar';
-import { TitleBarUpdateButton } from './TitleBarUpdateButton';
 import { useDirectAccessAction } from './directAccessAction';
+import { TitleBarUpdateButton } from './TitleBarUpdateButton';
 import { useRightSidePanelVisibility } from './useRightSidePanelVisibility';
 
 function TitleBarButton({
@@ -83,7 +83,7 @@ function TitleBarWindowButton({ className, ...props }: any) {
     return (
         <TitleBarButton
             className={cn(
-                'text-foreground h-full w-9 rounded-none border-0',
+                'text-muted-foreground hover:text-foreground h-full w-9 rounded-none border-0',
                 className
             )}
             {...props}
@@ -464,7 +464,7 @@ export function AppTitleBar() {
                     </TitleBarWindowButton>
                     <TitleBarWindowButton
                         label={t('app_menu.action.close_window')}
-                        className="hover:bg-destructive hover:text-destructive-foreground"
+                        className="hover:bg-destructive! hover:text-destructive-foreground!"
                         onClick={() => {
                             runWindowAction(closeWindow, false);
                         }}
