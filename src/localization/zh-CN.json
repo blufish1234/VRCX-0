@@ -1757,6 +1757,7 @@
                     "status_label": "状态",
                     "port_active_connections": "端口 {port}；活动连接 {count}",
                     "client_config": "客户端配置",
+                    "client_config_description": "对于 Claude Code CLI，在终端中运行复制的命令。对于其他客户端，建议优先使用通用 (HTTP)。通用 (mcp-remote) 需要 PATH 中存在 Node.js，且在 Windows 上存在已知问题。",
                     "copy_claude_code": "Claude Code",
                     "copy_mcp_remote": "通用 (mcp-remote)",
                     "copy_generic": "通用 (HTTP)",

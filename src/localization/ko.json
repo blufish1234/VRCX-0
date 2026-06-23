@@ -1711,6 +1711,7 @@
                     "status_label": "상태",
                     "port_active_connections": "포트 {port}; 활성 연결 {count}",
                     "client_config": "클라이언트 설정",
+                    "client_config_description": "Claude Code CLI의 경우 복사한 명령어를 터미널에서 실행하세요. 다른 클라이언트의 경우 가능하면 일반 (HTTP)를 사용하세요. 일반 (mcp-remote)은 PATH에 Node.js가 필요하며 Windows에서 알려진 문제가 있습니다.",
                     "copy_claude_code": "Claude Code",
                     "copy_mcp_remote": "일반 (mcp-remote)",
                     "copy_generic": "일반 (HTTP)",
