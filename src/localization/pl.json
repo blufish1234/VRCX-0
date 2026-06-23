@@ -46,7 +46,8 @@
             "restore_default_confirm": "Przywrócić nawigację do jej domyślnego stanu?",
             "save": "Zapisz",
             "cancel": "Anuluj"
-        }
+        },
+        "update_downloaded": "Aktualizacja gotowa"
     },
     "side_panel": {
         "search_placeholder": "Szukaj",
@@ -424,7 +425,9 @@
                     "tray": "Zamykaj do zasobnika",
                     "disable_vr_overlay_gpu_acceleration": "Wyłącz akcelerację GPU nakładki VR",
                     "proxy": "Ustawienia proxy",
-                    "startup_linux": "Dodaj argument \"--startup\" dop pliku VRCX-0.desktop, aby uruchamiać VRCX-0 po starcie systemu"
+                    "startup_linux": "Dodaj argument \"--startup\" dop pliku VRCX-0.desktop, aby uruchamiać VRCX-0 po starcie systemu",
+                    "auto_background_download_updates": "Pobieraj aktualizacje w tle",
+                    "auto_background_download_updates_description": "Po włączeniu VRCX-0 pobiera instalowalne aktualizacje w tle po sprawdzeniu aktualizacji. Gotową aktualizację możesz zainstalować z paska tytułu; jeśli pojawi się nowsza wersja, VRCX-0 odrzuci stare pobranie i pobierze najnowszą wersję."
                 },
                 "favorites": {
                     "header": "Ulubieni znajomi VRCX-0",

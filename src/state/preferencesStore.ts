@@ -272,6 +272,7 @@ export const DEFAULT_PREFERENCES: PreferenceInputSnapshot = Object.freeze({
     notificationIconDot: true,
     showPostUpdateChangelogToast: true,
     autoInstallUpdatesOnStartup: true,
+    autoBackgroundDownloadUpdates: false,
     desktopToast: 'Never',
     afkDesktopToast: false,
     desktopNotificationSound: false,
@@ -414,6 +415,9 @@ export function normalizePreferenceSnapshot(
         ),
         autoInstallUpdatesOnStartup: normalizeBool(
             next.autoInstallUpdatesOnStartup
+        ),
+        autoBackgroundDownloadUpdates: normalizeBool(
+            next.autoBackgroundDownloadUpdates
         ),
         desktopToast: next.desktopToast || 'Never',
         afkDesktopToast: normalizeBool(next.afkDesktopToast),

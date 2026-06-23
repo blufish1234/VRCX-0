@@ -125,6 +125,14 @@ type RuntimeStore = {
         isRunning: boolean;
         tickCount: number;
         hasAvailableUpdate: boolean;
+        autoDownloadState:
+            | 'idle'
+            | 'downloading'
+            | 'downloaded'
+            | 'installing'
+            | 'error';
+        downloadedVersion: string | null;
+        downloadProgress: number;
     };
     activity: ActivityState;
     mutualGraph: MutualGraphState;
@@ -367,7 +375,10 @@ const initialState = {
         hasAvailableUpdate: false,
         lastUpdaterCheckAt: null,
         lastUpdaterCheckDetail: '',
-        latestUpdaterRelease: null
+        latestUpdaterRelease: null,
+        autoDownloadState: 'idle',
+        downloadedVersion: null,
+        downloadProgress: 0
     },
     activity: createActivityState(),
     mutualGraph: createMutualGraphState(),

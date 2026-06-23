@@ -79,6 +79,7 @@
         "whats_new": "O que há de Novo?",
         "update_available": "Atualização disponível",
         "update": "Atualizar",
+        "update_downloaded": "Atualização pronta",
         "mark_all_read": "Marcar Tudo como Lido",
         "edit_dashboard": "Editar Painel",
         "delete_dashboard": "Excluir Painel",
@@ -759,7 +760,9 @@
                     "tray": "Minimizar para a Bandeja ao Fechar",
                     "disable_vr_overlay_gpu_acceleration": "Desativar Aceleração de GPU do Overlay VR",
                     "proxy": "Configurações de Proxy",
-                    "startup_linux": "Adicione o argumento \"--startup\" ao arquivo VRCX-0.desktop de inicialização para iniciar o VRCX-0 minimizado na inicialização do sistema"
+                    "startup_linux": "Adicione o argumento \"--startup\" ao arquivo VRCX-0.desktop de inicialização para iniciar o VRCX-0 minimizado na inicialização do sistema",
+                    "auto_background_download_updates": "Baixar atualizações em segundo plano",
+                    "auto_background_download_updates_description": "Quando ativado, o VRCX-0 baixa atualizações instaláveis em segundo plano após verificar atualizações. Você pode instalar a atualização pronta pela barra de título; se uma versão mais nova aparecer, o VRCX-0 descarta o download antigo e baixa a versão mais recente."
                 },
                 "favorites": {
                     "header": "Grupos de Favoritos para Filtragem",

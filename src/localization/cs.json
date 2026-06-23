@@ -195,7 +195,9 @@
                     "minimized": "Spustit minimalizované",
                     "tray": "Minimalizovat do systémové lišty při zavření",
                     "disable_vr_overlay_gpu_acceleration": "Vypnout GPU akceleraci VR Overlay",
-                    "proxy": "Nastavení proxy"
+                    "proxy": "Nastavení proxy",
+                    "auto_background_download_updates": "Stahovat aktualizace na pozadí",
+                    "auto_background_download_updates_description": "Když je zapnuto, VRCX-0 po kontrole aktualizací stáhne instalovatelné aktualizace na pozadí. Připravenou aktualizaci můžete nainstalovat z horní lišty; pokud vyjde novější verze, VRCX-0 zahodí staré stažení a stáhne nejnovější verzi."
                 },
                 "favorites": {
                     "header": "VRCX-0 Oblíbení přátelé",
@@ -1725,5 +1727,8 @@
                 "body": "Přihlaste se znovu, abyste mohli pokračovat."
             }
         }
+    },
+    "nav_menu": {
+        "update_downloaded": "Aktualizace připravena"
     }
 }

@@ -5,10 +5,15 @@ import { openExternalLink } from '@/services/entityMediaService';
 import i18n from '@/services/i18nService';
 import { restartApplication } from '@/services/shellIntegrationService';
 import {
+    downloadUpdate,
     downloadAndInstallUpdate,
     formatReleaseDisplayVersion,
+    installPendingUpdate,
+    isNoPendingUpdateError,
+    isPendingUpdateVersionMismatchError,
     type NormalizedRelease,
-    type UpdateDownloadProgress
+    type UpdateDownloadProgress,
+    type UpdateOptions
 } from '@/services/updateService';
 import { links } from '@/shared/constants/link';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -18,6 +23,8 @@ export const UPDATE_AVAILABLE_TOAST_ID = 'vrcx-update-available';
 type DirectUpdateInstallOptions = {
     toastId?: string | number;
 };
+
+type DirectUpdateToastId = NonNullable<DirectUpdateInstallOptions['toastId']>;
 
 type DownloadToastContentProps = {
     title: string;
@@ -113,6 +120,80 @@ function canInstallUpdateRelease(
     );
 }
 
+function resetAutoDownloadInstallState() {
+    useRuntimeStore.getState().setUpdateLoopState({
+        autoDownloadState: 'idle',
+        downloadedVersion: null,
+        downloadProgress: 0
+    });
+}
+
+function hasMatchingAutoDownload(release: NormalizedRelease) {
+    const updateLoop = useRuntimeStore.getState().updateLoop;
+    return (
+        Boolean(release.canonicalVersion) &&
+        updateLoop.downloadedVersion === release.canonicalVersion &&
+        (updateLoop.autoDownloadState === 'downloaded' ||
+            updateLoop.autoDownloadState === 'downloading')
+    );
+}
+
+function isMatchingAutoDownloadStillDownloading(release: NormalizedRelease) {
+    const updateLoop = useRuntimeStore.getState().updateLoop;
+    return (
+        updateLoop.autoDownloadState === 'downloading' &&
+        updateLoop.downloadedVersion === release.canonicalVersion
+    );
+}
+
+function isPendingUpdateFallbackError(error: unknown) {
+    return (
+        isNoPendingUpdateError(error) ||
+        isPendingUpdateVersionMismatchError(error)
+    );
+}
+
+function showInstallingUpdateToast(toastId: DirectUpdateToastId) {
+    toast.loading(i18n.t('message.vrcx_updater.installing_update'), {
+        id: toastId,
+        duration: Infinity,
+        position: 'bottom-right',
+        dismissible: false
+    });
+}
+
+async function tryInstallAutoDownloadedUpdate(
+    release: NormalizedRelease,
+    installOptions: UpdateOptions,
+    toastId: DirectUpdateToastId
+) {
+    if (!hasMatchingAutoDownload(release)) {
+        return false;
+    }
+
+    if (isMatchingAutoDownloadStillDownloading(release)) {
+        await downloadUpdate(release, installOptions);
+    }
+
+    useRuntimeStore.getState().setUpdateLoopState({
+        autoDownloadState: 'installing',
+        downloadedVersion: release.canonicalVersion,
+        downloadProgress: 100
+    });
+    showInstallingUpdateToast(toastId);
+
+    try {
+        await installPendingUpdate(release.canonicalVersion);
+        return true;
+    } catch (error) {
+        if (!isPendingUpdateFallbackError(error)) {
+            throw error;
+        }
+        resetAutoDownloadInstallState();
+        return false;
+    }
+}
+
 let directInstallInFlight: Promise<boolean> | null = null;
 
 export function installUpdateRelease(
@@ -187,15 +268,27 @@ export function installUpdateRelease(
                 totalBytes: 0,
                 percent: 0
             });
-            await downloadAndInstallUpdate(release, {
+            const installOptions = {
                 hostArch: getString(hostCapabilities.arch),
                 hostPlatform: getString(hostCapabilities.platform),
                 linuxPackageKind: getString(hostCapabilities.linuxPackageKind),
                 onDownloadProgress: updateLoadingToast
-            });
+            };
+            if (
+                !(await tryInstallAutoDownloadedUpdate(
+                    release,
+                    installOptions,
+                    toastId
+                ))
+            ) {
+                await downloadAndInstallUpdate(release, installOptions);
+            }
             useRuntimeStore.getState().setUpdateLoopState({
                 hasAvailableUpdate: false,
-                latestUpdaterRelease: null
+                latestUpdaterRelease: null,
+                autoDownloadState: 'idle',
+                downloadedVersion: null,
+                downloadProgress: 0
             });
             toast.success(
                 i18n.t('dialog.vrcx_updater.ready_for_update', {
@@ -210,6 +303,7 @@ export function installUpdateRelease(
             await restartApplication();
             return true;
         } catch (error) {
+            resetAutoDownloadInstallState();
             toast.error(
                 userFacingErrorMessage(
                     error,

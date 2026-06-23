@@ -7,14 +7,17 @@ const mocks = vi.hoisted(() => ({
     isHostCapabilityAvailable: vi.fn(),
     canInstallUpdatesOnPlatform: vi.fn(),
     checkInstallableUpdate: vi.fn(),
+    discardPendingUpdate: vi.fn(),
     defaultBranchForVersion: vi.fn(),
+    downloadUpdate: vi.fn(),
     fetchLatestBranchRelease: vi.fn(),
     formatReleaseDisplayVersion: vi.fn(),
     handlePreviewStableReleaseUpdateCheck: vi.fn(),
     hasUpdateForBranch: vi.fn(),
     runRuntimeTelemetryJob: vi.fn(),
     recordRuntimeJobTelemetry: vi.fn(),
-    installUpdateRelease: vi.fn()
+    installUpdateRelease: vi.fn(),
+    toastSuccess: vi.fn()
 }));
 
 vi.mock('@/repositories/configRepository', () => ({
@@ -37,7 +40,9 @@ vi.mock('./runtimeJobTelemetryService', () => ({
 vi.mock('./updateService', () => ({
     canInstallUpdatesOnPlatform: mocks.canInstallUpdatesOnPlatform,
     checkInstallableUpdate: mocks.checkInstallableUpdate,
+    discardPendingUpdate: mocks.discardPendingUpdate,
     defaultBranchForVersion: mocks.defaultBranchForVersion,
+    downloadUpdate: mocks.downloadUpdate,
     fetchLatestBranchRelease: mocks.fetchLatestBranchRelease,
     formatReleaseDisplayVersion: mocks.formatReleaseDisplayVersion,
     handlePreviewStableReleaseUpdateCheck:
@@ -47,6 +52,7 @@ vi.mock('./updateService', () => ({
 }));
 
 vi.mock('./updateInstallService', () => ({
+    UPDATE_AVAILABLE_TOAST_ID: 'vrcx-update-available',
     installUpdateRelease: mocks.installUpdateRelease
 }));
 
@@ -57,9 +63,18 @@ vi.mock('./i18nService', () => ({
     }
 }));
 
+vi.mock('sonner', () => ({
+    toast: {
+        success: mocks.toastSuccess
+    }
+}));
+
 import { useRuntimeStore } from '@/state/runtimeStore';
 
-import { runStartupMaintenance } from './backgroundMaintenanceService';
+import {
+    handleAutoBackgroundDownloadUpdatesPreferenceChange,
+    runStartupMaintenance
+} from './backgroundMaintenanceService';
 
 function setAutoInstallUpdatesOnStartup(enabled: boolean) {
     mocks.getConfigBool.mockImplementation(
@@ -125,6 +140,8 @@ describe('backgroundMaintenanceService update checks', () => {
             release: null
         });
         mocks.installUpdateRelease.mockResolvedValue(true);
+        mocks.downloadUpdate.mockResolvedValue({});
+        mocks.discardPendingUpdate.mockResolvedValue(undefined);
         mocks.runRuntimeTelemetryJob.mockImplementation(
             async (_metadata: unknown, task: () => Promise<unknown>) => task()
         );
@@ -191,6 +208,84 @@ describe('backgroundMaintenanceService update checks', () => {
         );
     });
 
+    it('does not background-download by default when startup auto-install is disabled', async () => {
+        mocks.getConfigBool.mockImplementation(
+            async (key: string, defaultValue: boolean) => {
+                if (key === 'autoInstallUpdatesOnStartup') {
+                    return false;
+                }
+                return defaultValue;
+            }
+        );
+
+        await runStartupMaintenance();
+
+        expect(mocks.downloadUpdate).not.toHaveBeenCalled();
+        expect(useRuntimeStore.getState().updateLoop.autoDownloadState).toBe(
+            'idle'
+        );
+    });
+
+    it('background-downloads an installable update when the new setting is enabled', async () => {
+        mocks.getConfigBool.mockImplementation(
+            async (key: string, defaultValue: boolean) => {
+                if (key === 'autoInstallUpdatesOnStartup') {
+                    return false;
+                }
+                if (key === 'autoBackgroundDownloadUpdates') {
+                    return true;
+                }
+                return defaultValue;
+            }
+        );
+
+        await handleAutoBackgroundDownloadUpdatesPreferenceChange(true);
+
+        expect(mocks.downloadUpdate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                canonicalVersion: '2.7.0',
+                updaterType: 'tauri'
+            }),
+            expect.objectContaining({
+                hostArch: 'x86_64',
+                hostPlatform: 'windows'
+            })
+        );
+        expect(useRuntimeStore.getState().updateLoop.autoDownloadState).toBe(
+            'downloaded'
+        );
+        expect(useRuntimeStore.getState().updateLoop.downloadedVersion).toBe(
+            '2.7.0'
+        );
+    });
+
+    it('discards a stale downloaded update before downloading the latest version', async () => {
+        mocks.getConfigBool.mockImplementation(
+            async (key: string, defaultValue: boolean) => {
+                if (key === 'autoInstallUpdatesOnStartup') {
+                    return false;
+                }
+                if (key === 'autoBackgroundDownloadUpdates') {
+                    return true;
+                }
+                return defaultValue;
+            }
+        );
+        useRuntimeStore.getState().setUpdateLoopState({
+            autoDownloadState: 'downloaded',
+            downloadedVersion: '2.6.5',
+            downloadProgress: 100
+        });
+
+        await handleAutoBackgroundDownloadUpdatesPreferenceChange(true);
+
+        expect(mocks.discardPendingUpdate).toHaveBeenCalled();
+        expect(mocks.downloadUpdate).toHaveBeenCalled();
+        expect(useRuntimeStore.getState().updateLoop.downloadedVersion).toBe(
+            '2.7.0'
+        );
+    });
+
     it('uses the preview stable release check without invoking the Tauri updater path', async () => {
         mocks.handlePreviewStableReleaseUpdateCheck.mockResolvedValue({
             handled: true,
@@ -224,6 +319,7 @@ describe('backgroundMaintenanceService update checks', () => {
             .latestUpdaterRelease as any;
         expect(latestUpdaterRelease?.updaterType).toBe('manual');
         expect(mocks.installUpdateRelease).not.toHaveBeenCalled();
+        expect(mocks.downloadUpdate).not.toHaveBeenCalled();
     });
 
     it('does not fall back to the Tauri updater path when a preview build has no stable release update', async () => {

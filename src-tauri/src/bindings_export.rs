@@ -6,6 +6,10 @@ use vrcx_0_application::{
     RealtimeInstanceClosedProjection, RealtimeInstanceQueueProjection,
     RealtimeNotificationProjection, RealtimeWsStatusPayload,
 };
+use vrcx_0_harness::{
+    AssistantDeltaEvent, AssistantDoneEvent, AssistantErrorEvent, AssistantToolCallEvent,
+    AssistantToolResultEvent, AssistantTurnEntitiesEvent,
+};
 use vrcx_0_mcp::McpServerStatus;
 
 use crate::commands;
@@ -13,6 +17,12 @@ use crate::commands;
 pub fn builder() -> Builder<tauri::Wry> {
     Builder::<tauri::Wry>::new()
         .error_handling(ErrorHandlingMode::Throw)
+        .typ::<AssistantDeltaEvent>()
+        .typ::<AssistantToolCallEvent>()
+        .typ::<AssistantToolResultEvent>()
+        .typ::<AssistantTurnEntitiesEvent>()
+        .typ::<AssistantDoneEvent>()
+        .typ::<AssistantErrorEvent>()
         .typ::<BackendRuntimeTelemetry>()
         .typ::<FriendProjection>()
         .typ::<GameLogProjection>()
@@ -422,6 +432,9 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::host::window::app__restart_application,
             commands::host::window::app__exit_application,
             commands::host::updater::app__check_tauri_update,
+            commands::host::updater::app__download_tauri_update,
+            commands::host::updater::app__install_pending_tauri_update,
+            commands::host::updater::app__discard_pending_tauri_update,
             commands::host::updater::app__download_and_install_tauri_update,
             commands::host::legacy_migration::app__check_legacy_vrcx_available,
             commands::host::legacy_migration::app__get_legacy_vrcx_force_migration_status,

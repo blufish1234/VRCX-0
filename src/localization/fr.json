@@ -443,7 +443,9 @@
                     "minimized": "Lancer en arrière plan",
                     "tray": "Minimiser dans la barre des tâches",
                     "disable_vr_overlay_gpu_acceleration": "Désactiver l'accélération GPU de l'overlay VR",
-                    "proxy": "Proxy settings"
+                    "proxy": "Proxy settings",
+                    "auto_background_download_updates": "Télécharger les mises à jour en arrière-plan",
+                    "auto_background_download_updates_description": "Lorsque cette option est activée, VRCX-0 télécharge les mises à jour installables en arrière-plan après une vérification. Vous pouvez installer la mise à jour prête depuis la barre de titre ; si une version plus récente apparaît, VRCX-0 ignore l’ancien téléchargement et télécharge la dernière version."
                 },
                 "favorites": {
                     "header": "Amis favoris",
@@ -2029,5 +2031,8 @@
                 "body": "Reconnectez-vous pour continuer."
             }
         }
+    },
+    "nav_menu": {
+        "update_downloaded": "Mise à jour prête"
     }
 }

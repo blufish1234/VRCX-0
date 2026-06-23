@@ -170,8 +170,8 @@ async appAssistantListModels(baseUrl: string, apiKey: string | null) : Promise<s
 async appAssistantConfigStatus() : Promise<AssistantConfigStatus> {
     return await TAURI_INVOKE("app__assistant_config_status");
 },
-async appAssistantSetConfig(baseUrl: string, apiKey: string | null, model: string) : Promise<AssistantConfigStatus> {
-    return await TAURI_INVOKE("app__assistant_set_config", { baseUrl, apiKey, model });
+async appAssistantSetConfig(baseUrl: string, apiKey: string | null, model: string, allowWrites: boolean) : Promise<AssistantConfigStatus> {
+    return await TAURI_INVOKE("app__assistant_set_config", { baseUrl, apiKey, model, allowWrites });
 },
 async appOverlayActivityDefinitionsGet() : Promise<OverlayActivityTypeDefinition[]> {
     return await TAURI_INVOKE("app__overlay_activity_definitions_get");
@@ -1193,6 +1193,15 @@ async appExitApplication() : Promise<null> {
 async appCheckTauriUpdate(manifestUrl: string, target: string, allowDowngrades: boolean, proxy: string | null) : Promise<TauriUpdateMetadata | null> {
     return await TAURI_INVOKE("app__check_tauri_update", { manifestUrl, target, allowDowngrades, proxy });
 },
+async appDownloadTauriUpdate(version: string, manifestUrl: string, target: string, allowDowngrades: boolean, proxy: string | null, onEvent: TAURI_CHANNEL<TauriDownloadEvent>) : Promise<TauriUpdateMetadata | null> {
+    return await TAURI_INVOKE("app__download_tauri_update", { version, manifestUrl, target, allowDowngrades, proxy, onEvent });
+},
+async appInstallPendingTauriUpdate(version: string) : Promise<TauriUpdateMetadata> {
+    return await TAURI_INVOKE("app__install_pending_tauri_update", { version });
+},
+async appDiscardPendingTauriUpdate() : Promise<null> {
+    return await TAURI_INVOKE("app__discard_pending_tauri_update");
+},
 async appDownloadAndInstallTauriUpdate(manifestUrl: string, target: string, allowDowngrades: boolean, proxy: string | null, onEvent: TAURI_CHANNEL<TauriDownloadEvent>) : Promise<TauriUpdateMetadata | null> {
     return await TAURI_INVOKE("app__download_and_install_tauri_update", { manifestUrl, target, allowDowngrades, proxy, onEvent });
 },
@@ -1403,7 +1412,13 @@ export type AppLauncherScope = "all" | "desktop" | "vr"
 export type AppLauncherSession = { id: string; steamvrRunning: boolean; startedAt: number; runs: AppLauncherRun[] }
 export type AppLauncherSnapshot = { enabled: boolean; entries: AppLauncherEntry[]; activeSession: AppLauncherSession | null; testRuns: AppLauncherRun[] }
 export type AppLauncherStopPolicy = "keepRunning" | "closeByVrcx"
-export type AssistantConfigStatus = { configured: boolean; baseUrl: string; model: string; isLocal: boolean }
+export type AssistantConfigStatus = { configured: boolean; baseUrl: string; model: string; isLocal: boolean; allowWrites: boolean }
+export type AssistantDeltaEvent = { sessionId: string; turnId: string; text: string }
+export type AssistantDoneEvent = { sessionId: string; turnId: string }
+export type AssistantErrorEvent = { sessionId: string; turnId: string; code: string; message: string }
+export type AssistantToolCallEvent = { sessionId: string; turnId: string; toolCallId: string; name: string; args: string }
+export type AssistantToolResultEvent = { sessionId: string; turnId: string; toolCallId: string; ok: boolean; summary: string; entities: Entity[] }
+export type AssistantTurnEntitiesEvent = { sessionId: string; turnId: string; entities: Entity[] }
 export type AuthorDetail = { id?: string; displayName?: string | null }
 export type AvatarCacheOutput = { id: string; authorId: string; authorName: string; created_at: string; description: string; imageUrl: string; name: string; releaseStatus: string; thumbnailImageUrl: string; updated_at: string; version: number }
 export type AvatarMemoOutput = { avatarId: string; editedAt: string; memo: string }
@@ -1426,6 +1441,7 @@ export type CommunityThemeDebugLocalThemeOutput = { folderPath: string; cssPath:
 export type ConfigReadEntry = { key: string; value: string }
 export type ConfigWriteEntry = { key: string; value: string }
 export type DatabaseUpgradeStatus = { fromVersion: number; toVersion: number; workDbPath: string; startedAt: string; failedAt?: string | null; reason?: string | null }
+export type Entity = { kind: string; id: string; displayName: string }
 export type ExternalApiAvatarSearchInput = { url?: string; vrcxId?: string }
 export type ExternalApiExecuteResponse = { status: number; data: string; raw: JsonValue }
 export type ExternalApiImageInput = { url?: string }

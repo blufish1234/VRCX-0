@@ -1,3 +1,5 @@
+import { toast } from 'sonner';
+
 import { commands } from '@/platform/tauri/bindings';
 import type { RegistryBackupMaintenanceResult } from '@/platform/tauri/bindings';
 import configRepository from '@/repositories/configRepository';
@@ -5,11 +7,16 @@ import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
 import { clearFavoriteRemoteDetailsCache } from '@/services/favoriteRemoteDetailsCacheService';
 import { isHostCapabilityAvailable } from '@/services/hostCapabilityService';
 import i18n from '@/services/i18nService';
-import { installUpdateRelease } from '@/services/updateInstallService';
+import {
+    UPDATE_AVAILABLE_TOAST_ID,
+    installUpdateRelease
+} from '@/services/updateInstallService';
 import {
     canInstallUpdatesOnPlatform,
     checkInstallableUpdate,
     defaultBranchForVersion,
+    discardPendingUpdate,
+    downloadUpdate,
     fetchLatestBranchRelease,
     formatReleaseDisplayVersion,
     handlePreviewStableReleaseUpdateCheck,
@@ -37,6 +44,23 @@ import {
 const APP_UPDATE_CHECK_INTERVAL_SECONDS = 3 * 3600;
 
 let running = false;
+let autoDownloadInFlight: {
+    version: string;
+    promise: Promise<void>;
+} | null = null;
+
+type AutoDownloadHostContext = {
+    hostArch: string;
+    hostPlatform: string;
+    linuxPackageKind: string;
+};
+
+type QueuedAutoDownload = {
+    update: InstallableUpdateRelease;
+    hostContext: AutoDownloadHostContext;
+};
+
+let queuedAutoDownload: QueuedAutoDownload | null = null;
 
 type RuntimeAuthSnapshot = {
     currentUserId: string | null;
@@ -71,6 +95,8 @@ type RefreshPlayerModerationsOptions = {
 type AppUpdateCheckOptions = {
     includeRegistryBackup?: boolean;
     autoInstallOnStartup?: boolean;
+    suppressAvailableNotification?: boolean;
+    autoDownloadHandledVersion?: string;
 };
 
 type RuntimeScheduledTask = () => Promise<unknown>;
@@ -85,7 +111,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function resetTimers() {
-    commands.appRuntimeFrontendScheduleSchedulesReset()
+    commands
+        .appRuntimeFrontendScheduleSchedulesReset()
         .catch((error: unknown) => {
             console.warn(
                 'Failed to reset runtime maintenance scheduler:',
@@ -136,23 +163,194 @@ function setUpdaterCheckResult(
     });
 }
 
+function isTauriInstallableRelease(
+    release: UpdaterReleaseSnapshotSource
+): release is InstallableUpdateRelease {
+    return Boolean(
+        release &&
+        release.updaterType === 'tauri' &&
+        release.canonicalVersion &&
+        release.manifestUrl &&
+        release.target
+    );
+}
+
+function resetAutoDownloadLoopState() {
+    useRuntimeStore.getState().setUpdateLoopState({
+        autoDownloadState: 'idle',
+        downloadedVersion: null,
+        downloadProgress: 0
+    });
+}
+
+function setAutoDownloadProgressState(
+    version: string,
+    progress: number,
+    state: 'downloading' | 'downloaded' = 'downloading'
+) {
+    useRuntimeStore.getState().setUpdateLoopState({
+        autoDownloadState: state,
+        downloadedVersion: version,
+        downloadProgress: progress
+    });
+}
+
+function isAutoBackgroundDownloadEnabled() {
+    return configRepository.getBool('autoBackgroundDownloadUpdates', false);
+}
+
+async function clearAutoDownloadedUpdateState(clearQueue = true) {
+    if (clearQueue) {
+        queuedAutoDownload = null;
+    }
+    await discardPendingUpdate().catch((error: unknown) => {
+        console.warn('Failed to discard pending VRCX-0 update:', error);
+    });
+    resetAutoDownloadLoopState();
+}
+
+function runQueuedAutoDownloadIfNeeded(completedVersion: string) {
+    const queued = queuedAutoDownload;
+    if (!queued || queued.update.canonicalVersion === completedVersion) {
+        queuedAutoDownload = null;
+        return;
+    }
+    queuedAutoDownload = null;
+    void ensureAutoBackgroundDownloadedUpdate(
+        queued.update,
+        queued.hostContext,
+        true
+    );
+}
+
+async function ensureAutoBackgroundDownloadedUpdate(
+    update: InstallableUpdateRelease,
+    hostContext: AutoDownloadHostContext,
+    checkAfterDownload = true
+) {
+    if (!(await isAutoBackgroundDownloadEnabled())) {
+        return;
+    }
+    if (!isTauriInstallableRelease(update)) {
+        return;
+    }
+
+    const version = update.canonicalVersion;
+    const updateLoop = useRuntimeStore.getState().updateLoop;
+    if (
+        updateLoop.autoDownloadState === 'downloaded' &&
+        updateLoop.downloadedVersion === version
+    ) {
+        return;
+    }
+    if (autoDownloadInFlight) {
+        if (autoDownloadInFlight.version === version) {
+            await autoDownloadInFlight.promise;
+            return;
+        }
+        queuedAutoDownload = {
+            update,
+            hostContext
+        };
+        return;
+    }
+    if (
+        updateLoop.autoDownloadState === 'downloaded' &&
+        updateLoop.downloadedVersion &&
+        updateLoop.downloadedVersion !== version
+    ) {
+        await clearAutoDownloadedUpdateState();
+    }
+
+    const promise = (async () => {
+        setAutoDownloadProgressState(version, 0);
+
+        try {
+            await downloadUpdate(update, {
+                hostArch: hostContext.hostArch,
+                hostPlatform: hostContext.hostPlatform,
+                linuxPackageKind: hostContext.linuxPackageKind,
+                onDownloadProgress: (progress) => {
+                    setAutoDownloadProgressState(version, progress.percent);
+                }
+            });
+
+            if (!(await isAutoBackgroundDownloadEnabled())) {
+                await clearAutoDownloadedUpdateState(false);
+                return;
+            }
+
+            const queued = queuedAutoDownload;
+            if (queued && queued.update.canonicalVersion !== version) {
+                await clearAutoDownloadedUpdateState(false);
+                return;
+            }
+
+            setAutoDownloadProgressState(version, 100, 'downloaded');
+            toast.success(
+                i18n.t('dialog.vrcx_updater.ready_for_update', {
+                    value:
+                        update.displayVersion ||
+                        formatReleaseDisplayVersion(version) ||
+                        version
+                }),
+                {
+                    id: UPDATE_AVAILABLE_TOAST_ID,
+                    duration: 4000,
+                    position: 'bottom-right'
+                }
+            );
+
+            if (checkAfterDownload) {
+                await checkForAppUpdate({
+                    includeRegistryBackup: false,
+                    autoInstallOnStartup: false,
+                    suppressAvailableNotification: true,
+                    autoDownloadHandledVersion: version
+                });
+            }
+        } catch (error) {
+            console.warn('Failed to background-download VRCX-0 update:', error);
+            useRuntimeStore.getState().setUpdateLoopState({
+                autoDownloadState: 'error',
+                downloadedVersion: version,
+                lastUpdaterCheckDetail:
+                    error instanceof Error ? error.message : String(error)
+            });
+        }
+    })();
+
+    autoDownloadInFlight = { version, promise };
+    try {
+        await promise;
+    } finally {
+        if (autoDownloadInFlight?.promise === promise) {
+            autoDownloadInFlight = null;
+        }
+        runQueuedAutoDownloadIfNeeded(version);
+    }
+}
+
 function notifyAvailableUpdate(
     branch: string,
     release: UpdaterReleaseSnapshotSource,
-    version: string
+    version: string,
+    { notify = true }: { notify?: boolean } = {}
 ) {
     const displayVersion = formatReleaseDisplayVersion(version);
     const message = i18n.t(
         'service.background_maintenance_service.dynamic.version_value_is_available_on_the_value_branch',
         { value: displayVersion, value2: branch }
     );
-    useNotificationStore.getState().pushNotification({
-        level: 'info',
-        title: i18n.t(
-            'service.background_maintenance.label.vrcx_update_available'
-        ),
-        message
-    });
+    if (notify) {
+        useNotificationStore.getState().pushNotification({
+            level: 'info',
+            title: i18n.t(
+                'service.background_maintenance.label.vrcx_update_available'
+            ),
+            message
+        });
+    }
     setUpdaterCheckResult(true, message, release);
 }
 
@@ -246,8 +444,7 @@ function areCurrentUserSnapshotValuesEqual(left: unknown, right: unknown) {
 
 function hasCurrentUserSnapshotField(source: unknown, field: string) {
     return (
-        isRecord(source) &&
-        Object.prototype.hasOwnProperty.call(source, field)
+        isRecord(source) && Object.prototype.hasOwnProperty.call(source, field)
     );
 }
 
@@ -559,7 +756,8 @@ async function runRegistryBackupMaintenance(reason: string) {
         return;
     }
 
-    await commands.appEnsureMainWindow()
+    await commands
+        .appEnsureMainWindow()
         .catch(() => commands.appFocusWindow().catch(() => {}));
     await useModalStore.getState().alert({
         title: i18n.t(
@@ -581,7 +779,9 @@ async function runRegistryBackupMaintenance(reason: string) {
 
 async function checkForAppUpdate({
     includeRegistryBackup = true,
-    autoInstallOnStartup = false
+    autoInstallOnStartup = false,
+    suppressAvailableNotification = false,
+    autoDownloadHandledVersion = ''
 }: AppUpdateCheckOptions = {}) {
     const hostCapabilities = useRuntimeStore.getState().hostCapabilities;
     const hostPlatform = hostCapabilities.platform;
@@ -605,21 +805,24 @@ async function checkForAppUpdate({
 
         // Preview builds use a separate preview-to-Stable check so the normal
         // Tauri updater path stays isolated.
-        const previewStableUpdate =
-            await handlePreviewStableReleaseUpdateCheck({
+        const previewStableUpdate = await handlePreviewStableReleaseUpdateCheck(
+            {
                 hostArch,
                 linuxPackageKind,
                 hostPlatform
-            });
+            }
+        );
         if (previewStableUpdate.handled) {
             if (previewStableUpdate.release) {
                 notifyAvailableUpdate(
                     branch,
                     previewStableUpdate.release,
-                    previewStableUpdate.release.canonicalVersion
+                    previewStableUpdate.release.canonicalVersion,
+                    { notify: !suppressAvailableNotification }
                 );
             } else {
                 setUpdaterCheckResult(false);
+                await clearAutoDownloadedUpdateState();
             }
         } else if (canInstallUpdates) {
             const update = await checkInstallableUpdate(branch, {
@@ -637,9 +840,19 @@ async function checkForAppUpdate({
                 if (shouldAutoInstall && (await installUpdateRelease(update))) {
                     return;
                 }
-                notifyAvailableUpdate(branch, update, update.version);
+                notifyAvailableUpdate(branch, update, update.version, {
+                    notify: !suppressAvailableNotification
+                });
+                if (update.canonicalVersion !== autoDownloadHandledVersion) {
+                    await ensureAutoBackgroundDownloadedUpdate(update, {
+                        hostArch,
+                        hostPlatform,
+                        linuxPackageKind
+                    });
+                }
             } else {
                 setUpdaterCheckResult(false);
+                await clearAutoDownloadedUpdateState();
             }
         } else {
             const latestRelease = await fetchLatestBranchRelease(branch, {
@@ -659,10 +872,12 @@ async function checkForAppUpdate({
                 notifyAvailableUpdate(
                     branch,
                     latestRelease,
-                    latestRelease.canonicalVersion
+                    latestRelease.canonicalVersion,
+                    { notify: !suppressAvailableNotification }
                 );
             } else {
                 setUpdaterCheckResult(false);
+                await clearAutoDownloadedUpdateState();
             }
         }
     } catch (error) {
@@ -696,11 +911,26 @@ export async function runStartupMaintenance() {
     );
 }
 
+export async function handleAutoBackgroundDownloadUpdatesPreferenceChange(
+    enabled: boolean
+) {
+    if (!enabled) {
+        await clearAutoDownloadedUpdateState();
+        return;
+    }
+
+    await checkForAppUpdate({
+        includeRegistryBackup: false,
+        autoInstallOnStartup: false
+    });
+}
+
 async function deferRuntimeScheduledFrontendJob(
     timerName: string,
     delaySeconds: number
 ) {
-    await commands.appRuntimeFrontendScheduleJobDefer({
+    await commands
+        .appRuntimeFrontendScheduleJobDefer({
             name: timerName,
             delaySeconds
         })
@@ -713,7 +943,8 @@ async function deferRuntimeScheduledFrontendJob(
 }
 
 async function getDueRuntimeScheduledFrontendJobs() {
-    const dueJobs = await commands.appRuntimeFrontendScheduleDueJobsGet()
+    const dueJobs = await commands
+        .appRuntimeFrontendScheduleDueJobsGet()
         .catch((error: unknown) => {
             console.warn('Failed to read runtime maintenance due jobs:', error);
             return [];

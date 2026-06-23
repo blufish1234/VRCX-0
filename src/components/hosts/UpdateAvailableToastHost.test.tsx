@@ -1,13 +1,15 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
     toastInfo: vi.fn(),
+    toastSuccess: vi.fn(),
     toastDismiss: vi.fn()
 }));
 
 vi.mock('sonner', () => ({
     toast: {
         info: mocks.toastInfo,
+        success: mocks.toastSuccess,
         dismiss: mocks.toastDismiss
     }
 }));
@@ -17,9 +19,16 @@ vi.mock('@/services/updateInstallService', () => ({
     openOrInstallLatestAvailableUpdate: vi.fn()
 }));
 
-import { showUpdateAvailableToast } from './UpdateAvailableToastHost';
+import {
+    showUpdateAvailableToast,
+    showUpdateReadyToast
+} from './UpdateAvailableToastHost';
 
 describe('showUpdateAvailableToast', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
     it('shows a bottom-right update toast wired to the supplied update action', () => {
         const onUpdate = vi.fn();
 
@@ -47,6 +56,38 @@ describe('showUpdateAvailableToast', () => {
         );
 
         const options = mocks.toastInfo.mock.calls[0][1];
+        options.action.onClick();
+        expect(onUpdate).toHaveBeenCalled();
+    });
+
+    it('shows a ready toast for a downloaded update without using the info toast', () => {
+        const onUpdate = vi.fn();
+
+        showUpdateReadyToast({
+            latestUpdaterRelease: {
+                latestVersion: '2.7.0',
+                canonicalVersion: '2.7.0',
+                updaterType: 'tauri'
+            },
+            t: (key, values) =>
+                values ? `${key}:${JSON.stringify(values)}` : key,
+            onUpdate
+        });
+
+        expect(mocks.toastSuccess).toHaveBeenCalledWith(
+            'dialog.vrcx_updater.ready_for_update:{"value":"v2.7.0"}',
+            expect.objectContaining({
+                id: 'vrcx-update-available',
+                duration: Infinity,
+                position: 'bottom-right',
+                action: expect.objectContaining({
+                    label: 'nav_menu.update_downloaded'
+                })
+            })
+        );
+        expect(mocks.toastInfo).not.toHaveBeenCalled();
+
+        const options = mocks.toastSuccess.mock.calls[0][1];
         options.action.onClick();
         expect(onUpdate).toHaveBeenCalled();
     });

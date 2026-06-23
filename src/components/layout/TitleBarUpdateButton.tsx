@@ -20,23 +20,46 @@ function formatUpdateReleaseDate(value: any) {
     return formatDateFilter(timestamp, 'date');
 }
 
+function clampUpdateProgress(value: unknown) {
+    return Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
+}
+
 export function TitleBarUpdateButton({ onClick }: { onClick: () => void }) {
     const { t } = useTranslation();
     const latestUpdaterRelease = useRuntimeStore(
         (state: any) => state.updateLoop.latestUpdaterRelease
     );
+    const autoDownloadState = useRuntimeStore(
+        (state: any) => state.updateLoop.autoDownloadState
+    );
+    const downloadedVersion = useRuntimeStore(
+        (state: any) => state.updateLoop.downloadedVersion
+    );
+    const downloadProgress = useRuntimeStore(
+        (state: any) => state.updateLoop.downloadProgress
+    );
+    const latestVersion = latestUpdaterRelease?.canonicalVersion || '';
+    const hasMatchingDownloadedVersion =
+        Boolean(latestVersion) && downloadedVersion === latestVersion;
+    const isDownloaded =
+        autoDownloadState === 'downloaded' && hasMatchingDownloadedVersion;
+    const isDownloading =
+        autoDownloadState === 'downloading' && hasMatchingDownloadedVersion;
+    const progressPercent = clampUpdateProgress(downloadProgress);
 
     return (
         <HoverCard openDelay={150} closeDelay={80}>
             <HoverCardTrigger asChild>
                 <Button
                     type="button"
-                    variant="secondary"
+                    variant={isDownloaded ? 'default' : 'secondary'}
                     size="sm"
                     className="h-6 gap-1.5 rounded-md px-2 text-xs shadow-none"
                     onClick={onClick}
                 >
-                    {t('nav_menu.update')}
+                    {isDownloaded
+                        ? t('nav_menu.update_downloaded')
+                        : t('nav_menu.update')}
                 </Button>
             </HoverCardTrigger>
             <HoverCardContent side="bottom" align="end" className="w-80 p-3">
@@ -66,6 +89,16 @@ export function TitleBarUpdateButton({ onClick }: { onClick: () => void }) {
                                 latestUpdaterRelease?.publishedAt
                             )}
                         </dd>
+                        {isDownloading ? (
+                            <>
+                                <dt className="text-muted-foreground">
+                                    {t('nav_menu.update')}
+                                </dt>
+                                <dd className="text-foreground truncate tabular-nums">
+                                    {progressPercent}%
+                                </dd>
+                            </>
+                        ) : null}
                     </dl>
                 </div>
             </HoverCardContent>

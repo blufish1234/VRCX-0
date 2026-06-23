@@ -1,18 +1,18 @@
-import {
-    checkTauriUpdate,
-    downloadAndInstallTauriUpdate,
-    type TauriUpdateRequest
-} from '@/platform/tauri/updater';
 import type {
     TauriDownloadEvent,
     TauriUpdateMetadata
 } from '@/platform/tauri/bindings';
+import {
+    checkTauriUpdate,
+    discardPendingTauriUpdate,
+    downloadTauriUpdate,
+    downloadAndInstallTauriUpdate,
+    installPendingTauriUpdate,
+    type TauriUpdateRequest
+} from '@/platform/tauri/updater';
 import externalApiRepository from '@/repositories/externalApiRepository';
 import storageRepository from '@/repositories/storageRepository';
-import {
-    getVrcxBuildBadge,
-    isPreviewBuildLabel
-} from '@/shared/buildLabel';
+import { getVrcxBuildBadge, isPreviewBuildLabel } from '@/shared/buildLabel';
 import { branches } from '@/shared/constants/settings';
 import {
     compareReleaseVersions,
@@ -26,6 +26,12 @@ const PREVIEW_BADGE_TIMESTAMP_PATTERN =
     /^Preview\s+(?<year>\d{4})(?<month>\d{2})(?<day>\d{2})-(?<hour>\d{2})(?<minute>\d{2})$/i;
 const TOKYO_UTC_OFFSET_MINUTES = 9 * 60;
 let updateInstallInFlight: Promise<TauriUpdateMetadata> | null = null;
+let updateDownloadInFlight: {
+    version: string;
+    promise: Promise<TauriUpdateMetadata>;
+    progressSubscribers: Set<UpdateDownloadProgressSubscriber>;
+    lastProgress: UpdateDownloadProgress | null;
+} | null = null;
 
 export type UpdateOptions = {
     branch?: unknown;
@@ -42,6 +48,10 @@ export type UpdateDownloadProgress = {
     totalBytes: number;
     percent: number;
 };
+
+type UpdateDownloadProgressSubscriber = (
+    progress: UpdateDownloadProgress
+) => void;
 
 type GitHubReleaseAsset = {
     state?: string;
@@ -91,6 +101,18 @@ type PreviewStableReleaseUpdateMode = {
     enabled: boolean;
     check: (options?: UpdateOptions) => Promise<NormalizedRelease | null>;
 };
+
+function errorText(error: unknown): string {
+    return error instanceof Error ? error.message : String(error || '');
+}
+
+function isNoPendingUpdateError(error: unknown): boolean {
+    return errorText(error).includes('no-pending-update');
+}
+
+function isPendingUpdateVersionMismatchError(error: unknown): boolean {
+    return errorText(error).includes('pending-update-version-mismatch');
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return Boolean(value && typeof value === 'object');
@@ -357,7 +379,9 @@ function isStableReleaseNewerThanPreviewBuild(
     previewBuildTimestampMs: number
 ) {
     const publishedAt = Date.parse(release.publishedAt);
-    return Number.isFinite(publishedAt) && publishedAt > previewBuildTimestampMs;
+    return (
+        Number.isFinite(publishedAt) && publishedAt > previewBuildTimestampMs
+    );
 }
 
 // Preview builds do not ship auto-updater assets. This rare preview-to-Stable
@@ -501,12 +525,11 @@ async function checkTauriUpdateForRelease(
 
 function handleTauriDownloadEvent(
     event: TauriDownloadEvent,
-    onProgress?: (progress: number) => void,
-    onDownloadProgress?: (progress: UpdateDownloadProgress) => void
-) {
+    emitProgress: UpdateDownloadProgressSubscriber
+): { downloaded: number; contentLength: number } | null {
     if (event.event === 'Started') {
         const contentLength = Number(event.data?.contentLength) || 0;
-        onDownloadProgress?.({
+        emitProgress({
             downloadedBytes: 0,
             totalBytes: contentLength,
             percent: 0
@@ -517,14 +540,88 @@ function handleTauriDownloadEvent(
         };
     }
     if (event.event === 'Finished') {
-        onProgress?.(100);
-        onDownloadProgress?.({
+        emitProgress({
             downloadedBytes: 0,
             totalBytes: 0,
             percent: 100
         });
     }
     return null;
+}
+
+function emitUpdateDownloadProgress(
+    options: UpdateOptions,
+    progress: UpdateDownloadProgress
+) {
+    options.onProgress?.(progress.percent);
+    options.onDownloadProgress?.(progress);
+}
+
+function createTauriDownloadEventHandler(
+    options: UpdateOptions = {},
+    emitProgress: UpdateDownloadProgressSubscriber = (progress) =>
+        emitUpdateDownloadProgress(options, progress)
+): (event: TauriDownloadEvent) => void {
+    let downloaded = 0;
+    let contentLength = 0;
+    return (event: TauriDownloadEvent) => {
+        const state = handleTauriDownloadEvent(event, emitProgress);
+        if (state) {
+            downloaded = state.downloaded;
+            contentLength = state.contentLength;
+            return;
+        }
+        if (event.event !== 'Progress') {
+            return;
+        }
+        downloaded += Number(event.data?.chunkLength) || 0;
+        if (contentLength > 0) {
+            const percent = Math.min(
+                100,
+                Math.round((downloaded / contentLength) * 100)
+            );
+            emitProgress({
+                downloadedBytes: downloaded,
+                totalBytes: contentLength,
+                percent
+            });
+            return;
+        }
+        emitProgress({
+            downloadedBytes: downloaded,
+            totalBytes: 0,
+            percent: 0
+        });
+    };
+}
+
+function publishInFlightDownloadProgress(
+    download: NonNullable<typeof updateDownloadInFlight>,
+    progress: UpdateDownloadProgress
+) {
+    download.lastProgress = progress;
+    for (const subscriber of download.progressSubscribers) {
+        subscriber(progress);
+    }
+}
+
+function subscribeToInFlightDownload(
+    download: NonNullable<typeof updateDownloadInFlight>,
+    options: UpdateOptions
+) {
+    if (!options.onProgress && !options.onDownloadProgress) {
+        return () => {};
+    }
+    const subscriber = (progress: UpdateDownloadProgress) => {
+        emitUpdateDownloadProgress(options, progress);
+    };
+    download.progressSubscribers.add(subscriber);
+    if (download.lastProgress) {
+        subscriber(download.lastProgress);
+    }
+    return () => {
+        download.progressSubscribers.delete(subscriber);
+    };
 }
 
 async function checkInstallableUpdate(
@@ -583,49 +680,27 @@ async function downloadAndInstallUpdate(
     }
 
     updateInstallInFlight = (async () => {
-        let downloaded = 0;
-        let contentLength = 0;
+        const pendingDownload = updateDownloadInFlight;
+        if (pendingDownload?.version === release.canonicalVersion) {
+            const unsubscribe = subscribeToInFlightDownload(
+                pendingDownload,
+                options
+            );
+            try {
+                await pendingDownload.promise;
+                return installPendingTauriUpdate(release.canonicalVersion);
+            } finally {
+                unsubscribe();
+            }
+        }
+
         const request = await buildTauriUpdaterRequest(
             release,
             hostPlatform,
             options.hostArch || 'unknown',
             options.linuxPackageKind || 'unknown'
         );
-        const onEvent = (event: TauriDownloadEvent) => {
-            const state = handleTauriDownloadEvent(
-                event,
-                options.onProgress,
-                options.onDownloadProgress
-            );
-            if (state) {
-                downloaded = state.downloaded;
-                contentLength = state.contentLength;
-                options.onProgress?.(0);
-                return;
-            }
-            if (event.event === 'Progress') {
-                downloaded += Number(event.data?.chunkLength) || 0;
-                if (contentLength > 0) {
-                    const percent = Math.min(
-                        100,
-                        Math.round((downloaded / contentLength) * 100)
-                    );
-                    options.onProgress?.(percent);
-                    options.onDownloadProgress?.({
-                        downloadedBytes: downloaded,
-                        totalBytes: contentLength,
-                        percent
-                    });
-                } else {
-                    options.onDownloadProgress?.({
-                        downloadedBytes: downloaded,
-                        totalBytes: 0,
-                        percent: 0
-                    });
-                }
-                return;
-            }
-        };
+        const onEvent = createTauriDownloadEventHandler(options);
 
         const update = await downloadAndInstallTauriUpdate(request, onEvent);
         if (!update) {
@@ -642,10 +717,88 @@ async function downloadAndInstallUpdate(
     }
 }
 
+async function downloadUpdate(
+    release: NormalizedRelease,
+    options: UpdateOptions = {}
+): Promise<TauriUpdateMetadata> {
+    const version = release.canonicalVersion;
+    if (!version) {
+        throw new Error('Selected release has no canonical update version.');
+    }
+    if (updateDownloadInFlight) {
+        if (updateDownloadInFlight.version === version) {
+            const unsubscribe = subscribeToInFlightDownload(
+                updateDownloadInFlight,
+                options
+            );
+            try {
+                return await updateDownloadInFlight.promise;
+            } finally {
+                unsubscribe();
+            }
+        }
+        throw new Error('An update download is already in progress.');
+    }
+    const hostPlatform = options.hostPlatform || 'unknown';
+    if (!release.target) {
+        throw new Error('Selected release has no Tauri updater target.');
+    }
+
+    let inFlight: NonNullable<typeof updateDownloadInFlight>;
+    const promise = (async () => {
+        const request = await buildTauriUpdaterRequest(
+            release,
+            hostPlatform,
+            options.hostArch || 'unknown',
+            options.linuxPackageKind || 'unknown'
+        );
+        const update = await downloadTauriUpdate(
+            version,
+            request,
+            createTauriDownloadEventHandler({}, (progress) =>
+                publishInFlightDownloadProgress(inFlight, progress)
+            )
+        );
+        if (!update) {
+            throw new Error('No Tauri update is available.');
+        }
+        return update;
+    })();
+
+    inFlight = {
+        version,
+        promise,
+        progressSubscribers: new Set(),
+        lastProgress: null
+    };
+    updateDownloadInFlight = inFlight;
+    const unsubscribe = subscribeToInFlightDownload(inFlight, options);
+    try {
+        return await promise;
+    } finally {
+        unsubscribe();
+        if (updateDownloadInFlight?.promise === promise) {
+            updateDownloadInFlight = null;
+        }
+    }
+}
+
+async function installPendingUpdate(
+    version: string
+): Promise<TauriUpdateMetadata> {
+    return installPendingTauriUpdate(version);
+}
+
+async function discardPendingUpdate(): Promise<void> {
+    await discardPendingTauriUpdate();
+}
+
 export {
     canInstallUpdatesOnPlatform,
     checkInstallableUpdate,
     defaultBranchForVersion,
+    discardPendingUpdate,
+    downloadUpdate,
     downloadAndInstallUpdate,
     fetchBranchReleases,
     fetchLatestBranchRelease,
@@ -655,6 +808,9 @@ export {
     getUpdaterTarget,
     handlePreviewStableReleaseUpdateCheck,
     hasUpdateForBranch,
+    installPendingUpdate,
+    isNoPendingUpdateError,
+    isPendingUpdateVersionMismatchError,
     normalizeGitHubRelease,
     normalizeReleaseList,
     sanitizeBranch

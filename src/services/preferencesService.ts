@@ -1,5 +1,5 @@
-import { commands } from '@/platform/tauri/bindings';
 import { normalizeLanguageCode } from '@/localization/locales';
+import { commands } from '@/platform/tauri/bindings';
 import configRepository from '@/repositories/configRepository';
 import storageRepository from '@/repositories/storageRepository';
 import {
@@ -232,6 +232,7 @@ export async function loadPreferenceSnapshot() {
         notificationIconDot,
         showPostUpdateChangelogToast,
         autoInstallUpdatesOnStartup,
+        autoBackgroundDownloadUpdates,
         desktopToast,
         afkDesktopToast,
         desktopNotificationSound,
@@ -338,6 +339,7 @@ export async function loadPreferenceSnapshot() {
         configRepository.getBool('notificationIconDot', true),
         configRepository.getBool(POST_UPDATE_CHANGELOG_TOAST_CONFIG_KEY, true),
         configRepository.getBool('autoInstallUpdatesOnStartup', true),
+        configRepository.getBool('autoBackgroundDownloadUpdates', false),
         configRepository.getString('desktopToast', 'Never'),
         configRepository.getBool('afkDesktopToast', false),
         configRepository.getBool('desktopNotificationSound', false),
@@ -381,8 +383,7 @@ export async function loadPreferenceSnapshot() {
         configRepository.getBool('dtIsoFormat', false),
         configRepository.getBool('dtHour12', false),
         configRepository.getObject('VRCX_trustColor', null),
-        commands.appCurrentCulture()
-            .catch(() => navigator.language || 'en-gb'),
+        commands.appCurrentCulture().catch(() => navigator.language || 'en-gb'),
         storageRepository.getString('VRCX_ProxyServer', ''),
         configRepository.getInt('VRCX_tablePageSize', DEFAULT_TABLE_PAGE_SIZE),
         configRepository.getArray(
@@ -505,6 +506,7 @@ export async function loadPreferenceSnapshot() {
         notificationIconDot: Boolean(notificationIconDot),
         showPostUpdateChangelogToast: Boolean(showPostUpdateChangelogToast),
         autoInstallUpdatesOnStartup: Boolean(autoInstallUpdatesOnStartup),
+        autoBackgroundDownloadUpdates: Boolean(autoBackgroundDownloadUpdates),
         desktopToast: desktopToast || 'Never',
         afkDesktopToast: Boolean(afkDesktopToast),
         desktopNotificationSound: Boolean(desktopNotificationSound),
@@ -802,7 +804,8 @@ export async function setStartAtWindowsStartupPreference(value: any) {
     try {
         await configRepository.setBool('StartAtWindowsStartup', enabled);
     } catch (error) {
-        await commands.appSetStartup(previousEnabled)
+        await commands
+            .appSetStartup(previousEnabled)
             .catch((rollbackError: any) => {
                 console.warn(
                     'Failed to roll back Windows startup setting:',
@@ -1029,14 +1032,13 @@ export async function setSharedFeedFiltersPreference(value: any) {
 }
 
 async function loadOverlayActivityTypeDefinitionsForSave() {
-    return commands.appOverlayActivityDefinitionsGet()
-        .catch((error: any) => {
-            console.warn(
-                'Failed to load overlay activity definitions for save:',
-                error
-            );
-            return [] as OverlayActivityTypeDefinition[];
-        });
+    return commands.appOverlayActivityDefinitionsGet().catch((error: any) => {
+        console.warn(
+            'Failed to load overlay activity definitions for save:',
+            error
+        );
+        return [] as OverlayActivityTypeDefinition[];
+    });
 }
 
 export async function setOverlayActivityFiltersPreference(

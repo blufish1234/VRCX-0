@@ -1,10 +1,11 @@
 #![allow(non_snake_case)]
 
 use serde::Serialize;
-use tauri::{ipc::Channel, AppHandle, Url};
+use tauri::{ipc::Channel, AppHandle, State, Url};
 use tauri_plugin_updater::{Update, UpdaterExt};
 
 use crate::error::AppError;
+use crate::state::{AppState, PendingTauriUpdate, TauriUpdateMetadata};
 use vrcx_0_host::proxy::normalize_proxy_url;
 
 #[derive(Clone, Serialize, specta::Type)]
@@ -19,32 +20,6 @@ pub enum TauriDownloadEvent {
         chunk_length: usize,
     },
     Finished,
-}
-
-#[derive(Serialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct TauriUpdateMetadata {
-    current_version: String,
-    version: String,
-    date: Option<String>,
-    body: Option<String>,
-    raw_json: serde_json::Value,
-}
-
-impl From<&Update> for TauriUpdateMetadata {
-    fn from(update: &Update) -> Self {
-        Self {
-            current_version: update.current_version.clone(),
-            version: update.version.clone(),
-            date: update
-                .raw_json
-                .get("pub_date")
-                .and_then(serde_json::Value::as_str)
-                .map(str::to_string),
-            body: update.body.clone(),
-            raw_json: update.raw_json.clone(),
-        }
-    }
 }
 
 fn updater_error(context: &str, error: impl std::fmt::Display) -> AppError {
@@ -107,6 +82,84 @@ pub async fn app__check_tauri_update(
             .as_ref()
             .map(TauriUpdateMetadata::from),
     )
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn app__download_tauri_update(
+    app_handle: AppHandle,
+    state: State<'_, AppState>,
+    version: String,
+    manifest_url: String,
+    target: String,
+    allow_downgrades: bool,
+    proxy: Option<String>,
+    on_event: Channel<TauriDownloadEvent>,
+) -> Result<Option<TauriUpdateMetadata>, AppError> {
+    let Some(update) =
+        find_update(&app_handle, manifest_url, target, allow_downgrades, proxy).await?
+    else {
+        return Ok(None);
+    };
+
+    let metadata = TauriUpdateMetadata::from(&update);
+    let mut first_chunk = true;
+    let bytes = update
+        .download(
+            |chunk_length, content_length| {
+                if first_chunk {
+                    first_chunk = false;
+                    let _ = on_event.send(TauriDownloadEvent::Started { content_length });
+                }
+                let _ = on_event.send(TauriDownloadEvent::Progress { chunk_length });
+            },
+            || {
+                let _ = on_event.send(TauriDownloadEvent::Finished);
+            },
+        )
+        .await
+        .map_err(|error| updater_error("Failed to download update", error))?;
+
+    *state.pending_tauri_update.lock().await = Some(PendingTauriUpdate {
+        version,
+        update,
+        bytes,
+        metadata: metadata.clone(),
+    });
+
+    Ok(Some(metadata))
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn app__install_pending_tauri_update(
+    state: State<'_, AppState>,
+    version: String,
+) -> Result<TauriUpdateMetadata, AppError> {
+    let pending = {
+        let mut slot = state.pending_tauri_update.lock().await;
+        let Some(pending) = slot.as_ref() else {
+            return Err(AppError::Custom("no-pending-update".into()));
+        };
+        if pending.version != version {
+            return Err(AppError::Custom("pending-update-version-mismatch".into()));
+        }
+        slot.take().expect("pending update exists")
+    };
+
+    let metadata = pending.metadata.clone();
+    pending
+        .update
+        .install(pending.bytes)
+        .map_err(|error| updater_error("Failed to install pending update", error))?;
+    Ok(metadata)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn app__discard_pending_tauri_update(state: State<'_, AppState>) -> Result<(), AppError> {
+    let _ = state.pending_tauri_update.lock().await.take();
+    Ok(())
 }
 
 #[tauri::command]

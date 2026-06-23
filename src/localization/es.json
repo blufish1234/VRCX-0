@@ -288,7 +288,9 @@
                     "minimized": "Iniciar minimizado",
                     "tray": "Minimizar a la bandeja al cerrar",
                     "disable_vr_overlay_gpu_acceleration": "Deshabilitar Aceleración GPU de Superposición VR",
-                    "proxy": "Configuraciones de Proxy"
+                    "proxy": "Configuraciones de Proxy",
+                    "auto_background_download_updates": "Descargar actualizaciones en segundo plano",
+                    "auto_background_download_updates_description": "Cuando está activado, VRCX-0 descarga en segundo plano las actualizaciones instalables después de comprobarlas. Puedes instalar la actualización lista desde la barra de título; si aparece una versión más reciente, VRCX-0 descarta la descarga anterior y descarga la última."
                 },
                 "favorites": {
                     "header": "Amigos Favoritos de VRCX-0",
@@ -1845,5 +1847,8 @@
                 "body": "Vuelve a iniciar sesión para continuar."
             }
         }
+    },
+    "nav_menu": {
+        "update_downloaded": "Actualización lista"
     }
 }

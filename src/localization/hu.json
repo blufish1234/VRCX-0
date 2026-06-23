@@ -187,7 +187,9 @@
                     "startup": "Indítás a Windows indításakor",
                     "minimized": "Indítás tálcára kicsinyítve",
                     "tray": "Bezárás a tálcára",
-                    "proxy": "Proxy beállítások"
+                    "proxy": "Proxy beállítások",
+                    "auto_background_download_updates": "Frissítések letöltése a háttérben",
+                    "auto_background_download_updates_description": "Ha be van kapcsolva, a VRCX-0 frissítéskeresés után a háttérben letölti a telepíthető frissítéseket. Az elkészült frissítést a címsorból telepítheted; ha újabb verzió jelenik meg, a VRCX-0 eldobja a régi letöltést, és a legújabbat tölti le."
                 },
                 "favorites": {
                     "header": "VRChat kedvenc barátok",
@@ -1521,5 +1523,8 @@
                 "body": "Jelentkezz be újra a folytatáshoz."
             }
         }
+    },
+    "nav_menu": {
+        "update_downloaded": "Frissítés kész"
     }
 }

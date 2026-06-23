@@ -1,3 +1,4 @@
+import { handleAutoBackgroundDownloadUpdatesPreferenceChange } from '@/services/backgroundMaintenanceService';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
 import { SettingsSystemTab } from './settings-tabs/SettingsSystemTab';
@@ -26,6 +27,7 @@ export function SettingsSystemSection({ system }: any) {
             autoLoginDelayEnabled={prefs.autoLoginDelayEnabled}
             autoLoginDelaySeconds={prefs.autoLoginDelaySeconds}
             autoInstallUpdatesOnStartup={prefs.autoInstallUpdatesOnStartup}
+            autoBackgroundDownloadUpdates={prefs.autoBackgroundDownloadUpdates}
             backgroundModeEnabled={prefs.backgroundModeEnabled}
             onStartAtWindowsStartupChange={(checked: any) => {
                 savePreferenceValue('isStartAtWindowsStartup', checked, () =>
@@ -61,6 +63,16 @@ export function SettingsSystemSection({ system }: any) {
                     'autoInstallUpdatesOnStartup',
                     'autoInstallUpdatesOnStartup',
                     checked
+                );
+            }}
+            onAutoBackgroundDownloadUpdatesChange={async (checked: any) => {
+                await saveBoolPreference(
+                    'autoBackgroundDownloadUpdates',
+                    'autoBackgroundDownloadUpdates',
+                    checked
+                );
+                await handleAutoBackgroundDownloadUpdatesPreferenceChange(
+                    Boolean(checked)
                 );
             }}
             onPromptAutoLoginDelaySeconds={() => {

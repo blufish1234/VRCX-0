@@ -187,7 +187,9 @@
                     "startup": "Khởi động cùng với Windows",
                     "minimized": "Khởi động ở trạng thái thu nhỏ",
                     "tray": "Đóng nhỏ vào khay hệ thống",
-                    "proxy": "Proxy settings"
+                    "proxy": "Proxy settings",
+                    "auto_background_download_updates": "Tải bản cập nhật trong nền",
+                    "auto_background_download_updates_description": "Khi bật, VRCX-0 sẽ tải các bản cập nhật có thể cài đặt trong nền sau khi kiểm tra cập nhật. Bạn có thể cài đặt bản cập nhật đã sẵn sàng từ thanh tiêu đề; nếu có phiên bản mới hơn, VRCX-0 sẽ bỏ bản tải cũ và tải phiên bản mới nhất."
                 },
                 "favorites": {
                     "header": "VRCX-0 Favorite Friends",
@@ -1521,5 +1523,8 @@
                 "body": "Đăng nhập lại để tiếp tục."
             }
         }
+    },
+    "nav_menu": {
+        "update_downloaded": "Bản cập nhật đã sẵn sàng"
     }
 }

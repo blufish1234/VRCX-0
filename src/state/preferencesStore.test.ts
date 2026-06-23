@@ -23,6 +23,18 @@ describe('preferencesStore normalizers', () => {
         ).toBe(false);
     });
 
+    it('keeps background update downloads disabled by default', () => {
+        expect(DEFAULT_PREFERENCES.autoBackgroundDownloadUpdates).toBe(false);
+        expect(
+            normalizePreferenceSnapshot({}).autoBackgroundDownloadUpdates
+        ).toBe(false);
+        expect(
+            normalizePreferenceSnapshot({
+                autoBackgroundDownloadUpdates: true
+            }).autoBackgroundDownloadUpdates
+        ).toBe(true);
+    });
+
     it('normalizes table page sizes into a positive sorted unique list', () => {
         expect(
             normalizeTablePageSizes(['50', 10, 'bad', 10, 0, 1001, 25])

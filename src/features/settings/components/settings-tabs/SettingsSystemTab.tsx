@@ -15,6 +15,7 @@ export function SettingsSystemTab({
     autoLoginDelayEnabled,
     autoLoginDelaySeconds,
     autoInstallUpdatesOnStartup,
+    autoBackgroundDownloadUpdates,
     backgroundModeEnabled,
     onStartAtWindowsStartupChange,
     onStartAsMinimizedChange,
@@ -23,6 +24,7 @@ export function SettingsSystemTab({
     onPromptAutoLoginDelaySeconds,
     onBackgroundModeEnabledChange,
     onAutoInstallUpdatesOnStartupChange,
+    onAutoBackgroundDownloadUpdatesChange,
     onProxySettings
 }: any) {
     const { t } = useTranslation();
@@ -105,6 +107,19 @@ export function SettingsSystemTab({
                     <Switch
                         checked={autoInstallUpdatesOnStartup}
                         onCheckedChange={onAutoInstallUpdatesOnStartupChange}
+                    />
+                </Field>
+                <Field
+                    label={t(
+                        'view.settings.general.application.auto_background_download_updates'
+                    )}
+                    description={t(
+                        'view.settings.general.application.auto_background_download_updates_description'
+                    )}
+                >
+                    <Switch
+                        checked={autoBackgroundDownloadUpdates}
+                        onCheckedChange={onAutoBackgroundDownloadUpdatesChange}
                     />
                 </Field>
                 <Field

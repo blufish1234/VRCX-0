@@ -35,3 +35,28 @@ export async function downloadAndInstallTauriUpdate(
         new Channel<TauriDownloadEvent>(onEvent)
     );
 }
+
+export async function downloadTauriUpdate(
+    version: string,
+    request: TauriUpdateRequest,
+    onEvent: TauriUpdateEventHandler
+): Promise<TauriUpdateMetadata | null> {
+    return commands.appDownloadTauriUpdate(
+        version,
+        request.manifestUrl,
+        request.target,
+        request.allowDowngrades,
+        request.proxy ?? null,
+        new Channel<TauriDownloadEvent>(onEvent)
+    );
+}
+
+export async function installPendingTauriUpdate(
+    version: string
+): Promise<TauriUpdateMetadata> {
+    return commands.appInstallPendingTauriUpdate(version);
+}
+
+export async function discardPendingTauriUpdate(): Promise<void> {
+    await commands.appDiscardPendingTauriUpdate();
+}

@@ -50,6 +50,7 @@ export function createDefaultSettingsPrefs() {
         notificationIconDot: true,
         showPostUpdateChangelogToast: true,
         autoInstallUpdatesOnStartup: true,
+        autoBackgroundDownloadUpdates: false,
         desktopToast: 'Never',
         afkDesktopToast: false,
         desktopNotificationSound: false,
