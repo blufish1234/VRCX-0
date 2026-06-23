@@ -549,6 +549,7 @@
             "filter": "Filter",
             "favorites_only_tooltip": "Filter favorites only",
             "search_placeholder": "Search",
+            "date_range": "Date range",
             "filters": {
                 "GPS": "GPS",
                 "Online": "Online",
@@ -1801,7 +1802,7 @@
                     "status_label": "Status",
                     "port_active_connections": "Port {port}; active connections {count}",
                     "client_config": "Client Config",
-                    "client_config_description": "Pick the option that matches your client. Claude Code: copies a one-time `claude mcp add` command that you run in your terminal to register the server. Generic (HTTP): copies a JSON config that connects directly to the server over HTTP — no extra tools needed. Generic (mcp-remote): copies a JSON config that tunnels through a Node.js proxy process for clients without native HTTP support (e.g. Claude Desktop); requires Node.js in your PATH.",
+                    "client_config_description": "Pick the option for your client. Claude Code: a one-time `claude mcp add` terminal command. Generic (HTTP): a JSON config for a direct HTTP connection — no extra tools. Generic (mcp-remote): a JSON config that tunnels via a Node.js proxy for clients without native HTTP (e.g. Claude Desktop); needs Node.js in PATH.",
                     "copy_claude_code": "Claude Code",
                     "copy_mcp_remote": "Generic (mcp-remote)",
                     "copy_generic": "Generic (HTTP)",
