@@ -1757,6 +1757,7 @@
                     "status_label": "Status",
                     "port_active_connections": "Port {port}; active connections {count}",
                     "client_config": "Client Config",
+                    "client_config_description": "",
                     "copy_claude_code": "Claude Code",
                     "copy_mcp_remote": "Generic (mcp-remote)",
                     "copy_generic": "Generic (HTTP)",
