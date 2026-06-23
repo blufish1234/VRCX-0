@@ -1,4 +1,4 @@
-# <img src="images/VRCX-0.png" alt="logo" width="25">   VRCX-0
+# <img src="images/VRCX-0.png" alt="logo" width="23">   VRCX-0
 
 English | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-Hant.md) | [日本語](README.ja-JP.md) | [한국어](README.ko-KR.md)
 
@@ -14,9 +14,15 @@ The current VRCX project is already largely stable, with future upstream changes
 - Background mode keeps core services running with only a few dozen MB of memory usage
 - Windows and macOS installers are in the 20 MB range, and much smaller application size
 - New UI and interaction model
+- Better application launcher, featuring a dedicated panel and more specific settings. 
+- Custom themes, with support of community themes and custom CSS layer
 - Full keyboard navigation
 - Headless mode
 - Continued feature development and support
+
+## Features
+
+- Keep track of your VRChat friends' locations
 
 ## Data Migration
 
@@ -39,7 +45,7 @@ All modifications, additions, rewrites, and new code introduced after the fork a
 
 ## Installation
 
-**All Versions**
+**All Operating Systems**
 
  - [Via GitHub Releases](https://github.com/Map1en/VRCX-0/releases)
 
@@ -73,3 +79,5 @@ cd VRCX-0
 npm install
 npm run tauri:dev
 ```
+
+*VRCX-0 is not endorsed by VRChat and does not reflect the views or opinions of VRChat or anyone officially involved in producing or managing VRChat properties. VRChat and all associated properties are trademarks or registered trademarks of VRChat Inc. VRChat © VRChat Inc.*
