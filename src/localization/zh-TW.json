@@ -1757,7 +1757,7 @@
                     "status_label": "狀態",
                     "port_active_connections": "連接埠：{port}；目前連線數：{count}",
                     "client_config": "客戶端設定",
-                    "client_config_description": "對於 Claude Code CLI，請在終端機中執行複製的命令。對於其他客戶端，建議優先使用通用 (HTTP)。通用 (mcp-remote) 需要 PATH 中有 Node.js，且在 Windows 上有已知問題。",
+                    "client_config_description": "對於 Claude Code CLI，請在終端機中執行複製的命令。對於其他客戶端，建議優先使用通用 (HTTP)。通用 (mcp-remote) 需要 PATH 中有 Node.js。",
                     "copy_claude_code": "Claude Code",
                     "copy_mcp_remote": "通用 (mcp-remote)",
                     "copy_generic": "通用 (HTTP)",
