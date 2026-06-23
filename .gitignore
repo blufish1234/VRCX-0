@@ -24,4 +24,3 @@ build-scripts/package-windows-release.ps1
 .claude/
 .agents/
 .mcp.json
-.vscode/settings.json
