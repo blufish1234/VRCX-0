@@ -58,7 +58,8 @@ export function PlayerListWorldHeader({
         worldProfileRepository
             .getWorldProfile({
                 worldId,
-                endpoint: currentUserEndpoint
+                endpoint: currentUserEndpoint,
+                full: true
             })
             .then((world: any) => {
                 if (active) {

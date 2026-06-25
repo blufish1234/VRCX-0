@@ -49,6 +49,7 @@ interface WorldIdInput extends WorldRepositoryOptions {
 
 interface WorldProfileInput extends WorldIdInput {
     dialog?: boolean;
+    full?: boolean;
     location?: boolean;
 }
 
@@ -286,8 +287,8 @@ function normalize(world: unknown): WorldProfileRecord {
 }
 
 function recordWorldFact(world: unknown) {
-    if (world && typeof world === 'object') {
-        useWorldFactsStore.getState().upsertWorldFacts(world as WorldRecord);
+    if (isRecord(world)) {
+        useWorldFactsStore.getState().upsertWorldFacts(world);
     }
 }
 
@@ -333,6 +334,7 @@ async function getWorldProfile({
     endpoint = '',
     force = false,
     dialog = false,
+    full = false,
     location = false
 }: WorldProfileInput) {
     const normalizedWorldId = normalizeEntityId(worldId);
@@ -342,7 +344,7 @@ async function getWorldProfile({
         );
     }
 
-    if (!force && !dialog) {
+    if (!force && !dialog && !full) {
         const mirroredWorld = getMirroredWorldProfile(normalizedWorldId);
         if (mirroredWorld) {
             return mirroredWorld;

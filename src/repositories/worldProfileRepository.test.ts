@@ -83,6 +83,59 @@ describe('WorldProfileRepository', () => {
         });
     });
 
+    it('returns full fetched worlds but mirrors summary fields only', async () => {
+        tauriMock.commands.appVrchatWorldGet.mockResolvedValue({
+            status: 200,
+            data: JSON.stringify({
+                id: 'wrld_full',
+                name: 'Full World',
+                description: 'Remote details',
+                authorId: 'usr_author',
+                releaseStatus: 'public',
+                imageUrl: 'image.png',
+                capacity: 40,
+                tags: ['system_labs'],
+                unityPackages: [
+                    { platform: 'standalonewindows', assetUrl: 'bundle.url' }
+                ],
+                instances: [['123', 4]],
+                unknownLargeField: { nested: true }
+            }),
+            raw: {}
+        });
+
+        const world = await worldProfileRepository.fetchWorldProfile({
+            worldId: 'wrld_full'
+        });
+        const mirrored = useWorldFactsStore
+            .getState()
+            .getWorldFact('wrld_full');
+
+        expect(world).toMatchObject({
+            id: 'wrld_full',
+            name: 'Full World',
+            unityPackages: [
+                { platform: 'standalonewindows', assetUrl: 'bundle.url' }
+            ],
+            instances: [['123', 4]]
+        });
+        expect(mirrored).toMatchObject({
+            id: 'wrld_full',
+            name: 'Full World',
+            description: 'Remote details',
+            authorId: 'usr_author',
+            releaseStatus: 'public',
+            imageUrl: 'image.png',
+            capacity: 40,
+            tags: ['system_labs'],
+            isLabs: true,
+            platforms: ['PC']
+        });
+        expect(mirrored).not.toHaveProperty('unityPackages');
+        expect(mirrored).not.toHaveProperty('instances');
+        expect(mirrored).not.toHaveProperty('unknownLargeField');
+    });
+
     it('uses mirrored world facts before local cache or remote fetch', async () => {
         useWorldFactsStore.getState().upsertWorldFacts({
             id: 'wrld_mirror',
@@ -124,6 +177,49 @@ describe('WorldProfileRepository', () => {
             'wrld_local'
         );
         expect(tauriMock.commands.appVrchatWorldGet).not.toHaveBeenCalled();
+    });
+
+    it('fetches remote data for full reads instead of mirrored or local summary cache', async () => {
+        useWorldFactsStore.getState().upsertWorldFacts({
+            id: 'wrld_full_bypass',
+            name: 'Mirrored Summary World'
+        });
+        tauriMock.commands.appWorldCacheGet.mockResolvedValue({
+            id: 'wrld_full_bypass',
+            name: 'Local Summary World'
+        });
+        tauriMock.commands.appVrchatWorldGet.mockResolvedValue({
+            status: 200,
+            data: JSON.stringify({
+                id: 'wrld_full_bypass',
+                name: 'Remote Full World',
+                unityPackages: [
+                    {
+                        platform: 'standalonewindows',
+                        assetUrl: 'https://example.test/world.bundle'
+                    }
+                ]
+            }),
+            raw: {}
+        });
+
+        const world = await worldProfileRepository.getWorldProfile({
+            worldId: 'wrld_full_bypass',
+            full: true
+        });
+
+        expect(world.name).toBe('Remote Full World');
+        expect(world.unityPackages).toEqual([
+            {
+                platform: 'standalonewindows',
+                assetUrl: 'https://example.test/world.bundle'
+            }
+        ]);
+        expect(tauriMock.commands.appWorldCacheGet).not.toHaveBeenCalled();
+        expect(tauriMock.commands.appVrchatWorldGet).toHaveBeenCalledWith({
+            worldId: 'wrld_full_bypass',
+            endpoint: ''
+        });
     });
 
     it('fetches remote data for dialog reads instead of using summary cache', async () => {
