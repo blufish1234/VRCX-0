@@ -405,19 +405,20 @@ mod schema_version_tests {
         )
         .unwrap();
 
-        assert!(
-            add_column_if_missing(&db, "sample_table", "display_name", "TEXT NOT NULL DEFAULT ''")
-                .unwrap()
-        );
-        assert!(
-            !add_column_if_missing(
-                &db,
-                "sample_table",
-                "display_name",
-                "TEXT NOT NULL DEFAULT ''"
-            )
-            .unwrap()
-        );
+        assert!(add_column_if_missing(
+            &db,
+            "sample_table",
+            "display_name",
+            "TEXT NOT NULL DEFAULT ''"
+        )
+        .unwrap());
+        assert!(!add_column_if_missing(
+            &db,
+            "sample_table",
+            "display_name",
+            "TEXT NOT NULL DEFAULT ''"
+        )
+        .unwrap());
         assert!(table_column_names(&db, "sample_table")
             .unwrap()
             .contains("display_name"));
@@ -440,18 +441,13 @@ mod schema_version_tests {
 
         let table_error =
             add_column_if_missing(&db, "sample-table", "display_name", "TEXT").unwrap_err();
-        let column_error =
-            drop_column_if_exists(&db, "sample_table", "display-name").unwrap_err();
+        let column_error = drop_column_if_exists(&db, "sample_table", "display-name").unwrap_err();
 
-        assert!(
-            table_error
-                .to_string()
-                .contains("Table name contains invalid characters")
-        );
-        assert!(
-            column_error
-                .to_string()
-                .contains("Column name contains invalid characters")
-        );
+        assert!(table_error
+            .to_string()
+            .contains("Table name contains invalid characters"));
+        assert!(column_error
+            .to_string()
+            .contains("Column name contains invalid characters"));
     }
 }
