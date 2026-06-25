@@ -6,10 +6,15 @@ import {
     formatScreenshotBytes,
     formatScreenshotDateTime,
     getDroppedScreenshotPath,
+    getGalleryFolderPathSet,
     getFileNameFromPath,
+    normalizeGalleryScrollPositions,
+    normalizeGalleryScrollTop,
     normalizeDroppedFilePath,
     normalizeScreenshotMetadata,
+    resolveGalleryFolder,
     SCREENSHOT_METADATA_SEARCH_TYPES,
+    serializeGalleryScrollPositions,
     sortScreenshotRowsByNewest,
     sortScreenshotSearchRows
 } from './screenshotMetadataValues';
@@ -181,5 +186,52 @@ describe('screenshotMetadataValues', () => {
         expect(formatScreenshotBytes(1536)).toBe('1.5 KB');
         expect(formatScreenshotDateTime(null)).toBe('—');
         expect(formatScreenshotDateTime('invalid')).toBe('—');
+    });
+
+    it('normalizes gallery scroll positions for persistence', () => {
+        expect(normalizeGalleryScrollTop(-12)).toBe(0);
+        expect(normalizeGalleryScrollTop(12.6)).toBe(13);
+        expect(normalizeGalleryScrollTop(Number.POSITIVE_INFINITY)).toBe(0);
+
+        const positions = normalizeGalleryScrollPositions({
+            'D:\\A': 12.2,
+            'D:\\B': -10,
+            '': 99
+        });
+
+        expect(Array.from(positions.entries())).toEqual([
+            ['D:\\A', 12],
+            ['D:\\B', 0]
+        ]);
+        expect(
+            serializeGalleryScrollPositions(
+                new Map([
+                    ['', 1],
+                    ['D:\\A', 4.7]
+                ])
+            )
+        ).toEqual({ 'D:\\A': 5 });
+    });
+
+    it('resolves gallery folders from preferences, latest folders, and root fallback', () => {
+        const folderTree = {
+            rootPath: 'D:\\Root',
+            folders: [
+                { path: 'D:\\Old', imageCount: 2, latestModifiedAt: 10 },
+                { path: 'D:\\New', imageCount: 1, latestModifiedAt: 20 },
+                { path: 'D:\\Empty', imageCount: 0, latestModifiedAt: 99 }
+            ]
+        };
+
+        expect(resolveGalleryFolder(folderTree, ['D:\\Missing', 'D:\\Old'])).toBe(
+            'D:\\Old'
+        );
+        expect(resolveGalleryFolder(folderTree, '')).toBe('D:\\New');
+        expect(getGalleryFolderPathSet(folderTree)).toEqual(
+            new Set(['D:\\Old', 'D:\\New', 'D:\\Empty'])
+        );
+        expect(resolveGalleryFolder({ rootPath: 'D:\\Root', folders: [] }, '')).toBe(
+            'D:\\Root'
+        );
     });
 });

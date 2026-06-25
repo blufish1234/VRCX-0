@@ -16,7 +16,11 @@ import {
     useKnownUserFacts
 } from '@/domain/users/useKnownUser';
 import { openGameLogUser } from '@/features/game-log/gameLogUserLookup';
-import { formatClock, formatDateFilter, timeToText } from '@/lib/dateTime';
+import {
+    formatClock,
+    formatDateFilterOrFallback,
+    timeToText
+} from '@/lib/dateTime';
 import gameLogRepository from '@/repositories/gameLogRepository';
 import userProfileRepository from '@/repositories/userProfileRepository';
 import { openUserDialog, openWorldDialog } from '@/services/dialogService';
@@ -54,7 +58,7 @@ import {
 } from './previousInstancesRows';
 
 export function formatDate(value: any) {
-    return formatDateFilter(value, 'long');
+    return formatDateFilterOrFallback(value, 'long');
 }
 
 function playerLeaveMs(player: any) {

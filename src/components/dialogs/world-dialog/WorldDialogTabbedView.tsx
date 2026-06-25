@@ -8,7 +8,7 @@ import {
     openExternalLink
 } from '@/services/entityMediaService';
 import groupProfileRepository from '@/repositories/groupProfileRepository';
-import { formatDateFilter } from '@/lib/dateTime';
+import { formatDateFilterOrFallback } from '@/lib/dateTime';
 import mediaRepository from '@/repositories/mediaRepository';
 import playerListPersistenceRepository from '@/repositories/playerListPersistenceRepository';
 import userProfileRepository from '@/repositories/userProfileRepository';
@@ -39,11 +39,10 @@ import {
     sameLocationTag
 } from './WorldDialogViewParts';
 function formatDate(value: any) {
-    if (!value) {
-        return '';
-    }
-    const formatted = formatDateFilter(value, 'long');
-    return formatted === '-' ? String(value) : formatted;
+    return formatDateFilterOrFallback(value, 'long', {
+        empty: '',
+        invalid: (rawValue) => String(rawValue)
+    });
 }
 
 let lastWorldDialogTab = 'instances';

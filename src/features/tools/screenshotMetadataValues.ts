@@ -4,6 +4,7 @@ import {
     formatIsoDateTime,
     normalizeDateLocale
 } from '@/shared/utils/dateTimeFormatters';
+import { SCREENSHOT_GALLERY_CONFIG_KEYS } from '@/repositories/configKeys';
 import { useShellStore } from '@/state/shellStore';
 
 export const SCREENSHOT_METADATA_SEARCH_TYPES = [
@@ -33,6 +34,93 @@ export const DEFAULT_SCREENSHOT_SEARCH_SORT: any = {
     key: 'dateTime',
     asc: false
 };
+
+export const SCREENSHOT_GALLERY_FOLDER_CONFIG_KEY =
+    SCREENSHOT_GALLERY_CONFIG_KEYS.folder;
+export const SCREENSHOT_GALLERY_SCROLL_CONFIG_KEY =
+    SCREENSHOT_GALLERY_CONFIG_KEYS.scrollPositions;
+export const SCREENSHOT_GALLERY_SCROLL_SAVE_DELAY_MS = 500;
+export const MAX_SCREENSHOT_GALLERY_SCROLL_POSITIONS = 100;
+export const MAX_SCREENSHOT_GALLERY_SCROLL_TOP = 50_000_000;
+
+export function normalizeGalleryScrollTop(value: any) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+        return 0;
+    }
+    return Math.min(
+        MAX_SCREENSHOT_GALLERY_SCROLL_TOP,
+        Math.max(0, Math.round(numeric))
+    );
+}
+
+export function normalizeGalleryScrollPositions(value: any) {
+    const entries =
+        value && typeof value === 'object' && !Array.isArray(value)
+            ? Object.entries(value)
+            : [];
+    const positions = new Map();
+
+    for (const [path, scrollTop] of entries) {
+        if (!path || typeof path !== 'string') {
+            continue;
+        }
+        positions.set(path, normalizeGalleryScrollTop(scrollTop));
+        if (positions.size >= MAX_SCREENSHOT_GALLERY_SCROLL_POSITIONS) {
+            break;
+        }
+    }
+
+    return positions;
+}
+
+export function serializeGalleryScrollPositions(positions: any) {
+    const result: Record<string, number> = {};
+    for (const [path, scrollTop] of Array.from(positions.entries())
+        .filter(([path]: any) => Boolean(path))
+        .slice(-MAX_SCREENSHOT_GALLERY_SCROLL_POSITIONS) as any[]) {
+        result[String(path)] = normalizeGalleryScrollTop(scrollTop);
+    }
+    return result;
+}
+
+export function getGalleryFolderPathSet(folderTree: any) {
+    return new Set(
+        (Array.isArray(folderTree?.folders) ? folderTree.folders : [])
+            .map((folder: any) => folder?.path)
+            .filter(Boolean)
+    );
+}
+
+export function getFolderLatestModifiedAt(folder: any) {
+    return Number(folder?.latestModifiedAt) || 0;
+}
+
+export function resolveGalleryFolder(folderTree: any, preferredFolders: any) {
+    const folders = Array.isArray(folderTree?.folders)
+        ? folderTree.folders
+        : [];
+    const preferredList = Array.isArray(preferredFolders)
+        ? preferredFolders
+        : [preferredFolders];
+    for (const preferredFolder of preferredList) {
+        if (
+            preferredFolder &&
+            folders.some((folder: any) => folder.path === preferredFolder)
+        ) {
+            return preferredFolder;
+        }
+    }
+    const latestFolder = folders
+        .filter((folder: any) => Number(folder.imageCount) > 0)
+        .sort(
+            (left: any, right: any) =>
+                getFolderLatestModifiedAt(right) -
+                    getFolderLatestModifiedAt(left) ||
+                String(right.path || '').localeCompare(String(left.path || ''))
+        )[0];
+    return latestFolder?.path || folderTree?.rootPath || folders[0]?.path || '';
+}
 
 export function normalizeDroppedFilePath(value: any) {
     const text = String(value || '')

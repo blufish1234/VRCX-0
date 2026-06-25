@@ -255,6 +255,8 @@ export const ConfigKeys = {
     InstanceActivityBarWidth: { type: 'int', default: 25 },
     groupCalendarShowFeaturedEvents: { type: 'bool', default: false },
     toolsCategoryCollapsed: { type: 'string', default: null },
+    screenshotGalleryFolder: { type: 'string', default: '' },
+    screenshotGalleryScrollPositions: { type: 'string', default: '{}' },
 
     // ── Charts ───────────────────────────────────────
     MutualGraphLayoutIterations: { type: 'int', default: null },
@@ -350,6 +352,21 @@ export const FAVORITES_LAYOUT_CONFIG_KEYS = Object.freeze({
         world: 'VRCX_FavoritesWorldSort',
         avatar: 'VRCX_FavoritesAvatarSort'
     })
+});
+
+export const USER_ACTIVITY_CONFIG_KEYS = Object.freeze({
+    selfPeriodDays: 'activitySelfPeriodDays',
+    friendPeriodDays: 'activityFriendPeriodDays',
+    selfTopWorldsSortBy: 'activitySelfTopWorldsSortBy',
+    selfExcludeHomeWorld: 'activitySelfExcludeHomeWorld',
+    overlapExcludeEnabled: 'overlapExcludeEnabled',
+    overlapExcludeStart: 'overlapExcludeStart',
+    overlapExcludeEnd: 'overlapExcludeEnd'
+});
+
+export const SCREENSHOT_GALLERY_CONFIG_KEYS = Object.freeze({
+    folder: 'screenshotGalleryFolder',
+    scrollPositions: 'screenshotGalleryScrollPositions'
 });
 
 export const STATUS_BAR_CONFIG_KEYS = Object.freeze({

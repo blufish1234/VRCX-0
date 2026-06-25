@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { cn } from '@/lib/utils';
 import configRepository from '@/repositories/configRepository';
 import worldProfileRepository from '@/repositories/worldProfileRepository';
 import { getResolvedThemeMode } from '@/services/themeService';
@@ -14,7 +13,6 @@ import { useRuntimeStore } from '@/state/runtimeStore';
 import { useShellStore } from '@/state/shellStore';
 import { Alert, AlertDescription } from '@/ui/shadcn/alert';
 import { Button } from '@/ui/shadcn/button';
-import { Field, FieldLabel } from '@/ui/shadcn/field';
 import {
     Select,
     SelectContent,
@@ -24,307 +22,35 @@ import {
     SelectValue
 } from '@/ui/shadcn/select';
 import { Spinner } from '@/ui/shadcn/spinner';
-import { Switch } from '@/ui/shadcn/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import {
+    UserActivityOverlapSection,
+    UserActivityTopWorldsSection
+} from './user-dialog/components/UserActivityPanelSections';
+import {
     ActivityEmptyState,
     getWorldThumbnailUrl,
-    HeatmapChart,
-    TopWorldRows
+    HeatmapChart
 } from './user-dialog/components/UserActivityPanelParts';
+import {
+    ACTIVITY_FRIEND_PERIOD_KEY,
+    ACTIVITY_SELF_EXCLUDE_HOME_WORLD_KEY,
+    ACTIVITY_SELF_PERIOD_KEY,
+    ACTIVITY_SELF_TOP_WORLDS_SORT_KEY,
+    getDisplayDayLabels,
+    getRangeDays,
+    normalizeActivityPeriod,
+    normalizeTopWorldsSort,
+    OVERLAP_EXCLUDE_ENABLED_KEY,
+    OVERLAP_EXCLUDE_END_KEY,
+    OVERLAP_EXCLUDE_START_KEY,
+    OVERLAP_LOADING_DELAY,
+    TOP_WORLDS_LOADING_DELAY,
+    USER_ACTIVITY_HOUR_LABELS
+} from './user-dialog/userActivityPanelModel';
 
-const ACTIVITY_SELF_PERIOD_KEY = 'VRCX_activitySelfPeriodDays';
-const ACTIVITY_FRIEND_PERIOD_KEY = 'VRCX_activityFriendPeriodDays';
-const ACTIVITY_SELF_TOP_WORLDS_SORT_KEY = 'VRCX_activitySelfTopWorldsSortBy';
-const ACTIVITY_SELF_EXCLUDE_HOME_WORLD_KEY =
-    'VRCX_activitySelfExcludeHomeWorld';
-const OVERLAP_EXCLUDE_ENABLED_KEY = 'VRCX_overlapExcludeEnabled';
-const OVERLAP_EXCLUDE_START_KEY = 'VRCX_overlapExcludeStart';
-const OVERLAP_EXCLUDE_END_KEY = 'VRCX_overlapExcludeEnd';
-const VALID_PERIODS = new Set(['7', '30', '90']);
-const HOUR_LABELS = Array.from(
-    { length: 24 },
-    (_: any, index: any) => `${String(index).padStart(2, '0')}:00`
-);
-const TOP_WORLDS_LOADING_DELAY = 150;
-const OVERLAP_LOADING_DELAY = 120;
-const OVERLAP_RENDER_DELAY = 80;
-
-export function getRangeDays(period: any) {
-    return Number.parseInt(period, 10) || 30;
-}
-
-export function getDisplayDayLabels(dayLabels: any, weekStartsOn: any) {
-    return Array.from(
-        { length: 7 },
-        (_: any, index: any) => dayLabels[(weekStartsOn + index) % 7]
-    );
-}
-
-function UserActivityOverlapSection({
-    bestOverlapTime,
-    changeExcludeHours,
-    changeExcludeRange,
-    dayLabels,
-    emptyColor,
-    excludeEndHour,
-    excludeHoursEnabled,
-    excludeStartHour,
-    hasOverlapData,
-    isDarkMode,
-    onOverlapChartRightClick,
-    overlapHeatmap,
-    overlapLoading,
-    overlapLoadingVisible,
-    overlapPercent,
-    overlapScaleColors,
-    weekStartsOn
-}: any) {
-    const { t } = useTranslation();
-
-    return (
-        <div className="border-border mt-4 border-t pt-3">
-            <div className="mb-2 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">
-                        {t('dialog.user.activity.overlap.header')}
-                    </span>
-                    {overlapLoadingVisible ? (
-                        <Spinner className="size-3.5" />
-                    ) : null}
-                </div>
-                {hasOverlapData ? (
-                    <div className="flex shrink-0 items-center gap-1.5">
-                        <Switch
-                            checked={excludeHoursEnabled}
-                            onCheckedChange={(value: any) => {
-                                changeExcludeHours(value);
-                            }}
-                            className="scale-75"
-                        />
-                        <span className="text-muted-foreground text-sm whitespace-nowrap">
-                            {t('dialog.user.activity.overlap.exclude_hours')}
-                        </span>
-                        <Select
-                            value={excludeStartHour}
-                            onValueChange={(value: any) => {
-                                changeExcludeRange('start', value);
-                            }}
-                        >
-                            <SelectTrigger
-                                size="sm"
-                                className="h-6 w-[78px] px-2 text-sm"
-                            >
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    {HOUR_LABELS.map(
-                                        (label: any, index: any) => (
-                                            <SelectItem
-                                                key={label}
-                                                value={String(index)}
-                                            >
-                                                {label}
-                                            </SelectItem>
-                                        )
-                                    )}
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                        <span className="text-muted-foreground text-xs">-</span>
-                        <Select
-                            value={excludeEndHour}
-                            onValueChange={(value: any) => {
-                                changeExcludeRange('end', value);
-                            }}
-                        >
-                            <SelectTrigger
-                                size="sm"
-                                className="h-6 w-[78px] px-2 text-sm"
-                            >
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    {HOUR_LABELS.map(
-                                        (label: any, index: any) => (
-                                            <SelectItem
-                                                key={label}
-                                                value={String(index)}
-                                            >
-                                                {label}
-                                            </SelectItem>
-                                        )
-                                    )}
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                ) : null}
-            </div>
-            {!overlapLoadingVisible && hasOverlapData ? (
-                <div className="mb-2 flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                        <span
-                            className={cn(
-                                'text-sm font-medium',
-                                overlapPercent > 0
-                                    ? 'text-accent-foreground'
-                                    : 'text-muted-foreground'
-                            )}
-                        >
-                            {overlapPercent}%
-                        </span>
-                        <span className="bg-muted h-2 flex-1 overflow-hidden rounded-full">
-                            <span
-                                className="block h-full rounded-full transition-all duration-500"
-                                style={{
-                                    width: `${overlapPercent}%`,
-                                    backgroundColor: isDarkMode
-                                        ? 'hsl(260, 60%, 55%)'
-                                        : 'hsl(260, 55%, 50%)'
-                                }}
-                            />
-                        </span>
-                    </div>
-                    {bestOverlapTime ? (
-                        <div className="text-sm">
-                            <span className="text-muted-foreground">
-                                {t('dialog.user.activity.overlap.peak_overlap')}
-                            </span>
-                            <span className="ml-1 font-medium">
-                                {bestOverlapTime}
-                            </span>
-                        </div>
-                    ) : null}
-                </div>
-            ) : null}
-            {hasOverlapData || overlapLoadingVisible ? (
-                <HeatmapChart
-                    rawBuckets={overlapHeatmap.rawBuckets}
-                    normalizedBuckets={overlapHeatmap.normalizedBuckets}
-                    dayLabels={dayLabels}
-                    hourLabels={HOUR_LABELS}
-                    weekStartsOn={weekStartsOn}
-                    isDarkMode={isDarkMode}
-                    emptyColor={emptyColor}
-                    scaleColors={overlapScaleColors}
-                    unitLabel={t(
-                        'dialog.user.activity.overlap.minutes_overlap'
-                    )}
-                    renderDelay={OVERLAP_RENDER_DELAY}
-                    onContextMenu={onOverlapChartRightClick}
-                />
-            ) : !overlapLoading && !hasOverlapData ? (
-                <div className="text-muted-foreground py-2 text-sm">
-                    {t('dialog.user.activity.overlap.no_data')}
-                </div>
-            ) : null}
-        </div>
-    );
-}
-
-function UserActivityTopWorldsSection({
-    changeExcludeHomeWorld,
-    changeTopWorldsSort,
-    currentHomeWorldId,
-    excludeHomeWorldEnabled,
-    loading,
-    topWorlds,
-    topWorldsLoading,
-    topWorldsLoadingVisible,
-    topWorldsSortBy
-}: any) {
-    const { t } = useTranslation();
-
-    return (
-        <div className="border-border mt-4 border-t pt-3">
-            <div className="mb-2 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">
-                        {t('dialog.user.activity.most_visited_worlds.header')}
-                    </span>
-                    {topWorldsLoadingVisible ? (
-                        <Spinner className="size-3.5" />
-                    ) : null}
-                </div>
-                <div className="flex items-center gap-4">
-                    {currentHomeWorldId ? (
-                        <Field
-                            orientation="horizontal"
-                            className="text-muted-foreground w-auto gap-1.5"
-                        >
-                            <Switch
-                                id="activity-exclude-home-world"
-                                checked={excludeHomeWorldEnabled}
-                                onCheckedChange={(value: any) => {
-                                    changeExcludeHomeWorld(value);
-                                }}
-                                className="scale-75"
-                            />
-                            <FieldLabel
-                                htmlFor="activity-exclude-home-world"
-                                className="text-muted-foreground text-sm font-normal whitespace-nowrap"
-                            >
-                                {t(
-                                    'dialog.user.activity.most_visited_worlds.exclude_home_world'
-                                )}
-                            </FieldLabel>
-                        </Field>
-                    ) : null}
-                    {topWorlds.length > 0 ? (
-                        <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground text-sm">
-                                {t('common.sort_by')}
-                            </span>
-                            <Select
-                                value={topWorldsSortBy}
-                                onValueChange={(value: any) => {
-                                    changeTopWorldsSort(value);
-                                }}
-                                disabled={topWorldsLoading}
-                            >
-                                <SelectTrigger size="sm" className="w-32">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectGroup>
-                                        <SelectItem value="time">
-                                            {t(
-                                                'dialog.user.activity.most_visited_worlds.sort_by_time'
-                                            )}
-                                        </SelectItem>
-                                        <SelectItem value="count">
-                                            {t(
-                                                'dialog.user.activity.most_visited_worlds.sort_by_count'
-                                            )}
-                                        </SelectItem>
-                                    </SelectGroup>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    ) : null}
-                </div>
-            </div>
-            {topWorldsLoadingVisible && !topWorlds.length ? (
-                <div className="text-muted-foreground flex items-center gap-2 py-2 text-sm">
-                    <Spinner className="size-4" />
-                    <span>
-                        {t('dialog.user.activity.most_visited_worlds.loading')}
-                    </span>
-                </div>
-            ) : topWorlds.length === 0 && !loading && !topWorldsLoading ? (
-                <div className="text-muted-foreground py-2 text-sm">
-                    {t('dialog.user.activity.no_data_in_period')}
-                </div>
-            ) : (
-                <TopWorldRows worlds={topWorlds} sortBy={topWorldsSortBy} />
-            )}
-        </div>
-    );
-}
+export { getDisplayDayLabels, getRangeDays } from './user-dialog/userActivityPanelModel';
 
 export function UserActivityPanel({
     profile,
@@ -829,10 +555,8 @@ export function UserActivityPanel({
                 return;
             }
 
-            const nextPeriod = VALID_PERIODS.has(period) ? period : '30';
-            const nextSortBy = ['time', 'count'].includes(sortBy)
-                ? sortBy
-                : 'time';
+            const nextPeriod = normalizeActivityPeriod(period);
+            const nextSortBy = normalizeTopWorldsSort(sortBy);
             const nextExcludeStart = String(overlapExcludeStart);
             const nextExcludeEnd = String(overlapExcludeEnd);
             const nextExcludeHomeWorld = Boolean(excludeHomeWorld);
@@ -879,7 +603,7 @@ export function UserActivityPanel({
     }, [currentHomeWorldId]);
 
     async function changePeriod(value: any) {
-        const nextPeriod = VALID_PERIODS.has(value) ? value : '30';
+        const nextPeriod = normalizeActivityPeriod(value);
         setSelectedPeriod(nextPeriod);
         await configRepository.setString(
             isCurrentUser
@@ -891,7 +615,7 @@ export function UserActivityPanel({
     }
 
     async function changeTopWorldsSort(value: any) {
-        const nextSortBy = ['time', 'count'].includes(value) ? value : 'time';
+        const nextSortBy = normalizeTopWorldsSort(value);
         setTopWorldsSortBy(nextSortBy);
         await configRepository.setString(
             ACTIVITY_SELF_TOP_WORLDS_SORT_KEY,
@@ -1123,7 +847,7 @@ export function UserActivityPanel({
                     rawBuckets={mainHeatmap.rawBuckets}
                     normalizedBuckets={mainHeatmap.normalizedBuckets}
                     dayLabels={displayDayLabels}
-                    hourLabels={HOUR_LABELS}
+                    hourLabels={USER_ACTIVITY_HOUR_LABELS}
                     weekStartsOn={weekStartsOn}
                     isDarkMode={isDarkMode}
                     emptyColor={emptyColor}
