@@ -291,8 +291,11 @@ function MutualFriendsSettingsSheet({
                         </p>
                     </div>
                     <div className="text-muted-foreground text-xs">
-                        {t('view.charts.label.hidden_nodes')} {excludedCount}.
-                        Visible nodes: {nodeCount}. Visible links: {edgeCount}.
+                        {t('view.charts.label.hidden_nodes')} {excludedCount}
+                        <br />
+                        {t('view.charts.label.visible_nodes')} {nodeCount}
+                        <br />
+                        {t('view.charts.label.visible_links')} {edgeCount}
                     </div>
                     <Button
                         type="button"
@@ -343,8 +346,10 @@ export function MutualFriendsToolbar({
                         onClick={mutualCommands.cancelFetch}
                     >
                         {fetchProgress.cancelRequested
-                            ? 'Cancelling...'
-                            : 'Stop fetching'}
+                            ? t('view.charts.mutual_friend.actions.cancelling')
+                            : t(
+                                  'view.charts.mutual_friend.actions.stop_fetching'
+                              )}
                     </Button>
                 ) : (
                     <Button
@@ -352,7 +357,11 @@ export function MutualFriendsToolbar({
                         disabled={!graph.currentUserId || !graph.friendCount}
                         onClick={mutualCommands.fetchGraph}
                     >
-                        {baseNodeCount ? 'Fetch again' : 'Start fetch'}
+                        {baseNodeCount
+                            ? t('view.charts.mutual_friend.actions.fetch_again')
+                            : t(
+                                  'view.charts.mutual_friend.actions.start_fetch'
+                              )}
                     </Button>
                 )}
                 {baseNodeCount ? (
