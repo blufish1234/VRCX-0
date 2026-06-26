@@ -224,9 +224,10 @@ pub fn run() {
 
                 if state.storage.get("VRCX_CloseToTray").as_deref() == Some("true") {
                     api.prevent_close();
-                    hide_window_to_tray(window);
                     if auto_background_mode_on_tray_enabled(&state) {
                         start_background_mode_from_shell(window.app_handle().clone());
+                    } else {
+                        hide_window_to_tray(window);
                     }
                 } else {
                     commands::host::window::stop_runtime_services(window.app_handle());
