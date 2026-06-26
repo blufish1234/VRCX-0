@@ -1288,7 +1288,8 @@
                     "fetch_again": "다시 가져오기",
                     "stop": "중지",
                     "stop_fetching": "가져오기 중지",
-                    "go_to_friend": "친구에게로 이동"
+                    "go_to_friend": "친구에게로 이동",
+                    "cancelling": "취소 중..."
                 },
                 "status": {
                     "no_friends_to_process": "처리할 친구가 없습니다.",
@@ -1410,6 +1411,8 @@
             "label": {
                 "connections": "연결",
                 "hidden_nodes": "숨겨진 노드:",
+                "visible_nodes": "표시된 노드:",
+                "visible_links": "표시된 링크:",
                 "try_a_broader_search_term_or_clear_the_node_filter": "더 폭넓은 검색어를 사용해 보거나 노드 필터를 삭제하세요.",
                 "mutual_graph_fetch_cancelled_the_cached_graph_was_not_replaced": "상호 그래프 가져오기가 취소되었습니다. 캐시된 그래프가 대체되지 않았습니다."
             },
@@ -3966,7 +3969,8 @@
                 "group_profile_unavailable": "그룹 프로필을 사용할 수 없습니다.",
                 "failed_to_refresh_the_remote_group_snapshot": "원격 그룹 스냅샷을 새로 고치지 못했습니다.",
                 "failed_to_load_the_group_profile": "그룹 프로필을 로드하지 못했습니다.",
-                "title_and_text_are_required": "제목과 텍스트가 필요합니다"
+                "title_and_text_are_required": "제목과 텍스트가 필요합니다",
+                "failed_to_load_details": "세부 정보를 불러오지 못했습니다"
             },
             "empty": {
                 "no_group_id_was_provided_for_this_dialog": "이 대화 상자에 그룹 ID가 제공되지 않았습니다.",
@@ -4839,6 +4843,8 @@
         },
         "group_calendar": {
             "header": "그룹 캘린더",
+            "loading_events": "이벤트를 불러오는 중...",
+            "description": "선택한 날짜의 그룹 이벤트를 표시합니다.",
             "list_view": "목록 보기",
             "calendar_view": "달력 보기",
             "no_events": "이벤트를 찾을 수 없습니다.",

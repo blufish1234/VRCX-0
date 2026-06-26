@@ -1314,7 +1314,8 @@
                     "fetch_again": "再取得",
                     "stop": "停止",
                     "stop_fetching": "取得を停止",
-                    "go_to_friend": "フレンドを選択"
+                    "go_to_friend": "フレンドを選択",
+                    "cancelling": "キャンセル中..."
                 },
                 "status": {
                     "no_friends_to_process": "表示のために処理できるフレンドがいません",
@@ -1436,6 +1437,8 @@
             "label": {
                 "connections": "つながり",
                 "hidden_nodes": "非表示ノード:",
+                "visible_nodes": "表示ノード:",
+                "visible_links": "表示リンク:",
                 "try_a_broader_search_term_or_clear_the_node_filter": "より広い検索語句を試すか、ノードフィルターをクリアしてください",
                 "mutual_graph_fetch_cancelled_the_cached_graph_was_not_replaced": "共通フレンドグラフの取得をキャンセルしました。キャッシュ済みグラフは置き換えられていません"
             },
@@ -4035,7 +4038,8 @@
                 "group_profile_unavailable": "グループプロフィールを取得できません",
                 "failed_to_refresh_the_remote_group_snapshot": "リモートグループスナップショットの更新に失敗しました",
                 "failed_to_load_the_group_profile": "グループプロフィールの読み込みに失敗しました",
-                "title_and_text_are_required": "タイトルと本文が必要です"
+                "title_and_text_are_required": "タイトルと本文が必要です",
+                "failed_to_load_details": "詳細の読み込みに失敗しました"
             },
             "empty": {
                 "no_group_id_was_provided_for_this_dialog": "このダイアログにはグループ ID が指定されていません",
@@ -4908,6 +4912,8 @@
         },
         "group_calendar": {
             "header": "グループカレンダー",
+            "loading_events": "イベントを読み込み中...",
+            "description": "選択した日付のグループイベントを表示します。",
             "list_view": "リスト表示",
             "calendar_view": "カレンダー表示",
             "no_events": "イベントが見つかりません",

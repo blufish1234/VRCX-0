@@ -1314,7 +1314,8 @@
                     "fetch_again": "重新取得",
                     "stop": "停止",
                     "stop_fetching": "停止取得",
-                    "go_to_friend": "前往好友頁面"
+                    "go_to_friend": "前往好友頁面",
+                    "cancelling": "正在取消..."
                 },
                 "status": {
                     "no_friends_to_process": "沒有可處理的好友",
@@ -1436,6 +1437,8 @@
             "label": {
                 "connections": "連線",
                 "hidden_nodes": "隱藏節點：",
+                "visible_nodes": "顯示節點：",
+                "visible_links": "顯示連線：",
                 "try_a_broader_search_term_or_clear_the_node_filter": "嘗試更寬泛的搜尋詞或清除節點篩選",
                 "mutual_graph_fetch_cancelled_the_cached_graph_was_not_replaced": "共同好友圖譜取得已取消，快取圖譜未被替換"
             },
@@ -4036,7 +4039,8 @@
                 "group_profile_unavailable": "群組個人資料無法使用",
                 "failed_to_refresh_the_remote_group_snapshot": "重新整理遠程群組快照失敗",
                 "failed_to_load_the_group_profile": "載入群組資料失敗",
-                "title_and_text_are_required": "需要標題和正文"
+                "title_and_text_are_required": "需要標題和正文",
+                "failed_to_load_details": "載入詳細資料失敗"
             },
             "empty": {
                 "no_group_id_was_provided_for_this_dialog": "這個彈窗沒有提供群組 ID",
@@ -4909,6 +4913,8 @@
         },
         "group_calendar": {
             "header": "群組行事曆",
+            "loading_events": "正在載入活動...",
+            "description": "顯示所選日期的群組活動。",
             "list_view": "清單檢視",
             "calendar_view": "行事曆檢視",
             "no_events": "找不到任何活動",
