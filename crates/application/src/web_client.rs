@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use vrcx_0_integrations::external_api::{
     self, ExternalApiExecuteResponse, ExternalApiScope, ExternalHttpRequestInput,
     ExternalWebExecuteRequest,
@@ -15,6 +17,7 @@ use crate::Result;
 pub struct WebClient {
     inner: transport::WebClient,
     realtime_origin: String,
+    image_fetcher: Arc<ImageFetcher>,
 }
 
 impl WebClient {
@@ -28,9 +31,11 @@ impl WebClient {
         let persisted_cookies = cookies::get_default_cookies(db)?;
         let inner =
             transport::WebClient::new(proxy_url, persisted_cookies.as_deref(), app_version)?;
+        let image_fetcher = Arc::new(ImageFetcher::new(inner.cookie_jar(), inner.proxy_url())?);
         Ok(Self {
             inner,
             realtime_origin,
+            image_fetcher,
         })
     }
 
@@ -53,11 +58,8 @@ impl WebClient {
         self.inner.proxy_url()
     }
 
-    pub fn image_fetcher(&self) -> Result<ImageFetcher> {
-        Ok(ImageFetcher::new(
-            self.inner.cookie_jar(),
-            self.inner.proxy_url(),
-        )?)
+    pub fn image_fetcher(&self) -> Result<Arc<ImageFetcher>> {
+        Ok(Arc::clone(&self.image_fetcher))
     }
 
     pub fn realtime_connection_options(&self) -> RealtimeConnectionOptions {

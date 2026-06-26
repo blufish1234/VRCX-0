@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use vrcx_0_media::image_cache::ImageCache as LocalImageCache;
 use vrcx_0_media::Error as MediaError;
@@ -7,12 +8,12 @@ use vrcx_0_vrchat_client::image_fetcher::ImageFetcher;
 use crate::Result;
 
 pub struct ImageCache {
-    fetcher: ImageFetcher,
+    fetcher: Arc<ImageFetcher>,
     local_cache: LocalImageCache,
 }
 
 impl ImageCache {
-    pub fn new(cache_dir: PathBuf, fetcher: ImageFetcher) -> Result<Self> {
+    pub fn new(cache_dir: PathBuf, fetcher: Arc<ImageFetcher>) -> Result<Self> {
         Ok(Self {
             fetcher,
             local_cache: LocalImageCache::new(cache_dir)?,

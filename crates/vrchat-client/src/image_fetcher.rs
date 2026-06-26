@@ -25,7 +25,8 @@ impl ImageFetcher {
     pub fn new(cookie_jar: Arc<CookieJar>, proxy_url: Option<&str>) -> Result<Self> {
         let mut builder = Client::builder()
             .cookie_provider(cookie_jar)
-            .user_agent(BASE_USER_AGENT);
+            .user_agent(BASE_USER_AGENT)
+            .pool_max_idle_per_host(10);
 
         if let Some(proxy) = proxy_url {
             builder = builder.proxy(
