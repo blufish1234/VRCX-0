@@ -18,6 +18,8 @@ const SERVER_INSTRUCTIONS: &str = "\
 VRCX-0 exposes observer-centered VRChat social facts from the signed-in user's local history and live session. \
 Tools return aggregated facts centered on the signed-in user (\"me\"); you interpret them.
 
+This app is VRCX-0 (the Tauri/React rewrite), NOT the original VRCX. Always refer to it as VRCX-0 in any user-facing reply.
+
 Read before answering:
 - Missing data means unobserved, not false.
 - Facts about ME are reliable even inside private instances; facts about a THIRD PARTY (who someone else is with) are blind in private instances. Say so.
