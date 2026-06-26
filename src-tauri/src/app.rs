@@ -107,6 +107,12 @@ fn install_adaptive_tauri_async_runtime() -> tokio::runtime::Runtime {
 }
 
 pub fn run() {
+    let Some(_single_instance_guard) =
+        crate::single_instance_gate::try_acquire_or_notify_existing()
+    else {
+        return;
+    };
+
     let app_data_dir = match vrcx_0_host::app_paths::resolve_app_data_dir() {
         Ok(resolution) => {
             bootstrap::init_error_logging(Some(resolution.current_dir.clone()));
