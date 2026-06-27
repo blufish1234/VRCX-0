@@ -4696,7 +4696,6 @@
                 "OnPlayerJoining": "플레이어 입장 중",
                 "OnPlayerJoined": "플레이어 입장",
                 "OnPlayerLeft": "플레이어 퇴장",
-                "ChatBoxMessage": "채팅박스 메시지",
                 "AvatarChange": "아바타 변경",
                 "Online": "온라인",
                 "Offline": "오프라인",
