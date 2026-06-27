@@ -61,6 +61,9 @@ export function UserHoverCardContent({ userId, seed }: any) {
         ? t(`dialog.user.status.${model.statusKey}`)
         : '';
     const statusDotClassName = model.statusDotClassName || '';
+    const hasStatusDescription = Boolean(model.statusDescription);
+    const isOffline = model.variant === 'offline';
+    const showInlineStatus = Boolean(statusText) && !hasStatusDescription;
     const showThumbnailBanner = model.variant === 'in-instance';
     const onlineForText =
         model.onlineForMs > 0 ? timeToText(model.onlineForMs) : '';
@@ -147,26 +150,21 @@ export function UserHoverCardContent({ userId, seed }: any) {
                     ) : null}
                 </div>
 
-                {statusText || model.statusDescription ? (
+                {showInlineStatus || hasStatusDescription ? (
                     <div className="flex min-w-0 items-center gap-1.5 text-xs">
-                        {statusText ? (
+                        {showInlineStatus ? (
                             <UserStatusDot
                                 statusDotClassName={statusDotClassName}
                                 className="size-2 shrink-0"
                                 variant="inline"
                             />
                         ) : null}
-                        {statusText ? (
+                        {showInlineStatus ? (
                             <span className="text-foreground/90 shrink-0">
                                 {statusText}
                             </span>
                         ) : null}
-                        {statusText && model.statusDescription ? (
-                            <span className="text-muted-foreground/40 shrink-0">
-                                ·
-                            </span>
-                        ) : null}
-                        {model.statusDescription ? (
+                        {hasStatusDescription ? (
                             <span className="text-muted-foreground min-w-0 truncate">
                                 {model.statusDescription}
                             </span>
@@ -218,7 +216,7 @@ export function UserHoverCardContent({ userId, seed }: any) {
                     </div>
                 ) : null}
 
-                {model.variant === 'offline' && model.lastOnlineAgoMs ? (
+                {isOffline && model.lastOnlineAgoMs ? (
                     <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
                         <MapPinIcon className="size-3.5" />
                         <span className="min-w-0 truncate">
