@@ -40,6 +40,8 @@ mod router_tests {
                 "favorite_local",
                 "favorite_vrchat",
                 "find_user",
+                "get_activity_streaks",
+                "get_activity_timeline",
                 "get_best_time_to_play",
                 "get_companions_of",
                 "get_copresence_summary",

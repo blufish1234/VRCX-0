@@ -32,6 +32,8 @@ Map fuzzy requests to tools, then read each tool's own description for details (
 - Turn a name into candidate userIds when you need manual disambiguation -> find_user
 - Closest to / who I play with most -> get_copresence_summary
 - Drifting from / losing touch with -> get_fading_friends
+- My playtime by month/year/week, trends, or when I log on -> get_activity_timeline
+- My longest break, play streak, or active days -> get_activity_streaks
 - When to log on to catch people -> get_best_time_to_play (one friend: get_friend_activity_pattern)
 - Who was that person, by name fragment, time, world, or who they were with -> recall_encounter
 - Recap a week or month -> summarize_social_period

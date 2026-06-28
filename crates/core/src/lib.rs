@@ -1,3 +1,4 @@
+pub mod activity_buckets;
 pub mod friends;
 pub mod game_process;
 pub mod ipc;

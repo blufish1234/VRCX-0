@@ -211,8 +211,9 @@ fn current_time_directive(now_local: DateTime<FixedOffset>) -> String {
 (\"today\", \"this week\", \"7d\", etc.) against this UTC date. The user's local timezone \
 is UTC{offset}; when you show or describe timestamps to the user, convert the UTC times \
 returned by tools into this local timezone. For any tool that accepts a utcOffsetMinutes \
-parameter (hour/weekday activity buckets), pass utcOffsetMinutes={offset_minutes} so the \
-buckets come back already in the user's local time.",
+parameter (activity timelines, streaks, or hour/weekday buckets), pass \
+utcOffsetMinutes={offset_minutes} so buckets and day boundaries come back already in the \
+user's local time.",
         date = now_utc.format("%Y-%m-%d"),
         weekday = now_utc.weekday(),
         offset = now_local.format("%:z"),
