@@ -6980,10 +6980,12 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "socket2",
  "specta",
  "thiserror 2.0.18",
  "tokio",
  "tokio-tungstenite",
+ "tracing",
  "url",
  "vrcx-0-core",
 ]

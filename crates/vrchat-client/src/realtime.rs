@@ -1,10 +1,13 @@
+use std::time::Duration;
+
 use serde_json::Value;
+use socket2::{SockRef, TcpKeepalive};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
 use tokio_tungstenite::tungstenite::Message;
-use tokio_tungstenite::{client_async_tls, connect_async, MaybeTlsStream, WebSocketStream};
+use tokio_tungstenite::{client_async_tls, MaybeTlsStream, WebSocketStream};
 use url::Url;
 use vrcx_0_core::vrchat_endpoints::VRCHAT_API_DEFAULT_ENDPOINT;
 
@@ -12,6 +15,8 @@ const DEFAULT_WEBSOCKET_DOMAIN: &str = "wss://pipeline.vrchat.cloud";
 const VRCHAT_WEBSOCKET_HOST: &str = "pipeline.vrchat.cloud";
 const BROWSER_WEBSOCKET_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0";
 const MAX_PROXY_CONNECT_RESPONSE: usize = 8192;
+const TCP_KEEPALIVE_IDLE: Duration = Duration::from_secs(30);
+const TCP_KEEPALIVE_INTERVAL: Duration = Duration::from_secs(10);
 
 pub type RealtimeWebSocketStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
@@ -172,7 +177,11 @@ pub async fn connect_websocket(
     let websocket_url = parse_url(url, "websocket URL")?;
     let (target_host, target_port) = websocket_target(&websocket_url)?;
     let Some(proxy_url) = options.proxy_url.as_deref() else {
-        return connect_async(request)
+        let stream = TcpStream::connect((target_host.as_str(), target_port))
+            .await
+            .map_err(|error| Error::Other(format!("websocket tcp connect: {error}")))?;
+        apply_tcp_keepalive(&stream);
+        return client_async_tls(request, stream)
             .await
             .map(|(stream, _)| stream)
             .map_err(|error| Error::Other(format!("websocket connect: {error}")));
@@ -246,9 +255,23 @@ fn proxy_target(proxy_url: &Url) -> Result<(String, u16), Error> {
 
 async fn open_proxy_tcp_stream(proxy_url: &Url) -> Result<TcpStream, Error> {
     let (proxy_host, proxy_port) = proxy_target(proxy_url)?;
-    TcpStream::connect((proxy_host.as_str(), proxy_port))
+    let stream = TcpStream::connect((proxy_host.as_str(), proxy_port))
         .await
-        .map_err(|error| Error::Other(format!("proxy tcp connect: {error}")))
+        .map_err(|error| Error::Other(format!("proxy tcp connect: {error}")))?;
+    apply_tcp_keepalive(&stream);
+    Ok(stream)
+}
+
+fn apply_tcp_keepalive(stream: &TcpStream) {
+    let keepalive = TcpKeepalive::new()
+        .with_time(TCP_KEEPALIVE_IDLE)
+        .with_interval(TCP_KEEPALIVE_INTERVAL);
+    if let Err(error) = SockRef::from(stream).set_tcp_keepalive(&keepalive) {
+        tracing::warn!(
+            error = %error,
+            "[Realtime] failed to enable tcp keepalive on websocket socket"
+        );
+    }
 }
 
 async fn connect_http_proxy(
