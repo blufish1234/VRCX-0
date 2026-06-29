@@ -465,10 +465,10 @@ export function GroupCalendarDialog({ open, onOpenChange }: any) {
                         }}
                     >
                         <ToggleGroupItem value="timeline">
-                            {t('dialog.group_calendar.list_view')}
+                            {t('dialog.group_calendar.calendar_view')}
                         </ToggleGroupItem>
                         <ToggleGroupItem value="grid">
-                            {t('dialog.group_calendar.calendar_view')}
+                            {t('dialog.group_calendar.list_view')}
                         </ToggleGroupItem>
                     </ToggleGroup>
                 </div>
