@@ -1,5 +1,14 @@
+import type { TFunction } from 'i18next';
 import { EyeOffIcon, SlidersHorizontalIcon } from 'lucide-react';
-import { forwardRef, useEffect, useMemo, useState } from 'react';
+import {
+    forwardRef,
+    useEffect,
+    useMemo,
+    useState,
+    type CSSProperties,
+    type Dispatch,
+    type SetStateAction
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -32,13 +41,24 @@ import {
     normalizeSidebarTabLayout,
     serializeSidebarTabLayout,
     sidebarTabFallbackIcon,
-    type FavoriteGroupItem
+    type FavoriteGroupItem,
+    type SidebarFavoriteCollectionTabLayoutItem,
+    type SidebarTabDisplayMode,
+    type SidebarTabLayout
 } from './side-panel/sidebarTabLayout';
 import { SidePanelCustomTabsDialog } from './side-panel/SidePanelCustomTabsDialog';
 import { SidePanelFavoriteGroupOrderDialog } from './side-panel/SidePanelFavoriteGroupOrderDialog';
 import { SidePanelSettingsPopover } from './side-panel/SidePanelSettingsPopover';
+import type {
+    SidePanelArrayPreferenceKey,
+    SidePanelBooleanPreferenceKey,
+    SidePanelPreferences,
+    SidePanelSortMethod,
+    SidePanelSortPreferenceKey,
+    SidePanelTabItem
+} from './side-panel/sidePanelTypes';
 
-const defaultPrefs: any = {
+const defaultPrefs: SidePanelPreferences = {
     sidebarGroupByInstance: true,
     isHideFriendsInSameInstance: false,
     isSameInstanceAboveFavorites: false,
@@ -54,35 +74,64 @@ const defaultPrefs: any = {
 
 const FRIEND_REFRESH_COOLDOWN_MS = 30 * SECOND_MS;
 
-function parseConfigArray(value: any) {
+type SidePanelSetPrefs = Dispatch<SetStateAction<SidePanelPreferences>>;
+
+type SidePanelSettingsStateInput = {
+    allFavoriteGroupKeys: string[];
+    orderedFavoriteGroupItems: FavoriteGroupItem[];
+    prefs: SidePanelPreferences;
+    resolvedSidebarFavoriteGroups: string[];
+    setPrefs: SidePanelSetPrefs;
+};
+
+type SidePanelTabDataInput = {
+    activeTab: string;
+    prefs: SidePanelPreferences;
+    setActiveTab: Dispatch<SetStateAction<string>>;
+    t: TFunction;
+};
+
+type SidePanelProps = {
+    className?: string;
+    style?: CSSProperties;
+};
+
+function parseConfigArray(value: unknown): string[] {
     if (Array.isArray(value)) {
-        return value;
+        return value as string[];
     }
     if (typeof value !== 'string' || !value.trim()) {
         return [];
     }
     try {
         const parsed = JSON.parse(value);
-        return Array.isArray(parsed) ? parsed : [];
+        return Array.isArray(parsed) ? (parsed as string[]) : [];
     } catch {
         return [];
     }
 }
 
-function normalizeFavoriteGroupsChange(value: any, allKeys: any) {
+function toSidePanelSortMethod(value: string): SidePanelSortMethod {
+    return value as SidePanelSortMethod;
+}
+
+function normalizeFavoriteGroupsChange(
+    value: string[],
+    allKeys: string[]
+): string[] {
     if (!Array.isArray(value) || !value.length) {
         return [];
     }
     if (
         value.length >= allKeys.length &&
-        allKeys.every((key: any) => value.includes(key))
+        allKeys.every((key) => value.includes(key))
     ) {
         return [];
     }
     return value;
 }
 
-function moveArrayItem(values: any, index: any, delta: any) {
+function moveArrayItem<T>(values: T[], index: number, delta: number): T[] {
     const targetIndex = index + delta;
     if (targetIndex < 0 || targetIndex >= values.length) {
         return values;
@@ -99,12 +148,12 @@ function useSidePanelSettingsState({
     prefs,
     resolvedSidebarFavoriteGroups,
     setPrefs
-}: any) {
+}: SidePanelSettingsStateInput) {
     const [settingsPopoverOpen, setSettingsPopoverOpen] = useState(false);
     const [favoriteGroupOrderDialogOpen, setFavoriteGroupOrderDialogOpen] =
         useState(false);
     const [favoriteGroupOrderDraft, setFavoriteGroupOrderDraft] = useState<
-        any[]
+        FavoriteGroupItem[]
     >([]);
     const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
@@ -114,39 +163,48 @@ function useSidePanelSettingsState({
         }
     }, [favoriteGroupOrderDialogOpen, orderedFavoriteGroupItems]);
 
-    function updateBoolPreference(key: any, value: any) {
-        setPrefs((current: any) => ({
+    function updateBoolPreference(
+        key: SidePanelBooleanPreferenceKey,
+        value: boolean
+    ) {
+        setPrefs((current) => ({
             ...current,
             [key]: Boolean(value)
         }));
         configRepository.setBool(key, Boolean(value));
     }
 
-    function updateStringPreference(key: any, value: any) {
-        setPrefs((current: any) => ({
+    function updateStringPreference(
+        key: SidePanelSortPreferenceKey,
+        value: SidePanelSortMethod
+    ) {
+        setPrefs((current) => ({
             ...current,
             [key]: value || ''
         }));
         configRepository.setString(key, value || '');
     }
 
-    function updateArrayPreference(key: any, value: any) {
+    function updateArrayPreference(
+        key: SidePanelArrayPreferenceKey,
+        value: string[]
+    ) {
         const nextValue = Array.isArray(value) ? value : [];
-        setPrefs((current: any) => ({
+        setPrefs((current) => ({
             ...current,
             [key]: nextValue
         }));
         configRepository.setString(key, JSON.stringify(nextValue));
     }
 
-    function updateFavoriteGroupSelection(nextKeys: any) {
+    function updateFavoriteGroupSelection(nextKeys: string[]) {
         updateArrayPreference(
             'sidebarFavoriteGroups',
             normalizeFavoriteGroupsChange(nextKeys, allFavoriteGroupKeys)
         );
     }
 
-    function toggleFavoriteGroup(key: any, checked: any) {
+    function toggleFavoriteGroup(key: string, checked: boolean) {
         const selected = new Set(resolvedSidebarFavoriteGroups);
         if (checked) {
             selected.add(key);
@@ -154,16 +212,14 @@ function useSidePanelSettingsState({
             selected.delete(key);
         }
         updateFavoriteGroupSelection(
-            [...selected].filter((value: any) =>
+            [...selected].filter((value) =>
                 allFavoriteGroupKeys.includes(value)
             )
         );
     }
 
     function confirmFavoriteGroupOrder() {
-        const nextOrder = favoriteGroupOrderDraft.map(
-            (group: any) => group.key
-        );
+        const nextOrder = favoriteGroupOrderDraft.map((group) => group.key);
         for (const key of prefs.sidebarFavoriteGroupOrder || []) {
             if (!nextOrder.includes(key)) {
                 nextOrder.push(key);
@@ -178,8 +234,8 @@ function useSidePanelSettingsState({
         setFavoriteGroupOrderDraft(orderedFavoriteGroupItems);
     }
 
-    function moveFavoriteGroupOrder(index: any, delta: any) {
-        setFavoriteGroupOrderDraft((current: any) =>
+    function moveFavoriteGroupOrder(index: number, delta: number) {
+        setFavoriteGroupOrderDraft((current) =>
             moveArrayItem(current, index, delta)
         );
     }
@@ -201,7 +257,12 @@ function useSidePanelSettingsState({
     };
 }
 
-function useSidePanelTabData({ activeTab, prefs, setActiveTab, t }: any) {
+function useSidePanelTabData({
+    activeTab,
+    prefs,
+    setActiveTab,
+    t
+}: SidePanelTabDataInput) {
     const friendsById = useFriendRosterStore((state) => state.friendsById);
     const onlineIds = useFriendRosterStore((state) => state.onlineIds);
     const favoriteLoadStatus = useFavoriteStore((state) => state.loadStatus);
@@ -234,17 +295,17 @@ function useSidePanelTabData({ activeTab, prefs, setActiveTab, t }: any) {
     const favoriteGroupItems = useMemo<FavoriteGroupItem[]>(
         () =>
             [
-                ...(favoriteFriendGroups || []).map((group: any) => ({
-                    key: group.key,
-                    label: group.displayName || group.name || group.key,
+                ...(favoriteFriendGroups || []).map((group) => ({
+                    key: group.key || '',
+                    label: group.displayName || group.name || group.key || '',
                     source: 'remote' as const
                 })),
-                ...(localFriendFavoriteGroups || []).map((groupName: any) => ({
+                ...(localFriendFavoriteGroups || []).map((groupName) => ({
                     key: `local:${groupName}`,
                     label: groupName,
                     source: 'local' as const
                 }))
-            ].filter((group: any) => group.key),
+            ].filter((group) => group.key),
         [favoriteFriendGroups, localFriendFavoriteGroups]
     );
     const tabLayout = useMemo(
@@ -260,7 +321,7 @@ function useSidePanelTabData({ activeTab, prefs, setActiveTab, t }: any) {
         [tabLayout]
     );
     const customTabCountById = useMemo(() => {
-        const counts = new Map();
+        const counts = new Map<string, number>();
         for (const item of visibleTabLayout) {
             if (item.type !== 'favoriteCollection') {
                 continue;
@@ -285,9 +346,9 @@ function useSidePanelTabData({ activeTab, prefs, setActiveTab, t }: any) {
         localFriendFavorites,
         visibleTabLayout
     ]);
-    const tabItems = useMemo(
+    const tabItems = useMemo<SidePanelTabItem[]>(
         () =>
-            visibleTabLayout.map((item: any) => {
+            visibleTabLayout.map((item) => {
                 if (item.type === 'favoriteCollection') {
                     const count = customTabCountById.get(item.id) || 0;
                     const label = `${item.name} (${count})`;
@@ -347,20 +408,20 @@ function useSidePanelTabData({ activeTab, prefs, setActiveTab, t }: any) {
         tabDisplayMode === 'iconText' ||
         (tabDisplayMode === 'auto' && tabItems.length <= 2);
     const groupsTabVisible = visibleTabLayout.some(
-        (item: any) => item.type === 'system' && item.systemTab === 'groups'
+        (item) => item.type === 'system' && item.systemTab === 'groups'
     );
 
     useEffect(() => {
         if (
             tabItems.length &&
-            !tabItems.some((item: any) => item.value === activeTab)
+            !tabItems.some((item) => item.value === activeTab)
         ) {
             setActiveTab(tabItems[0].value);
         }
     }, [activeTab, setActiveTab, tabItems]);
 
     const allFavoriteGroupKeys = useMemo(
-        () => favoriteGroupItems.map((group: any) => group.key),
+        () => favoriteGroupItems.map((group) => group.key),
         [favoriteGroupItems]
     );
     const resolvedSidebarFavoriteGroups = useMemo(() => {
@@ -370,14 +431,12 @@ function useSidePanelTabData({ activeTab, prefs, setActiveTab, t }: any) {
         if (!configured.length) {
             return allFavoriteGroupKeys;
         }
-        return configured.filter((key: any) =>
-            allFavoriteGroupKeys.includes(key)
-        );
+        return configured.filter((key) => allFavoriteGroupKeys.includes(key));
     }, [allFavoriteGroupKeys, prefs.sidebarFavoriteGroups]);
     const selectedFavoriteGroupLabel = useMemo(() => {
         const firstKey = resolvedSidebarFavoriteGroups[0];
         const firstGroup = favoriteGroupItems.find(
-            (group: any) => group.key === firstKey
+            (group) => group.key === firstKey
         );
         if (!firstGroup) {
             return '';
@@ -388,19 +447,21 @@ function useSidePanelTabData({ activeTab, prefs, setActiveTab, t }: any) {
     }, [favoriteGroupItems, resolvedSidebarFavoriteGroups]);
     const orderedFavoriteGroupItems = useMemo(() => {
         const selected = new Set(resolvedSidebarFavoriteGroups);
-        const itemMap = new Map(
-            favoriteGroupItems.map((group: any) => [group.key, group])
+        const itemMap = new Map<string, FavoriteGroupItem>(
+            favoriteGroupItems.map((group) => [group.key, group])
         );
-        const ordered = [];
+        const ordered: FavoriteGroupItem[] = [];
         for (const key of prefs.sidebarFavoriteGroupOrder || []) {
-            if (selected.has(key) && itemMap.has(key)) {
-                ordered.push(itemMap.get(key));
+            const item = itemMap.get(key);
+            if (selected.has(key) && item) {
+                ordered.push(item);
                 selected.delete(key);
             }
         }
         for (const key of resolvedSidebarFavoriteGroups) {
-            if (selected.has(key) && itemMap.has(key)) {
-                ordered.push(itemMap.get(key));
+            const item = itemMap.get(key);
+            if (selected.has(key) && item) {
+                ordered.push(item);
             }
         }
         return ordered;
@@ -427,395 +488,420 @@ function useSidePanelTabData({ activeTab, prefs, setActiveTab, t }: any) {
     };
 }
 
-export const SidePanel = forwardRef(function SidePanel(
-    { className = '', style = undefined }: any,
-    ref: any
-) {
-    const { t } = useTranslation();
-    const [activeTab, setActiveTab] = useState('friends');
-    const [prefs, setPrefs] = useState(defaultPrefs);
-    const [isRefreshing, setIsRefreshing] = useState(false);
-    const [friendRefreshCooldownUntil, setFriendRefreshCooldownUntil] =
-        useState(0);
-    const [customTabsDialogOpen, setCustomTabsDialogOpen] = useState(false);
+export const SidePanel = forwardRef<HTMLElement, SidePanelProps>(
+    function SidePanel({ className = '', style = undefined }, ref) {
+        const { t } = useTranslation();
+        const [activeTab, setActiveTab] = useState('friends');
+        const [prefs, setPrefs] = useState(defaultPrefs);
+        const [isRefreshing, setIsRefreshing] = useState(false);
+        const [friendRefreshCooldownUntil, setFriendRefreshCooldownUntil] =
+            useState(0);
+        const [customTabsDialogOpen, setCustomTabsDialogOpen] = useState(false);
 
-    useEffect(() => {
-        let active = true;
-        Promise.all([
-            configRepository.getBool('sidebarGroupByInstance', true),
-            configRepository.getBool('isHideFriendsInSameInstance', false),
-            configRepository.getBool('isSameInstanceAboveFavorites', false),
-            configRepository.getBool('isSidebarDivideByFriendGroup', false),
-            configRepository.getString('sidebarSortMethod1', 'Sort by Status'),
-            configRepository.getString(
-                'sidebarSortMethod2',
-                'Sort Alphabetically'
-            ),
-            configRepository.getString('sidebarSortMethod3', ''),
-            configRepository.getString('sidebarFavoriteGroups', '[]'),
-            configRepository.getString('sidebarFavoriteGroupOrder', '[]'),
-            configRepository.getString('sidebarTabLayout', '[]'),
-            configRepository.getString('sidebarTabDisplayMode', 'auto')
-        ])
-            .then(
-                ([
-                    sidebarGroupByInstance,
-                    isHideFriendsInSameInstance,
-                    isSameInstanceAboveFavorites,
-                    isSidebarDivideByFriendGroup,
-                    sidebarSortMethod1,
-                    sidebarSortMethod2,
-                    sidebarSortMethod3,
-                    sidebarFavoriteGroups,
-                    sidebarFavoriteGroupOrder,
-                    sidebarTabLayout,
-                    sidebarTabDisplayMode
-                ]: any) => {
-                    if (!active) {
-                        return;
+        useEffect(() => {
+            let active = true;
+            Promise.all([
+                configRepository.getBool('sidebarGroupByInstance', true),
+                configRepository.getBool('isHideFriendsInSameInstance', false),
+                configRepository.getBool('isSameInstanceAboveFavorites', false),
+                configRepository.getBool('isSidebarDivideByFriendGroup', false),
+                configRepository.getString(
+                    'sidebarSortMethod1',
+                    'Sort by Status'
+                ),
+                configRepository.getString(
+                    'sidebarSortMethod2',
+                    'Sort Alphabetically'
+                ),
+                configRepository.getString('sidebarSortMethod3', ''),
+                configRepository.getString('sidebarFavoriteGroups', '[]'),
+                configRepository.getString('sidebarFavoriteGroupOrder', '[]'),
+                configRepository.getString('sidebarTabLayout', '[]'),
+                configRepository.getString('sidebarTabDisplayMode', 'auto')
+            ])
+                .then(
+                    ([
+                        sidebarGroupByInstance,
+                        isHideFriendsInSameInstance,
+                        isSameInstanceAboveFavorites,
+                        isSidebarDivideByFriendGroup,
+                        sidebarSortMethod1,
+                        sidebarSortMethod2,
+                        sidebarSortMethod3,
+                        sidebarFavoriteGroups,
+                        sidebarFavoriteGroupOrder,
+                        sidebarTabLayout,
+                        sidebarTabDisplayMode
+                    ]) => {
+                        if (!active) {
+                            return;
+                        }
+                        setPrefs({
+                            sidebarGroupByInstance: Boolean(
+                                sidebarGroupByInstance
+                            ),
+                            isHideFriendsInSameInstance: Boolean(
+                                isHideFriendsInSameInstance
+                            ),
+                            isSameInstanceAboveFavorites: Boolean(
+                                isSameInstanceAboveFavorites
+                            ),
+                            isSidebarDivideByFriendGroup: Boolean(
+                                isSidebarDivideByFriendGroup
+                            ),
+                            sidebarSortMethod1: toSidePanelSortMethod(
+                                sidebarSortMethod1 || ''
+                            ),
+                            sidebarSortMethod2: toSidePanelSortMethod(
+                                sidebarSortMethod2 || ''
+                            ),
+                            sidebarSortMethod3: toSidePanelSortMethod(
+                                sidebarSortMethod3 || ''
+                            ),
+                            sidebarFavoriteGroups: parseConfigArray(
+                                sidebarFavoriteGroups
+                            ),
+                            sidebarFavoriteGroupOrder: parseConfigArray(
+                                sidebarFavoriteGroupOrder
+                            ),
+                            sidebarTabLayout:
+                                normalizeSidebarTabLayout(sidebarTabLayout),
+                            sidebarTabDisplayMode:
+                                normalizeSidebarTabDisplayMode(
+                                    sidebarTabDisplayMode
+                                )
+                        });
                     }
-                    setPrefs({
-                        sidebarGroupByInstance: Boolean(sidebarGroupByInstance),
-                        isHideFriendsInSameInstance: Boolean(
-                            isHideFriendsInSameInstance
-                        ),
-                        isSameInstanceAboveFavorites: Boolean(
-                            isSameInstanceAboveFavorites
-                        ),
-                        isSidebarDivideByFriendGroup: Boolean(
-                            isSidebarDivideByFriendGroup
-                        ),
-                        sidebarSortMethod1: sidebarSortMethod1 || '',
-                        sidebarSortMethod2: sidebarSortMethod2 || '',
-                        sidebarSortMethod3: sidebarSortMethod3 || '',
-                        sidebarFavoriteGroups: parseConfigArray(
-                            sidebarFavoriteGroups
-                        ),
-                        sidebarFavoriteGroupOrder: parseConfigArray(
-                            sidebarFavoriteGroupOrder
-                        ),
-                        sidebarTabLayout:
-                            normalizeSidebarTabLayout(sidebarTabLayout),
-                        sidebarTabDisplayMode: normalizeSidebarTabDisplayMode(
-                            sidebarTabDisplayMode
-                        )
-                    });
-                }
-            )
-            .catch(() => {});
-        return () => {
-            active = false;
-        };
-    }, []);
-
-    const {
-        allFavoriteGroupKeys,
-        favoriteGroupItems,
-        favoriteLoadStatus,
-        groupsTabVisible,
-        orderedFavoriteGroupItems,
-        resolvedSidebarFavoriteGroups,
-        selectedFavoriteGroupLabel,
-        showTabText,
-        tabDisplayMode,
-        tabItems,
-        tabLayout,
-        visibleFavoriteCollectionSourceGroupKeys,
-        visibleTabLayout
-    } = useSidePanelTabData({ activeTab, prefs, setActiveTab, t });
-
-    const {
-        favoriteGroupOrderDialogOpen,
-        favoriteGroupOrderDraft,
-        isAdvancedOpen,
-        moveFavoriteGroupOrder,
-        resetFavoriteGroupOrder,
-        confirmFavoriteGroupOrder,
-        settingsPopoverOpen,
-        setFavoriteGroupOrderDialogOpen,
-        setIsAdvancedOpen,
-        setSettingsPopoverOpen,
-        toggleFavoriteGroup,
-        updateBoolPreference,
-        updateStringPreference
-    } = useSidePanelSettingsState({
-        allFavoriteGroupKeys,
-        orderedFavoriteGroupItems,
-        prefs,
-        resolvedSidebarFavoriteGroups,
-        setPrefs
-    });
-
-    async function refreshFriends() {
-        if (isRefreshing) {
-            return;
-        }
-        const cooldownRemainingMs = friendRefreshCooldownUntil - Date.now();
-        if (cooldownRemainingMs > 0) {
-            toast.info(
-                t('side_panel.refresh_available_in_seconds', {
-                    count: Math.max(
-                        1,
-                        Math.ceil(cooldownRemainingMs / SECOND_MS)
-                    )
-                })
-            );
-            return;
-        }
-        const auth = useRuntimeStore.getState().auth;
-        if (!auth.currentUserId || !auth.currentUserSnapshot) {
-            toast.error(
-                t(
-                    'side_panel.empty.no_authenticated_user_snapshot_is_available'
                 )
-            );
-            return;
-        }
-        setIsRefreshing(true);
-        try {
-            await refreshFriendAndFavoriteSnapshots();
-            setFriendRefreshCooldownUntil(
-                Date.now() + FRIEND_REFRESH_COOLDOWN_MS
-            );
-            toast.success(
-                t('side_panel.success.friend_and_favorite_snapshots_refreshed')
-            );
-        } catch (error) {
-            toast.error(
-                error instanceof Error
-                    ? error.message
-                    : t('component.side_panel.toast.failed_to_refresh_friends')
-            );
-        } finally {
-            setIsRefreshing(false);
-        }
-    }
+                .catch(() => {});
+            return () => {
+                active = false;
+            };
+        }, []);
 
-    function saveCustomTabs(nextLayout: any, nextDisplayMode: any) {
-        const normalizedLayout = normalizeSidebarTabLayout(nextLayout);
-        const normalizedDisplayMode =
-            normalizeSidebarTabDisplayMode(nextDisplayMode);
-        setPrefs((current: any) => ({
-            ...current,
-            sidebarTabLayout: normalizedLayout,
-            sidebarTabDisplayMode: normalizedDisplayMode
-        }));
-        configRepository.setString(
-            'sidebarTabLayout',
-            serializeSidebarTabLayout(normalizedLayout)
-        );
-        configRepository.setString(
-            'sidebarTabDisplayMode',
-            normalizedDisplayMode
-        );
-    }
+        const {
+            allFavoriteGroupKeys,
+            favoriteGroupItems,
+            favoriteLoadStatus,
+            groupsTabVisible,
+            orderedFavoriteGroupItems,
+            resolvedSidebarFavoriteGroups,
+            selectedFavoriteGroupLabel,
+            showTabText,
+            tabDisplayMode,
+            tabItems,
+            tabLayout,
+            visibleFavoriteCollectionSourceGroupKeys,
+            visibleTabLayout
+        } = useSidePanelTabData({ activeTab, prefs, setActiveTab, t });
 
-    function setTabVisibilityFromMenu(tabId: any, visible: any) {
-        const nextLayout = tabLayout.map((item: any) => {
-            if (item.type === 'system' && item.systemTab === 'friends') {
-                return { ...item, visible: true };
-            }
-            if (item.id !== tabId) {
-                return item;
-            }
-            if (item.type === 'system' && item.systemTab === 'groups') {
-                return { ...item, visible: Boolean(visible) };
-            }
-            if (item.type === 'favoriteCollection') {
-                return { ...item, visible: Boolean(visible) };
-            }
-            return item;
+        const {
+            favoriteGroupOrderDialogOpen,
+            favoriteGroupOrderDraft,
+            isAdvancedOpen,
+            moveFavoriteGroupOrder,
+            resetFavoriteGroupOrder,
+            confirmFavoriteGroupOrder,
+            settingsPopoverOpen,
+            setFavoriteGroupOrderDialogOpen,
+            setIsAdvancedOpen,
+            setSettingsPopoverOpen,
+            toggleFavoriteGroup,
+            updateBoolPreference,
+            updateStringPreference
+        } = useSidePanelSettingsState({
+            allFavoriteGroupKeys,
+            orderedFavoriteGroupItems,
+            prefs,
+            resolvedSidebarFavoriteGroups,
+            setPrefs
         });
-        saveCustomTabs(nextLayout, tabDisplayMode);
-    }
 
-    return (
-        <aside
-            ref={ref}
-            data-vrcx-0-surface="side-panel"
-            className={cn(
-                'vrcx-0-side-panel flex h-full min-h-0 w-80 shrink-0 flex-col overflow-hidden border-l',
-                className
-            )}
-            style={style}
-        >
-            <Tabs
-                value={activeTab}
-                onValueChange={setActiveTab}
-                className="flex min-h-0 flex-1 flex-col overflow-hidden px-2 pt-4.5 pb-2"
+        async function refreshFriends() {
+            if (isRefreshing) {
+                return;
+            }
+            const cooldownRemainingMs = friendRefreshCooldownUntil - Date.now();
+            if (cooldownRemainingMs > 0) {
+                toast.info(
+                    t('side_panel.refresh_available_in_seconds', {
+                        count: Math.max(
+                            1,
+                            Math.ceil(cooldownRemainingMs / SECOND_MS)
+                        )
+                    })
+                );
+                return;
+            }
+            const auth = useRuntimeStore.getState().auth;
+            if (!auth.currentUserId || !auth.currentUserSnapshot) {
+                toast.error(
+                    t(
+                        'side_panel.empty.no_authenticated_user_snapshot_is_available'
+                    )
+                );
+                return;
+            }
+            setIsRefreshing(true);
+            try {
+                await refreshFriendAndFavoriteSnapshots();
+                setFriendRefreshCooldownUntil(
+                    Date.now() + FRIEND_REFRESH_COOLDOWN_MS
+                );
+                toast.success(
+                    t(
+                        'side_panel.success.friend_and_favorite_snapshots_refreshed'
+                    )
+                );
+            } catch (error) {
+                toast.error(
+                    error instanceof Error
+                        ? error.message
+                        : t(
+                              'component.side_panel.toast.failed_to_refresh_friends'
+                          )
+                );
+            } finally {
+                setIsRefreshing(false);
+            }
+        }
+
+        function saveCustomTabs(
+            nextLayout: SidebarTabLayout,
+            nextDisplayMode: SidebarTabDisplayMode
+        ) {
+            const normalizedLayout = normalizeSidebarTabLayout(nextLayout);
+            const normalizedDisplayMode =
+                normalizeSidebarTabDisplayMode(nextDisplayMode);
+            setPrefs((current) => ({
+                ...current,
+                sidebarTabLayout: normalizedLayout,
+                sidebarTabDisplayMode: normalizedDisplayMode
+            }));
+            configRepository.setString(
+                'sidebarTabLayout',
+                serializeSidebarTabLayout(normalizedLayout)
+            );
+            configRepository.setString(
+                'sidebarTabDisplayMode',
+                normalizedDisplayMode
+            );
+        }
+
+        function setTabVisibilityFromMenu(tabId: string, visible: boolean) {
+            const nextLayout = tabLayout.map((item) => {
+                if (item.type === 'system' && item.systemTab === 'friends') {
+                    return { ...item, visible: true };
+                }
+                if (item.id !== tabId) {
+                    return item;
+                }
+                if (item.type === 'system' && item.systemTab === 'groups') {
+                    return { ...item, visible: Boolean(visible) };
+                }
+                if (item.type === 'favoriteCollection') {
+                    return { ...item, visible: Boolean(visible) };
+                }
+                return item;
+            });
+            saveCustomTabs(nextLayout, tabDisplayMode);
+        }
+
+        return (
+            <aside
+                ref={ref}
+                data-vrcx-0-surface="side-panel"
+                className={cn(
+                    'vrcx-0-side-panel flex h-full min-h-0 w-80 shrink-0 flex-col overflow-hidden border-l',
+                    className
+                )}
+                style={style}
             >
-                <div className="flex min-w-0 shrink-0 items-center gap-2">
-                    <div className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden">
-                        <TabsList className="min-w-max justify-start">
-                            {tabItems.map((item: any) => {
-                                const Icon = getNavIconComponent(
-                                    item.icon,
-                                    sidebarTabFallbackIcon(item.layoutItem)
-                                );
-                                const canHideTab =
-                                    item.layoutItem.type ===
-                                        'favoriteCollection' ||
-                                    item.layoutItem.systemTab === 'groups';
-                                const hideLabel =
-                                    item.layoutItem.type === 'system' &&
-                                    item.layoutItem.systemTab === 'groups'
-                                        ? t(
-                                              'side_panel.settings.custom_tabs.hide_groups'
-                                          )
-                                        : t(
-                                              'side_panel.settings.custom_tabs.hide_tab'
-                                          );
-                                return (
-                                    <ContextMenu key={item.value}>
-                                        <ContextMenuTrigger asChild>
-                                            <TabsTrigger
-                                                value={item.value}
-                                                title={item.title}
-                                                data-active={
-                                                    activeTab === item.value
-                                                        ? ''
-                                                        : undefined
-                                                }
-                                                className={cn(
-                                                    'min-w-0 flex-none',
-                                                    showTabText
-                                                        ? 'max-w-40'
-                                                        : 'w-8 px-1'
-                                                )}
-                                            >
-                                                <Icon data-icon="inline-start" />
-                                                <span
-                                                    className={cn(
-                                                        showTabText
-                                                            ? 'min-w-0 truncate'
-                                                            : 'sr-only'
-                                                    )}
-                                                >
-                                                    {item.label}
-                                                </span>
-                                            </TabsTrigger>
-                                        </ContextMenuTrigger>
-                                        <ContextMenuContent className="w-44">
-                                            {canHideTab ? (
-                                                <>
-                                                    <ContextMenuGroup>
-                                                        <ContextMenuItem
-                                                            onSelect={() =>
-                                                                setTabVisibilityFromMenu(
-                                                                    item
-                                                                        .layoutItem
-                                                                        .id,
-                                                                    false
-                                                                )
-                                                            }
-                                                        >
-                                                            <EyeOffIcon />
-                                                            {hideLabel}
-                                                        </ContextMenuItem>
-                                                    </ContextMenuGroup>
-                                                    <ContextMenuSeparator />
-                                                </>
-                                            ) : null}
-                                            <ContextMenuGroup>
-                                                <ContextMenuItem
-                                                    onSelect={() =>
-                                                        setCustomTabsDialogOpen(
-                                                            true
-                                                        )
-                                                    }
-                                                >
-                                                    <SlidersHorizontalIcon />
-                                                    {t(
-                                                        'side_panel.settings.custom_tabs.configure'
-                                                    )}
-                                                </ContextMenuItem>
-                                            </ContextMenuGroup>
-                                        </ContextMenuContent>
-                                    </ContextMenu>
-                                );
-                            })}
-                        </TabsList>
-                    </div>
-                    <SidePanelSettingsPopover
-                        open={settingsPopoverOpen}
-                        onOpenChange={setSettingsPopoverOpen}
-                        isRefreshing={isRefreshing}
-                        onRefreshFriends={() => {
-                            refreshFriends();
-                        }}
-                        prefs={prefs}
-                        onUpdateBoolPreference={updateBoolPreference}
-                        onUpdateStringPreference={updateStringPreference}
-                        isAdvancedOpen={isAdvancedOpen}
-                        onAdvancedOpenChange={setIsAdvancedOpen}
-                        favoriteGroupItems={favoriteGroupItems}
-                        favoriteLoadStatus={favoriteLoadStatus}
-                        selectedFavoriteGroupLabel={selectedFavoriteGroupLabel}
-                        resolvedSidebarFavoriteGroups={
-                            resolvedSidebarFavoriteGroups
-                        }
-                        onToggleFavoriteGroup={toggleFavoriteGroup}
-                        orderedFavoriteGroupItemsLength={
-                            orderedFavoriteGroupItems.length
-                        }
-                        onOpenFavoriteGroupOrderDialog={() =>
-                            setFavoriteGroupOrderDialogOpen(true)
-                        }
-                        onOpenCustomTabsDialog={() =>
-                            setCustomTabsDialogOpen(true)
-                        }
-                    />
-                </div>
-                <TabsContent
-                    value="friends"
-                    className="mt-1 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden"
+                <Tabs
+                    value={activeTab}
+                    onValueChange={setActiveTab}
+                    className="flex min-h-0 flex-1 flex-col overflow-hidden px-2 pt-4.5 pb-2"
                 >
-                    <FriendsSidebar
-                        prefs={prefs}
-                        excludedFavoriteGroupKeys={
-                            visibleFavoriteCollectionSourceGroupKeys
-                        }
-                    />
-                </TabsContent>
-                {groupsTabVisible ? (
+                    <div className="flex min-w-0 shrink-0 items-center gap-2">
+                        <div className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden">
+                            <TabsList className="min-w-max justify-start">
+                                {tabItems.map((item) => {
+                                    const Icon = getNavIconComponent(
+                                        item.icon,
+                                        sidebarTabFallbackIcon(item.layoutItem)
+                                    );
+                                    const canHideTab =
+                                        item.layoutItem.type ===
+                                            'favoriteCollection' ||
+                                        item.layoutItem.systemTab === 'groups';
+                                    const hideLabel =
+                                        item.layoutItem.type === 'system' &&
+                                        item.layoutItem.systemTab === 'groups'
+                                            ? t(
+                                                  'side_panel.settings.custom_tabs.hide_groups'
+                                              )
+                                            : t(
+                                                  'side_panel.settings.custom_tabs.hide_tab'
+                                              );
+                                    return (
+                                        <ContextMenu key={item.value}>
+                                            <ContextMenuTrigger asChild>
+                                                <TabsTrigger
+                                                    value={item.value}
+                                                    title={item.title}
+                                                    data-active={
+                                                        activeTab === item.value
+                                                            ? ''
+                                                            : undefined
+                                                    }
+                                                    className={cn(
+                                                        'min-w-0 flex-none',
+                                                        showTabText
+                                                            ? 'max-w-40'
+                                                            : 'w-8 px-1'
+                                                    )}
+                                                >
+                                                    <Icon data-icon="inline-start" />
+                                                    <span
+                                                        className={cn(
+                                                            showTabText
+                                                                ? 'min-w-0 truncate'
+                                                                : 'sr-only'
+                                                        )}
+                                                    >
+                                                        {item.label}
+                                                    </span>
+                                                </TabsTrigger>
+                                            </ContextMenuTrigger>
+                                            <ContextMenuContent className="w-44">
+                                                {canHideTab ? (
+                                                    <>
+                                                        <ContextMenuGroup>
+                                                            <ContextMenuItem
+                                                                onSelect={() =>
+                                                                    setTabVisibilityFromMenu(
+                                                                        item
+                                                                            .layoutItem
+                                                                            .id,
+                                                                        false
+                                                                    )
+                                                                }
+                                                            >
+                                                                <EyeOffIcon />
+                                                                {hideLabel}
+                                                            </ContextMenuItem>
+                                                        </ContextMenuGroup>
+                                                        <ContextMenuSeparator />
+                                                    </>
+                                                ) : null}
+                                                <ContextMenuGroup>
+                                                    <ContextMenuItem
+                                                        onSelect={() =>
+                                                            setCustomTabsDialogOpen(
+                                                                true
+                                                            )
+                                                        }
+                                                    >
+                                                        <SlidersHorizontalIcon />
+                                                        {t(
+                                                            'side_panel.settings.custom_tabs.configure'
+                                                        )}
+                                                    </ContextMenuItem>
+                                                </ContextMenuGroup>
+                                            </ContextMenuContent>
+                                        </ContextMenu>
+                                    );
+                                })}
+                            </TabsList>
+                        </div>
+                        <SidePanelSettingsPopover
+                            open={settingsPopoverOpen}
+                            onOpenChange={setSettingsPopoverOpen}
+                            isRefreshing={isRefreshing}
+                            onRefreshFriends={() => {
+                                refreshFriends();
+                            }}
+                            prefs={prefs}
+                            onUpdateBoolPreference={updateBoolPreference}
+                            onUpdateStringPreference={updateStringPreference}
+                            isAdvancedOpen={isAdvancedOpen}
+                            onAdvancedOpenChange={setIsAdvancedOpen}
+                            favoriteGroupItems={favoriteGroupItems}
+                            favoriteLoadStatus={favoriteLoadStatus}
+                            selectedFavoriteGroupLabel={
+                                selectedFavoriteGroupLabel
+                            }
+                            resolvedSidebarFavoriteGroups={
+                                resolvedSidebarFavoriteGroups
+                            }
+                            onToggleFavoriteGroup={toggleFavoriteGroup}
+                            orderedFavoriteGroupItemsLength={
+                                orderedFavoriteGroupItems.length
+                            }
+                            onOpenFavoriteGroupOrderDialog={() =>
+                                setFavoriteGroupOrderDialogOpen(true)
+                            }
+                            onOpenCustomTabsDialog={() =>
+                                setCustomTabsDialogOpen(true)
+                            }
+                        />
+                    </div>
                     <TabsContent
-                        value="groups"
+                        value="friends"
                         className="mt-1 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden"
                     >
-                        <GroupsSidebar />
+                        <FriendsSidebar
+                            prefs={prefs}
+                            excludedFavoriteGroupKeys={
+                                visibleFavoriteCollectionSourceGroupKeys
+                            }
+                        />
                     </TabsContent>
-                ) : null}
-                {visibleTabLayout
-                    .filter((item: any) => item.type === 'favoriteCollection')
-                    .map((item: any) => (
+                    {groupsTabVisible ? (
                         <TabsContent
-                            key={item.id}
-                            value={item.id}
+                            value="groups"
                             className="mt-1 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden"
                         >
-                            <FriendsSidebar
-                                prefs={prefs}
-                                favoriteCollectionTab={item}
-                            />
+                            <GroupsSidebar />
                         </TabsContent>
-                    ))}
-            </Tabs>
-            <SidePanelFavoriteGroupOrderDialog
-                open={favoriteGroupOrderDialogOpen}
-                onOpenChange={setFavoriteGroupOrderDialogOpen}
-                favoriteGroupOrderDraft={favoriteGroupOrderDraft}
-                onMove={moveFavoriteGroupOrder}
-                onReset={resetFavoriteGroupOrder}
-                onConfirm={confirmFavoriteGroupOrder}
-            />
-            <SidePanelCustomTabsDialog
-                open={customTabsDialogOpen}
-                onOpenChange={setCustomTabsDialogOpen}
-                layout={tabLayout}
-                displayMode={tabDisplayMode}
-                favoriteGroupItems={favoriteGroupItems}
-                onSave={saveCustomTabs}
-            />
-        </aside>
-    );
-});
+                    ) : null}
+                    {visibleTabLayout
+                        .filter(
+                            (
+                                item
+                            ): item is SidebarFavoriteCollectionTabLayoutItem =>
+                                item.type === 'favoriteCollection'
+                        )
+                        .map((item) => (
+                            <TabsContent
+                                key={item.id}
+                                value={item.id}
+                                className="mt-1 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden"
+                            >
+                                <FriendsSidebar
+                                    prefs={prefs}
+                                    favoriteCollectionTab={item}
+                                />
+                            </TabsContent>
+                        ))}
+                </Tabs>
+                <SidePanelFavoriteGroupOrderDialog
+                    open={favoriteGroupOrderDialogOpen}
+                    onOpenChange={setFavoriteGroupOrderDialogOpen}
+                    favoriteGroupOrderDraft={favoriteGroupOrderDraft}
+                    onMove={moveFavoriteGroupOrder}
+                    onReset={resetFavoriteGroupOrder}
+                    onConfirm={confirmFavoriteGroupOrder}
+                />
+                <SidePanelCustomTabsDialog
+                    open={customTabsDialogOpen}
+                    onOpenChange={setCustomTabsDialogOpen}
+                    layout={tabLayout}
+                    displayMode={tabDisplayMode}
+                    favoriteGroupItems={favoriteGroupItems}
+                    onSave={saveCustomTabs}
+                />
+            </aside>
+        );
+    }
+);

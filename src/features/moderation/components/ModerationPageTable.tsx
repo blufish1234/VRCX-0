@@ -1,3 +1,4 @@
+import type { Table as ReactTable } from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -14,14 +15,17 @@ import { ResizableTableCell } from '@/components/data-table/ResizableTableParts'
 import { PageFooter } from '@/components/layout/PageScaffold';
 import { Table, TableBody, TableRow } from '@/ui/shadcn/table';
 
-import type { ModerationPaginationState } from '../moderationPageTypes';
+import type {
+    ModerationPaginationState,
+    ModerationRow
+} from '../moderationPageTypes';
 
 type ModerationPageTableProps = {
-    table: any;
+    table: ReactTable<ModerationRow>;
     filteredRowsLength: number;
     pagination: ModerationPaginationState;
     pageSizes: number[];
-    onPageSizeChange: (value: number) => void;
+    onPageSizeChange: (value: string) => void;
 };
 
 export function ModerationPageTable({
@@ -45,14 +49,14 @@ export function ModerationPageTable({
                             <DataTableColumnSizeColGroup table={table} />
                             <DataTableHeader table={table} />
                             <TableBody>
-                                {table.getRowModel().rows.map((row: any) => (
+                                {table.getRowModel().rows.map((row) => (
                                     <TableRow key={row.original?.id || row.id}>
                                         <DataTableColumnSortableContext
                                             table={table}
                                         >
                                             {row
                                                 .getVisibleCells()
-                                                .map((cell: any) => (
+                                                .map((cell) => (
                                                     <ResizableTableCell
                                                         key={cell.id}
                                                         cell={cell}

@@ -14,8 +14,16 @@ import {
     horizontalListSortingStrategy,
     sortableKeyboardCoordinates
 } from '@dnd-kit/sortable';
+import type {
+    Column,
+    ColumnDef,
+    Header,
+    RowData,
+    Table as ReactTable
+} from '@tanstack/react-table';
 import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
+import type { CSSProperties, ReactNode } from 'react';
 import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -60,14 +68,20 @@ import {
 } from './tableColumnLayout';
 import { TableColumnHeaderContextMenu } from './TableColumnVisibilityMenu';
 
-function moveColumnByDrag(table: any, activeId: any, overId: any) {
+function moveColumnByDrag<TData extends RowData>(
+    table: ReactTable<TData>,
+    activeId: unknown,
+    overId: unknown
+) {
     if (!activeId || !overId || activeId === overId) {
         return;
     }
 
+    const activeColumnId = String(activeId);
+    const overColumnId = String(overId);
     const columnOrder = getColumnOrder(table);
-    const activeIndex = columnOrder.indexOf(activeId);
-    const overIndex = columnOrder.indexOf(overId);
+    const activeIndex = columnOrder.indexOf(activeColumnId);
+    const overIndex = columnOrder.indexOf(overColumnId);
 
     if (activeIndex < 0 || overIndex < 0 || activeIndex === overIndex) {
         return;
@@ -76,21 +90,29 @@ function moveColumnByDrag(table: any, activeId: any, overId: any) {
     table.setColumnOrder(arrayMove(columnOrder, activeIndex, overIndex));
 }
 
-function getColumnId(column: any) {
-    return column?.id ?? column?.accessorKey ?? null;
+function getColumnId<TData extends RowData>(column: ColumnDef<TData, unknown>) {
+    const source = column as { id?: unknown; accessorKey?: unknown };
+    const columnId = source.id ?? source.accessorKey ?? null;
+    return typeof columnId === 'string' ? columnId : null;
 }
 
-export function getDataTableSizingStyle(table: any) {
-    const totalSize = table?.getTotalSize?.();
+export function getDataTableSizingStyle<TData extends RowData>(
+    table: ReactTable<TData>
+): CSSProperties | undefined {
+    const totalSize = table.getTotalSize();
     return Number.isFinite(totalSize) && totalSize > 0
         ? { width: `${totalSize}px` }
         : undefined;
 }
 
-export function DataTableColumnSizeColGroup({ table }: any) {
+export function DataTableColumnSizeColGroup<TData extends RowData>({
+    table
+}: {
+    table: ReactTable<TData>;
+}) {
     return (
         <colgroup>
-            {(table?.getVisibleLeafColumns?.() ?? []).map((column: any) => (
+            {table.getVisibleLeafColumns().map((column) => (
                 <col
                     key={column.id}
                     style={{
@@ -120,11 +142,15 @@ function useColumnDndSensors() {
     );
 }
 
-export function DataTableColumnDndProvider({
+export function DataTableColumnDndProvider<TData extends RowData>({
     table,
     enableColumnReorder = true,
     children
-}: any) {
+}: {
+    table: ReactTable<TData>;
+    enableColumnReorder?: boolean;
+    children: ReactNode;
+}) {
     const columnOrderLocked = getColumnOrderLocked(table);
     const reorderableColumnIds = getReorderableColumnIds(table);
     const canReorder =
@@ -169,7 +195,13 @@ export function DataTableColumnDndProvider({
     );
 }
 
-export function DataTableColumnSortableContext({ table, children }: any) {
+export function DataTableColumnSortableContext<TData extends RowData>({
+    table,
+    children
+}: {
+    table: ReactTable<TData>;
+    children: ReactNode;
+}) {
     const columnDnd = useDataTableColumnDnd();
 
     if (!columnDnd.enabled || columnDnd.table !== table) {
@@ -186,25 +218,34 @@ export function DataTableColumnSortableContext({ table, children }: any) {
     );
 }
 
-export function DataTableHeader({
+export function DataTableHeader<TData extends RowData>({
     table,
     className = '',
     enableColumnReorder = true,
     getHeaderStyle,
     onResetLayout
-}: any) {
+}: {
+    table: ReactTable<TData>;
+    className?: string;
+    enableColumnReorder?: boolean;
+    getHeaderStyle?: (
+        column: Column<TData, unknown>,
+        header: Header<TData, unknown>
+    ) => CSSProperties | undefined;
+    onResetLayout?: (table: ReactTable<TData>) => void;
+}) {
     const columnDnd = useDataTableColumnDnd();
     const canReorder = enableColumnReorder && columnDnd.enabled;
 
     const tableHeader = (
         <TableHeader className={className}>
-            {table.getHeaderGroups().map((headerGroup: any) => (
+            {table.getHeaderGroups().map((headerGroup) => (
                 <DataTableColumnSortableContext
                     key={headerGroup.id}
                     table={table}
                 >
                     <TableRow>
-                        {headerGroup.headers.map((header: any) => (
+                        {headerGroup.headers.map((header) => (
                             <ResizableTableHead
                                 key={header.id}
                                 header={header}
@@ -230,7 +271,13 @@ export function DataTableHeader({
     return headerWithMenu;
 }
 
-export function DataTableSurface({ className = '', children }: any) {
+export function DataTableSurface({
+    className = '',
+    children
+}: {
+    className?: string;
+    children: ReactNode;
+}) {
     return (
         <div
             data-vrcx-0-surface="data-table"
@@ -248,7 +295,11 @@ export function DataTableScrollArea({
     className = '',
     wideTable = false,
     children
-}: any) {
+}: {
+    className?: string;
+    wideTable?: boolean;
+    children: ReactNode;
+}) {
     return (
         <div
             className={cn(
@@ -266,7 +317,11 @@ export function DataTableEmptyRow({
     colSpan = 1,
     className = '',
     children
-}: any) {
+}: {
+    colSpan?: number;
+    className?: string;
+    children: ReactNode;
+}) {
     return (
         <TableRow>
             <TableCell
@@ -282,7 +337,7 @@ export function DataTableEmptyRow({
     );
 }
 
-export function DataTablePagination({
+export function DataTablePagination<TData extends RowData>({
     table,
     summary,
     pageIndex,
@@ -294,7 +349,19 @@ export function DataTablePagination({
     previousLabel,
     nextLabel,
     className = ''
-}: any) {
+}: {
+    table: ReactTable<TData>;
+    summary?: ReactNode;
+    pageIndex?: number;
+    pageCount?: number;
+    pageSize?: number;
+    pageSizes?: unknown[];
+    pageSizeLabel?: string;
+    onPageSizeChange?: (value: string) => void;
+    previousLabel?: string;
+    nextLabel?: string;
+    className?: string;
+}) {
     const { t } = useTranslation();
     const resolvedPageSizeLabel =
         pageSizeLabel || t('table.pagination.rows_per_page');
@@ -302,20 +369,24 @@ export function DataTablePagination({
         previousLabel || t('table.pagination.previous');
     const resolvedNextLabel = nextLabel || t('table.pagination.next');
 
-    const resolvedPageIndex = Number.isFinite(pageIndex)
-        ? pageIndex
-        : (table?.getState?.().pagination?.pageIndex ?? 0);
+    const resolvedPageIndex =
+        typeof pageIndex === 'number' && Number.isFinite(pageIndex)
+            ? pageIndex
+            : (table.getState().pagination?.pageIndex ?? 0);
     const resolvedPageCount = Math.max(
         1,
-        Number.isFinite(pageCount) ? pageCount : table?.getPageCount?.() || 1
+        typeof pageCount === 'number' && Number.isFinite(pageCount)
+            ? pageCount
+            : table.getPageCount() || 1
     );
-    const resolvedPageSize = Number.isFinite(pageSize)
-        ? pageSize
-        : table?.getState?.().pagination?.pageSize;
+    const resolvedPageSize =
+        typeof pageSize === 'number' && Number.isFinite(pageSize)
+            ? pageSize
+            : table.getState().pagination?.pageSize;
     const pageSizeOptions = Array.isArray(pageSizes)
         ? pageSizes
-              .map((value: any) => Number.parseInt(value, 10))
-              .filter((value: any) => Number.isFinite(value) && value > 0)
+              .map((value) => Number.parseInt(String(value), 10))
+              .filter((value) => Number.isFinite(value) && value > 0)
         : [];
     const pageSizeSelectVisible = Boolean(
         pageSizeOptions.length &&
@@ -339,7 +410,7 @@ export function DataTablePagination({
                         </SelectTrigger>
                         <SelectContent align="end">
                             <SelectGroup>
-                                {pageSizeOptions.map((size: any) => (
+                                {pageSizeOptions.map((size) => (
                                     <SelectItem key={size} value={String(size)}>
                                         {size}
                                     </SelectItem>
@@ -389,16 +460,24 @@ export function DataTablePagination({
     );
 }
 
-export function DataTableView({
+export function DataTableView<TData extends RowData>({
     columns = [],
     data = [],
     emptyLabel,
     persistKey
-}: any) {
+}: {
+    columns?: ColumnDef<TData, unknown>[];
+    data?: TData[];
+    emptyLabel?: string;
+    persistKey?: string;
+}) {
     const { t } = useTranslation();
     const resolvedEmptyLabel = emptyLabel || t('table.empty.no_rows_yet');
     const columnIds = useMemo(
-        () => columns.map((column: any) => getColumnId(column)).filter(Boolean),
+        () =>
+            columns
+                .map((column) => getColumnId(column))
+                .filter((columnId): columnId is string => Boolean(columnId)),
         [columns]
     );
     const tableLayout = usePersistedDataTableLayout({
@@ -435,7 +514,7 @@ export function DataTableView({
         tableLayout.writePersistedState
     ]);
 
-    const table = useReactTable({
+    const table = useReactTable<TData>({
         columns,
         data,
         state: persistTableLayout
@@ -467,14 +546,14 @@ export function DataTableView({
                         <DataTableHeader table={table} />
                         <TableBody>
                             {table.getRowModel().rows.length > 0 ? (
-                                table.getRowModel().rows.map((row: any) => (
+                                table.getRowModel().rows.map((row) => (
                                     <TableRow key={row.id}>
                                         <DataTableColumnSortableContext
                                             table={table}
                                         >
                                             {row
                                                 .getVisibleCells()
-                                                .map((cell: any) => (
+                                                .map((cell) => (
                                                     <ResizableTableCell
                                                         key={cell.id}
                                                         cell={cell}

@@ -1,10 +1,15 @@
 import { handleAutoBackgroundDownloadUpdatesPreferenceChange } from '@/services/backgroundMaintenanceService';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
+import type { SettingsPageStateSections } from '../settingsPageStateSections';
 import { normalizeCheckedState } from '../settingsValues';
 import { SettingsSystemTab } from './settings-tabs/SettingsSystemTab';
 
-export function SettingsSystemSection({ system }: any) {
+type SettingsSystemSectionProps = {
+    system: SettingsPageStateSections['system'];
+};
+
+export function SettingsSystemSection({ system }: SettingsSystemSectionProps) {
     const hostPlatform = useRuntimeStore(
         (state) => state.hostCapabilities.platform
     );
@@ -30,25 +35,25 @@ export function SettingsSystemSection({ system }: any) {
             autoInstallUpdatesOnStartup={prefs.autoInstallUpdatesOnStartup}
             autoBackgroundDownloadUpdates={prefs.autoBackgroundDownloadUpdates}
             backgroundModeEnabled={prefs.backgroundModeEnabled}
-            onStartAtWindowsStartupChange={(checked: any) => {
+            onStartAtWindowsStartupChange={(checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 savePreferenceValue('isStartAtWindowsStartup', enabled, () =>
                     setStartAtWindowsStartupPreference(enabled)
                 );
             }}
-            onStartAsMinimizedChange={(checked: any) => {
+            onStartAsMinimizedChange={(checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 savePreferenceValue('isStartAsMinimizedState', enabled, () =>
                     setStartAsMinimizedPreference(enabled)
                 );
             }}
-            onCloseToTrayChange={(checked: any) => {
+            onCloseToTrayChange={(checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 savePreferenceValue('isCloseToTray', enabled, () =>
                     setCloseToTrayPreference(enabled)
                 );
             }}
-            onAutoLoginDelayEnabledChange={(checked: any) => {
+            onAutoLoginDelayEnabledChange={(checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 saveBoolPreference(
                     'autoLoginDelayEnabled',
@@ -56,7 +61,7 @@ export function SettingsSystemSection({ system }: any) {
                     enabled
                 );
             }}
-            onBackgroundModeEnabledChange={(checked: any) => {
+            onBackgroundModeEnabledChange={(checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 saveBoolPreference(
                     'backgroundModeEnabled',
@@ -64,7 +69,7 @@ export function SettingsSystemSection({ system }: any) {
                     enabled
                 );
             }}
-            onAutoInstallUpdatesOnStartupChange={(checked: any) => {
+            onAutoInstallUpdatesOnStartupChange={(checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 saveBoolPreference(
                     'autoInstallUpdatesOnStartup',
@@ -72,7 +77,7 @@ export function SettingsSystemSection({ system }: any) {
                     enabled
                 );
             }}
-            onAutoBackgroundDownloadUpdatesChange={async (checked: any) => {
+            onAutoBackgroundDownloadUpdatesChange={async (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 await saveBoolPreference(
                     'autoBackgroundDownloadUpdates',

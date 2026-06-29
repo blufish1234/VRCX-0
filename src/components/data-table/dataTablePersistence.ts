@@ -146,7 +146,12 @@ export function usePersistedDataTableLayout({
     columnIds = [],
     initialColumnOrder = [],
     initialColumnVisibility = {}
-}: any = {}) {
+}: {
+    tableId?: unknown;
+    columnIds?: string[];
+    initialColumnOrder?: string[];
+    initialColumnVisibility?: TableColumnVisibility;
+} = {}) {
     const storageKey = useMemo(
         () => (tableId ? getDataTableStorageKey(tableId) : null),
         [tableId]

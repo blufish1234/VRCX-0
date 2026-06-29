@@ -4,17 +4,31 @@ import { normalizeProfileLanguageRows } from '@/shared/utils/userLanguage';
 
 import { resolvePlatformMeta } from './playerListDisplay';
 import { parseTimeMs, resolvePlayerRowUserId } from './playerListRows';
+import type {
+    PlayerListContext,
+    PlayerListModerationRecord,
+    PlayerListProfileRecord,
+    PlayerListRecord,
+    PlayerListRow,
+    PlayerListSourceRow
+} from './playerListTypes';
 
-function hasArrayItems(value: any) {
+function isRecord(value: unknown): value is PlayerListRecord {
+    return Boolean(value && typeof value === 'object');
+}
+
+function hasArrayItems(value: unknown) {
     return Array.isArray(value) && value.length > 0;
 }
 
-function hasProfileText(value: any) {
+function hasProfileText(value: unknown) {
     return Boolean(normalizeString(value));
 }
 
-function hasUsefulProfileFields(source: any) {
-    if (!source || typeof source !== 'object') {
+function hasUsefulProfileFields(
+    source: unknown
+): source is PlayerListProfileRecord {
+    if (!isRecord(source)) {
         return false;
     }
 
@@ -48,16 +62,19 @@ function hasUsefulProfileFields(source: any) {
     );
 }
 
-function resolveRowProfile(row: any) {
-    const ref = row?.ref && typeof row.ref === 'object' ? row.ref : null;
+function resolveRowProfile(row: PlayerListSourceRow) {
+    const ref = isRecord(row.ref) ? row.ref : null;
     if (hasUsefulProfileFields(ref)) {
         return ref;
     }
     return hasUsefulProfileFields(row) ? row : null;
 }
 
-function normalizeUserRef(source: any, fallbackUserId: any) {
-    if (!source || typeof source !== 'object') {
+function normalizeUserRef(
+    source: unknown,
+    fallbackUserId: unknown
+): PlayerListProfileRecord | null {
+    if (!isRecord(source)) {
         return null;
     }
 
@@ -95,19 +112,22 @@ const PROFILE_PRESENCE_REFRESH_FIELDS = [
     '$travelingToTime'
 ];
 
-function hasRefreshValue(value: any) {
+function hasRefreshValue(value: unknown) {
     return value !== undefined && value !== null && value !== '';
 }
 
-function mergePresenceIntoProfile(presence: any, profile: any) {
+function mergePresenceIntoProfile(
+    presence: PlayerListProfileRecord | null | undefined,
+    profile: PlayerListProfileRecord | null | undefined
+): PlayerListProfileRecord | null {
     if (!presence) {
         return profile || null;
     }
-    if (!profile || typeof profile !== 'object') {
+    if (!isRecord(profile)) {
         return presence;
     }
 
-    const merged: any = { ...presence, ...profile };
+    const merged: PlayerListProfileRecord = { ...presence, ...profile };
     for (const field of PROFILE_PRESENCE_REFRESH_FIELDS) {
         if (hasRefreshValue(presence[field])) {
             merged[field] = presence[field];
@@ -115,6 +135,19 @@ function mergePresenceIntoProfile(presence: any, profile: any) {
     }
     return merged;
 }
+
+type PlayerListUserRefInput = {
+    currentUserSnapshot?: PlayerListProfileRecord | null;
+    friend?: PlayerListProfileRecord | null;
+    isCurrentUser?: boolean | string;
+    knownUser?: PlayerListProfileRecord | null;
+    normalizedUserId: string;
+    profilesByUserId: Record<
+        string,
+        PlayerListProfileRecord | null | undefined
+    >;
+    row: PlayerListSourceRow;
+};
 
 function resolveUserRef({
     currentUserSnapshot,
@@ -124,7 +157,7 @@ function resolveUserRef({
     normalizedUserId,
     profilesByUserId,
     row
-}: any) {
+}: PlayerListUserRefInput) {
     if (isCurrentUser) {
         return {
             userRef: normalizeUserRef(currentUserSnapshot, normalizedUserId)
@@ -163,6 +196,26 @@ function resolveUserRef({
     };
 }
 
+type EnrichPlayerListRowsInput = {
+    clockNow: number;
+    context: PlayerListContext;
+    currentUserId?: unknown;
+    currentUserSnapshot?: PlayerListProfileRecord | null;
+    favoriteFriendIds: Set<string>;
+    friendsById: Record<string, PlayerListProfileRecord | null | undefined>;
+    languageOptionsMap?: Parameters<typeof normalizeProfileLanguageRows>[1];
+    knownUsersById?: Record<string, PlayerListProfileRecord | null | undefined>;
+    moderationByUserId?: Record<
+        string,
+        PlayerListModerationRecord | null | undefined
+    >;
+    playerSourceRows: readonly PlayerListSourceRow[];
+    profilesByUserId?: Record<
+        string,
+        PlayerListProfileRecord | null | undefined
+    >;
+};
+
 export function enrichPlayerListRows({
     clockNow,
     context,
@@ -172,11 +225,11 @@ export function enrichPlayerListRows({
     friendsById,
     languageOptionsMap = new Map(),
     knownUsersById = {},
-    moderationByUserId,
+    moderationByUserId = {},
     playerSourceRows,
     profilesByUserId = {}
-}: any) {
-    return playerSourceRows.map((row: any) => {
+}: EnrichPlayerListRowsInput): PlayerListRow[] {
+    return playerSourceRows.map((row): PlayerListRow => {
         const normalizedUserId = resolvePlayerRowUserId(row);
         const friend = normalizedUserId ? friendsById[normalizedUserId] : null;
         const knownUser = normalizedUserId
@@ -191,19 +244,19 @@ export function enrichPlayerListRows({
         const { userRef } = resolveUserRef({
             currentUserSnapshot,
             friend,
-            isCurrentUser,
+            isCurrentUser: Boolean(isCurrentUser),
             knownUser,
             normalizedUserId,
             profilesByUserId,
             row
         });
         const resolvedDisplayName =
-            row.displayName ||
-            userRef?.displayName ||
-            userRef?.username ||
+            normalizeString(row.displayName) ||
+            normalizeString(userRef?.displayName) ||
+            normalizeString(userRef?.username) ||
             normalizedUserId ||
             '';
-        const trustLevel = userRef?.$trustLevel || '';
+        const trustLevel = normalizeString(userRef?.$trustLevel);
         const trustSortNum = Number(userRef?.$trustSortNum ?? 0) || 0;
         const platform =
             userRef?.$platform ||
@@ -211,7 +264,7 @@ export function enrichPlayerListRows({
             userRef?.last_platform ||
             '';
         const platformMeta = resolvePlatformMeta(platform);
-        const statusDescription = userRef?.statusDescription || '';
+        const statusDescription = normalizeString(userRef?.statusDescription);
         const languages = userRef
             ? normalizeProfileLanguageRows(userRef, languageOptionsMap)
             : [];
@@ -298,7 +351,7 @@ export function enrichPlayerListRows({
             userRef,
             trustLevel,
             trustSortNum,
-            trustClass: userRef?.$trustClass || '',
+            trustClass: normalizeString(userRef?.$trustClass),
             platformLabel: platformMeta.label,
             platformIcon: platformMeta.icon,
             platformClassName: platformMeta.className,

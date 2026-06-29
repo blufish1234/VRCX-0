@@ -2,33 +2,49 @@ import { hasUserIdPrefix } from '@/shared/constants/vrchatIds';
 import { parseLocation } from '@/shared/utils/location';
 import { normalizeString } from '@/shared/utils/string';
 
-export function normalizePlayerUserId(value: any) {
+import type {
+    PlayerListContext,
+    PlayerListProfileRecord,
+    PlayerListRecord,
+    PlayerListSourceRow
+} from './playerListTypes';
+
+function isRecord(value: unknown): value is PlayerListRecord {
+    return Boolean(value && typeof value === 'object');
+}
+
+function toSourceRow(value: unknown): PlayerListSourceRow {
+    return value as PlayerListSourceRow;
+}
+
+export function normalizePlayerUserId(value: unknown) {
     const normalized = normalizeString(value);
     return hasUserIdPrefix(normalized) ? normalized : '';
 }
 
-export function resolvePlayerRowUserId(row: any) {
+export function resolvePlayerRowUserId(row: unknown) {
+    const record = isRecord(row) ? row : {};
+    const ref = isRecord(record.ref) ? record.ref : {};
     return normalizePlayerUserId(
-        row?.userId ||
-            row?.user_id ||
-            row?.ref?.id ||
-            row?.ref?.userId ||
-            row?.ref?.user_id ||
-            row?.id
+        record.userId ||
+            record.user_id ||
+            ref.id ||
+            ref.userId ||
+            ref.user_id ||
+            record.id
     );
 }
 
-export function buildPlayerDialogSeedData(row: any) {
-    if (!row || typeof row !== 'object') {
+export function buildPlayerDialogSeedData(row: unknown) {
+    if (!isRecord(row)) {
         return null;
     }
 
-    const source =
-        row.userRef && typeof row.userRef === 'object'
-            ? row.userRef
-            : row.ref && typeof row.ref === 'object'
-              ? row.ref
-              : row;
+    const source = isRecord(row.userRef)
+        ? row.userRef
+        : isRecord(row.ref)
+          ? row.ref
+          : row;
     const userId =
         resolvePlayerRowUserId(row) || normalizePlayerUserId(source?.id);
     const displayName = normalizeString(
@@ -45,7 +61,7 @@ export function buildPlayerDialogSeedData(row: any) {
     };
 }
 
-export function parseTimeMs(value: any) {
+export function parseTimeMs(value: unknown) {
     if (!value) {
         return 0;
     }
@@ -62,7 +78,7 @@ export function parseTimeMs(value: any) {
     return Number.isFinite(timestamp) ? timestamp : 0;
 }
 
-export function isLiveLocation(location: any) {
+export function isLiveLocation(location: unknown) {
     const normalized = normalizeString(location);
     if (!normalized) {
         return false;
@@ -77,10 +93,10 @@ export function isLiveLocation(location: any) {
 }
 
 export function buildFavoriteIdSet(
-    remoteFavoriteIds: any,
-    localFriendFavorites: any
+    remoteFavoriteIds: Iterable<unknown> | null | undefined,
+    localFriendFavorites: Record<string, unknown> | null | undefined
 ) {
-    const set = new Set();
+    const set = new Set<string>();
 
     for (const id of remoteFavoriteIds ?? []) {
         const normalized = normalizeString(id);
@@ -114,9 +130,19 @@ export function buildPlayerSourceRows({
     currentUserLocation,
     currentLocationStartedAt,
     runtimeRosterAvailable = false
-}: any) {
-    const rows = [];
-    const knownKeys = new Set();
+}: {
+    playerRows?: unknown;
+    runtimePlayerRows?: unknown;
+    currentUserId?: unknown;
+    currentUserSnapshot?: PlayerListProfileRecord | null;
+    isGameRunning?: boolean;
+    context: PlayerListContext;
+    currentUserLocation?: unknown;
+    currentLocationStartedAt?: unknown;
+    runtimeRosterAvailable?: boolean;
+}): PlayerListSourceRow[] {
+    const rows: PlayerListSourceRow[] = [];
+    const knownKeys = new Set<string>();
 
     const currentUserKey = normalizeString(currentUserId);
     const activeLocation = currentUserLocation || context.location;
@@ -124,7 +150,7 @@ export function buildPlayerSourceRows({
         isGameRunning &&
         activeLocation !== 'traveling' &&
         isLiveLocation(activeLocation);
-    const addRow = (row: any) => {
+    const addRow = (row: PlayerListSourceRow) => {
         const rowUserId = normalizeString(row.userId);
         if (currentUserKey && rowUserId === currentUserKey) {
             return;
@@ -150,7 +176,7 @@ export function buildPlayerSourceRows({
                 ? runtimePlayerRows
                 : playerRows;
         for (const row of Array.isArray(sourceRows) ? sourceRows : []) {
-            addRow(row);
+            addRow(toSourceRow(row));
         }
     }
 

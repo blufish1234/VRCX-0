@@ -14,7 +14,22 @@ import {
 
 export { DataTableSortButton as SortButton };
 
-export function ModerationEmptyState({ title, description }: any) {
+type ModerationEmptyStateProps = {
+    title?: string;
+    description?: string;
+};
+
+type ModerationTypeFilterDropdownProps = {
+    value?: string[];
+    onChange: (value: string[]) => void;
+    getTypeLabel: (type: string) => string;
+    sanitizeTypes?: (types: string[]) => string[];
+};
+
+export function ModerationEmptyState({
+    title,
+    description
+}: ModerationEmptyStateProps) {
     return <EmptyState title={title} description={description} />;
 }
 
@@ -22,8 +37,8 @@ export function ModerationTypeFilterDropdown({
     value,
     onChange,
     getTypeLabel,
-    sanitizeTypes = (types: any) => types
-}: any) {
+    sanitizeTypes = (types) => types
+}: ModerationTypeFilterDropdownProps) {
     const { t } = useTranslation();
     const selectedTypes = Array.isArray(value) ? value : [];
     const label = selectedTypes.length
@@ -45,7 +60,7 @@ export function ModerationTypeFilterDropdown({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-64">
                 <DropdownMenuGroup>
-                    {moderationTypes.map((type: any) => (
+                    {moderationTypes.map((type) => (
                         <DropdownMenuCheckboxItem
                             key={type}
                             checked={selectedTypes.includes(type)}
@@ -53,7 +68,7 @@ export function ModerationTypeFilterDropdown({
                                 const next = checked
                                     ? [...selectedTypes, type]
                                     : selectedTypes.filter(
-                                          (entry: any) => entry !== type
+                                          (entry) => entry !== type
                                       );
                                 onChange(sanitizeTypes(next));
                             }}

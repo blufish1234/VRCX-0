@@ -1,4 +1,6 @@
+import type { ColumnDef, Row } from '@tanstack/react-table';
 import { ExternalLinkIcon, IdCardIcon, UserIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -16,9 +18,10 @@ import {
     resolvePlatformMode,
     resolveStatusMeta
 } from '../playerListDisplay';
+import type { PlayerListLanguageRow, PlayerListRow } from '../playerListTypes';
 import { SortButton } from './PlayerListViewParts';
 
-const PLAYER_ICON_GLYPHS: any = {
+const PLAYER_ICON_GLYPHS: Record<string, string> = {
     master: '\u{1f451}',
     moderator: '\u2694\ufe0f',
     favorite: '\u2b50',
@@ -30,7 +33,7 @@ const PLAYER_ICON_GLYPHS: any = {
     timeout: '\u{1f534}'
 };
 
-function HeaderLabel({ children }: any) {
+function HeaderLabel({ children }: { children: ReactNode }) {
     return (
         <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
             {children}
@@ -38,7 +41,7 @@ function HeaderLabel({ children }: any) {
     );
 }
 
-function AvatarCell({ row }: any) {
+function AvatarCell({ row }: { row: Row<PlayerListRow> }) {
     return row.original.avatarUrl ? (
         <img
             src={row.original.avatarUrl}
@@ -53,7 +56,15 @@ function AvatarCell({ row }: any) {
     );
 }
 
-function DisplayNameCell({ isDarkMode, randomUserColours, row }: any) {
+function DisplayNameCell({
+    isDarkMode,
+    randomUserColours,
+    row
+}: {
+    isDarkMode: boolean;
+    randomUserColours: boolean;
+    row: Row<PlayerListRow>;
+}) {
     const style =
         randomUserColours && row.original?.userId
             ? {
@@ -108,7 +119,7 @@ function DisplayNameCell({ isDarkMode, randomUserColours, row }: any) {
     );
 }
 
-function StatusCell({ row }: any) {
+function StatusCell({ row }: { row: Row<PlayerListRow> }) {
     const status = resolveStatusMeta(row.original);
 
     return (
@@ -121,7 +132,7 @@ function StatusCell({ row }: any) {
     );
 }
 
-function PlayerIconCell({ row }: any) {
+function PlayerIconCell({ row }: { row: Row<PlayerListRow> }) {
     const { t } = useTranslation();
 
     return (
@@ -246,7 +257,7 @@ function PlayerIconCell({ row }: any) {
     );
 }
 
-function PlatformCell({ row }: any) {
+function PlatformCell({ row }: { row: Row<PlayerListRow> }) {
     const Icon = row.original.platformIcon;
     const mode = resolvePlatformMode(row.original);
 
@@ -266,24 +277,27 @@ function PlatformCell({ row }: any) {
     );
 }
 
-function normalizeTooltipText(value: any) {
+function normalizeTooltipText(value: unknown) {
     return typeof value === 'string'
         ? value.trim()
         : String(value ?? '').trim();
 }
 
-export function languageTooltipLabel(entry: any, code: any) {
+export function languageTooltipLabel(
+    entry: PlayerListLanguageRow | null | undefined,
+    code: string
+) {
     const original = normalizeTooltipText(
         entry?.value || entry?.label || entry?.name
     );
     return original || code;
 }
 
-function LanguageCell({ row }: any) {
+function LanguageCell({ row }: { row: Row<PlayerListRow> }) {
     return (
         <div className="flex flex-wrap items-center gap-1">
             {row.original.languages.length
-                ? row.original.languages.map((entry: any) => {
+                ? row.original.languages.map((entry) => {
                       const key = entry?.key || entry?.value || '';
                       const code = languageCodeLabel(key);
                       const tooltip = languageTooltipLabel(entry, code);
@@ -306,21 +320,22 @@ function LanguageCell({ row }: any) {
     );
 }
 
-function BioLinksCell({ row }: any) {
+function BioLinksCell({ row }: { row: Row<PlayerListRow> }) {
     return (
         <div className="flex items-center gap-1">
             {row.original.bioLinks.length
-                ? row.original.bioLinks.map((link: any, index: any) => {
+                ? row.original.bioLinks.map((link, index) => {
                       const faviconUrl = getFaviconUrl(link);
+                      const linkLabel = String(link ?? '');
 
                       return (
-                          <Tooltip key={`${link}:${index}`}>
+                          <Tooltip key={`${linkLabel}:${index}`}>
                               <TooltipTrigger asChild>
                                   <Button
                                       type="button"
                                       variant="ghost"
                                       size="icon-xs"
-                                      aria-label={`Open Link: ${link}`}
+                                      aria-label={`Open Link: ${linkLabel}`}
                                       onClick={(event) => {
                                           event.stopPropagation();
                                           openExternalLink(link);
@@ -337,7 +352,7 @@ function BioLinksCell({ row }: any) {
                                       )}
                                   </Button>
                               </TooltipTrigger>
-                              <TooltipContent>{link}</TooltipContent>
+                              <TooltipContent>{linkLabel}</TooltipContent>
                           </Tooltip>
                       );
                   })
@@ -346,7 +361,7 @@ function BioLinksCell({ row }: any) {
     );
 }
 
-export function usePlayerListColumns() {
+export function usePlayerListColumns(): ColumnDef<PlayerListRow>[] {
     const { t } = useTranslation();
     const randomUserColours = usePreferencesStore(
         (state) => state.randomUserColours
@@ -355,7 +370,7 @@ export function usePlayerListColumns() {
         typeof document !== 'undefined' &&
         document.documentElement.classList.contains('dark');
 
-    return useMemo(
+    return useMemo<ColumnDef<PlayerListRow>[]>(
         () => [
             {
                 id: 'avatar',
@@ -364,24 +379,24 @@ export function usePlayerListColumns() {
                 header: () => (
                     <HeaderLabel>{t('table.playerList.avatar')}</HeaderLabel>
                 ),
-                accessorFn: (row: any) => row.avatarUrl,
+                accessorFn: (row) => row.avatarUrl,
                 enableSorting: false,
-                cell: ({ row }: any) => <AvatarCell row={row} />
+                cell: ({ row }) => <AvatarCell row={row} />
             },
             {
                 id: 'timer',
                 size: 96,
                 meta: { label: t('table.playerList.timer') },
-                accessorFn: (row: any) => row.timerMs,
-                header: ({ column }: any) => (
+                accessorFn: (row) => row.timerMs,
+                header: ({ column }) => (
                     <SortButton
                         column={column}
                         label={t('table.playerList.timer')}
                     />
                 ),
-                cell: ({ row }: any) => (
+                cell: ({ row }) => (
                     <span className="text-sm">
-                        {row.original.joinedAtMs > 0
+                        {Number(row.original.joinedAtMs) > 0
                             ? timeToText(row.original.timerMs, true)
                             : ''}
                     </span>
@@ -391,20 +406,20 @@ export function usePlayerListColumns() {
                 id: 'displayName',
                 size: 280,
                 meta: { label: t('table.playerList.displayName') },
-                accessorFn: (row: any) => row.displayName,
-                header: ({ column }: any) => (
+                accessorFn: (row) => row.displayName,
+                header: ({ column }) => (
                     <SortButton
                         column={column}
                         label={t('table.playerList.displayName')}
                     />
                 ),
-                sortingFn: (rowA: any, rowB: any) =>
+                sortingFn: (rowA, rowB) =>
                     String(rowA.original?.displayName || '').localeCompare(
                         String(rowB.original?.displayName || ''),
                         undefined,
                         { sensitivity: 'base' }
                     ),
-                cell: ({ row }: any) => (
+                cell: ({ row }) => (
                     <DisplayNameCell
                         isDarkMode={isDarkMode}
                         randomUserColours={randomUserColours}
@@ -416,14 +431,14 @@ export function usePlayerListColumns() {
                 id: 'rank',
                 size: 120,
                 meta: { label: t('table.playerList.rank') },
-                accessorFn: (row: any) => row.trustSortNum,
-                header: ({ column }: any) => (
+                accessorFn: (row) => row.trustSortNum,
+                header: ({ column }) => (
                     <SortButton
                         column={column}
                         label={t('table.playerList.rank')}
                     />
                 ),
-                cell: ({ row }: any) => (
+                cell: ({ row }) => (
                     <span
                         className={cn('text-sm', row.original.trustClass || '')}
                     >
@@ -435,74 +450,74 @@ export function usePlayerListColumns() {
                 id: 'status',
                 size: 220,
                 meta: { label: t('table.playerList.status') },
-                accessorFn: (row: any) => resolveStatusMeta(row).label,
+                accessorFn: (row) => resolveStatusMeta(row).label,
                 header: () => (
                     <HeaderLabel>{t('table.playerList.status')}</HeaderLabel>
                 ),
                 enableSorting: false,
-                cell: ({ row }: any) => <StatusCell row={row} />
+                cell: ({ row }) => <StatusCell row={row} />
             },
             {
                 id: 'icon',
                 size: 140,
                 meta: { label: t('table.playerList.icon') },
-                accessorFn: (row: any) => row.iconWeight,
-                header: ({ column }: any) => (
+                accessorFn: (row) => row.iconWeight,
+                header: ({ column }) => (
                     <SortButton
                         column={column}
                         label={t('table.playerList.icon')}
                     />
                 ),
-                cell: ({ row }: any) => <PlayerIconCell row={row} />
+                cell: ({ row }) => <PlayerIconCell row={row} />
             },
             {
                 id: 'platform',
                 size: 120,
                 meta: { label: t('table.playerList.platform') },
-                accessorFn: (row: any) => row.platformLabel,
-                header: ({ column }: any) => (
+                accessorFn: (row) => row.platformLabel,
+                header: ({ column }) => (
                     <SortButton
                         column={column}
                         label={t('table.playerList.platform')}
                     />
                 ),
-                cell: ({ row }: any) => <PlatformCell row={row} />
+                cell: ({ row }) => <PlatformCell row={row} />
             },
             {
                 id: 'language',
                 size: 120,
                 meta: { label: t('table.playerList.language') },
-                accessorFn: (row: any) =>
+                accessorFn: (row) =>
                     row.languages
-                        .map((entry: any) => entry?.value || entry?.key || '')
+                        .map((entry) => entry?.value || entry?.key || '')
                         .join('\u0000'),
                 header: () => (
                     <HeaderLabel>{t('table.playerList.language')}</HeaderLabel>
                 ),
                 enableSorting: false,
-                cell: ({ row }: any) => <LanguageCell row={row} />
+                cell: ({ row }) => <LanguageCell row={row} />
             },
             {
                 id: 'bioLink',
                 size: 120,
                 meta: { label: t('table.playerList.bioLink') },
-                accessorFn: (row: any) => row.bioLinks.join('\u0000'),
+                accessorFn: (row) => row.bioLinks.join('\u0000'),
                 header: () => (
                     <HeaderLabel>{t('table.playerList.bioLink')}</HeaderLabel>
                 ),
                 enableSorting: false,
-                cell: ({ row }: any) => <BioLinksCell row={row} />
+                cell: ({ row }) => <BioLinksCell row={row} />
             },
             {
                 id: 'note',
                 size: 180,
                 meta: { label: t('table.playerList.note') },
-                accessorFn: (row: any) => row.note || '',
+                accessorFn: (row) => row.note || '',
                 header: () => (
                     <HeaderLabel>{t('table.playerList.note')}</HeaderLabel>
                 ),
                 enableSorting: false,
-                cell: ({ row }: any) => (
+                cell: ({ row }) => (
                     <span className="block truncate text-sm">
                         {row.original.note || ''}
                     </span>

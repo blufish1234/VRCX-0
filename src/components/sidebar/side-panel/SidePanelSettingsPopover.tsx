@@ -24,6 +24,17 @@ import { Separator } from '@/ui/shadcn/separator';
 import { Spinner } from '@/ui/shadcn/spinner';
 import { Switch } from '@/ui/shadcn/switch';
 
+import type { FavoriteGroupItem } from './sidebarTabLayout';
+import type {
+    SidePanelBooleanPreferenceKey,
+    SidePanelFavoriteLoadStatus,
+    SidePanelPreferences,
+    SidePanelSortMethod,
+    SidePanelSortPreferenceKey
+} from './sidePanelTypes';
+
+type SortOption = Exclude<SidePanelSortMethod, '' | 'None'>;
+
 const sortOptions = [
     [
         'Sort Alphabetically',
@@ -47,7 +58,13 @@ const sortOptions = [
         'view.settings.appearance.side_panel.sorting.time_in_instance'
     ],
     ['Sort by Location', 'view.settings.appearance.side_panel.sorting.location']
-];
+] as const satisfies ReadonlyArray<readonly [SortOption, string]>;
+
+const sortOptionValues = new Set<string>(sortOptions.map(([option]) => option));
+
+function normalizeSortSelectValue(value: string): SidePanelSortMethod {
+    return sortOptionValues.has(value) ? (value as SidePanelSortMethod) : '';
+}
 
 type SettingRowControlProps = {
     id?: string;
@@ -79,7 +96,17 @@ function SettingRow({
     );
 }
 
-function SortSelect({ value, disabled, onChange, placeholder = 'None' }: any) {
+function SortSelect({
+    value,
+    disabled = false,
+    onChange,
+    placeholder = 'None'
+}: {
+    value: SidePanelSortMethod;
+    disabled?: boolean;
+    onChange: (value: SidePanelSortMethod) => void;
+    placeholder?: string;
+}) {
     const { t } = useTranslation();
 
     return (
@@ -87,7 +114,7 @@ function SortSelect({ value, disabled, onChange, placeholder = 'None' }: any) {
             value={value || '__none__'}
             disabled={disabled}
             onValueChange={(nextValue) =>
-                onChange(nextValue === '__none__' ? '' : nextValue)
+                onChange(normalizeSortSelectValue(nextValue))
             }
         >
             <SelectTrigger size="sm" className="w-full">
@@ -98,7 +125,7 @@ function SortSelect({ value, disabled, onChange, placeholder = 'None' }: any) {
                     <SelectItem value="__none__">
                         {t('dialog.gallery_select.none')}
                     </SelectItem>
-                    {sortOptions.map(([option, labelKey]: any) => (
+                    {sortOptions.map(([option, labelKey]) => (
                         <SelectItem key={option} value={option}>
                             {t(labelKey)}
                         </SelectItem>
@@ -108,6 +135,32 @@ function SortSelect({ value, disabled, onChange, placeholder = 'None' }: any) {
         </Select>
     );
 }
+
+type SidePanelSettingsPopoverProps = {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    isRefreshing: boolean;
+    onRefreshFriends: () => void;
+    prefs: SidePanelPreferences;
+    onUpdateBoolPreference: (
+        key: SidePanelBooleanPreferenceKey,
+        value: boolean
+    ) => void;
+    onUpdateStringPreference: (
+        key: SidePanelSortPreferenceKey,
+        value: SidePanelSortMethod
+    ) => void;
+    isAdvancedOpen: boolean;
+    onAdvancedOpenChange: (open: boolean) => void;
+    favoriteGroupItems: FavoriteGroupItem[];
+    favoriteLoadStatus: SidePanelFavoriteLoadStatus;
+    selectedFavoriteGroupLabel: string;
+    resolvedSidebarFavoriteGroups: string[];
+    onToggleFavoriteGroup: (key: string, checked: boolean) => void;
+    orderedFavoriteGroupItemsLength: number;
+    onOpenFavoriteGroupOrderDialog: () => void;
+    onOpenCustomTabsDialog: () => void;
+};
 
 export function SidePanelSettingsPopover({
     open,
@@ -127,7 +180,7 @@ export function SidePanelSettingsPopover({
     orderedFavoriteGroupItemsLength,
     onOpenFavoriteGroupOrderDialog,
     onOpenCustomTabsDialog
-}: any) {
+}: SidePanelSettingsPopoverProps) {
     const { t } = useTranslation();
 
     return (
@@ -274,7 +327,7 @@ export function SidePanelSettingsPopover({
                             </span>
                             <SortSelect
                                 value={prefs.sidebarSortMethod1}
-                                onChange={(value: any) =>
+                                onChange={(value) =>
                                     onUpdateStringPreference(
                                         'sidebarSortMethod1',
                                         value
@@ -287,7 +340,7 @@ export function SidePanelSettingsPopover({
                             <SortSelect
                                 value={prefs.sidebarSortMethod2}
                                 disabled={!prefs.sidebarSortMethod1}
-                                onChange={(value: any) =>
+                                onChange={(value) =>
                                     onUpdateStringPreference(
                                         'sidebarSortMethod2',
                                         value
@@ -300,7 +353,7 @@ export function SidePanelSettingsPopover({
                             <SortSelect
                                 value={prefs.sidebarSortMethod3}
                                 disabled={!prefs.sidebarSortMethod2}
-                                onChange={(value: any) =>
+                                onChange={(value) =>
                                     onUpdateStringPreference(
                                         'sidebarSortMethod3',
                                         value
@@ -323,7 +376,7 @@ export function SidePanelSettingsPopover({
                                 </div>
                                 <div className="max-h-[min(24rem,50vh)] overflow-auto p-1">
                                     {favoriteGroupItems.length ? (
-                                        favoriteGroupItems.map((group: any) => (
+                                        favoriteGroupItems.map((group) => (
                                             <Field
                                                 key={group.key}
                                                 orientation="horizontal"
@@ -335,7 +388,7 @@ export function SidePanelSettingsPopover({
                                                         group.key
                                                     )}
                                                     onCheckedChange={(
-                                                        checked: any
+                                                        checked
                                                     ) =>
                                                         onToggleFavoriteGroup(
                                                             group.key,

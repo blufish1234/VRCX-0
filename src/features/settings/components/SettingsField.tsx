@@ -26,6 +26,50 @@ type AttachableControlProps = {
     children?: ReactNode;
 };
 
+type FieldProps = {
+    label?: ReactNode;
+    description?: ReactNode;
+    children?: ReactNode;
+    className?: string;
+    contentClassName?: string;
+    controlClassName?: string;
+    controlId?: string;
+    error?: ReactNode;
+    invalid?: boolean;
+    disabled?: boolean;
+};
+
+type SettingsGroupProps = {
+    title?: ReactNode;
+    description?: ReactNode;
+    action?: ReactNode;
+    bodyClassName?: string;
+    className?: string;
+    children?: ReactNode;
+};
+
+type SettingsSectionHeadingProps = {
+    title?: ReactNode;
+    description?: ReactNode;
+};
+
+type SegmentedPreferenceOption = {
+    value: string;
+    label: string;
+};
+
+type SegmentedPreferenceProps = {
+    options: readonly SegmentedPreferenceOption[];
+    value?: string;
+    onChange?: (value: string) => void;
+};
+
+type JsonTreeViewProps = {
+    data: unknown;
+    name?: string;
+    depth?: number;
+};
+
 function getAttachableControl(
     children: ReactNode
 ): ReactElement<AttachableControlProps> | null {
@@ -75,7 +119,7 @@ export function Field({
     error,
     invalid = false,
     disabled = false
-}: any) {
+}: FieldProps) {
     const isInvalid = invalid || Boolean(error);
     const generatedControlId = useId();
     const attachableControl = getAttachableControl(children);
@@ -119,7 +163,7 @@ export function SettingsGroup({
     bodyClassName = 'flex flex-col',
     className = '',
     children
-}: any) {
+}: SettingsGroupProps) {
     return (
         <section className={cn('flex flex-col gap-2.5', className)}>
             {title || action ? (
@@ -146,7 +190,10 @@ export function SettingsGroup({
     );
 }
 
-export function SettingsSectionHeading({ title, description }: any) {
+export function SettingsSectionHeading({
+    title,
+    description
+}: SettingsSectionHeadingProps) {
     return (
         <div className="flex flex-col gap-1 border-b pt-2 pb-2 first:pt-0">
             <FieldTitle>{title}</FieldTitle>
@@ -159,7 +206,11 @@ export function SettingsSectionHeading({ title, description }: any) {
 
 export { FieldDescription, FieldError, FieldGroup };
 
-export function SegmentedPreference({ options, value, onChange }: any) {
+export function SegmentedPreference({
+    options,
+    value,
+    onChange
+}: SegmentedPreferenceProps) {
     return (
         <ToggleGroup
             type="single"
@@ -172,7 +223,7 @@ export function SegmentedPreference({ options, value, onChange }: any) {
                 }
             }}
         >
-            {options.map((option: any) => (
+            {options.map((option) => (
                 <ToggleGroupItem
                     key={option.value}
                     value={option.value}
@@ -185,7 +236,11 @@ export function SegmentedPreference({ options, value, onChange }: any) {
     );
 }
 
-export function JsonTreeView({ data, name = '', depth = 0 }: any) {
+export function JsonTreeView({
+    data,
+    name = '',
+    depth = 0
+}: JsonTreeViewProps) {
     if (data === null || typeof data !== 'object') {
         return (
             <div className="flex gap-2 font-mono text-xs">
@@ -198,7 +253,7 @@ export function JsonTreeView({ data, name = '', depth = 0 }: any) {
     }
 
     const entries = Array.isArray(data)
-        ? data.map((value: any, index: any) => [String(index), value])
+        ? data.map((value, index): [string, unknown] => [String(index), value])
         : Object.entries(data);
     const summary = `${name ? `${name}: ` : ''}${Array.isArray(data) ? `Array(${entries.length})` : `Object(${entries.length})`}`;
 
@@ -208,7 +263,7 @@ export function JsonTreeView({ data, name = '', depth = 0 }: any) {
                 {summary}
             </summary>
             <div className="ml-4 border-l pl-3">
-                {entries.map(([key, value]: any) => (
+                {entries.map(([key, value]) => (
                     <JsonTreeView
                         key={key}
                         name={key}

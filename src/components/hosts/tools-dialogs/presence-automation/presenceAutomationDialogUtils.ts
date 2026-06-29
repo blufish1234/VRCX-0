@@ -1,4 +1,55 @@
 import { accessTypeLocaleKeyMap } from '@/shared/constants/accessType';
+import type { FavoriteGroup } from '@/state/favoriteStoreTypes';
+
+export type PresenceRuleActions = Record<string, unknown> & {
+    status?: string;
+    statusDescription?: string;
+};
+
+export type PresenceRuleCondition = Record<string, unknown> & {
+    type: string;
+};
+
+export type TimeWindowCondition = PresenceRuleCondition & {
+    type: 'timeWindow';
+    days: number[];
+    end: string;
+    start: string;
+    timezone: string;
+};
+
+export type PresenceAutomationRule = Record<string, unknown> & {
+    actions?: PresenceRuleActions;
+    conditions?: PresenceRuleCondition[];
+    domain?: string;
+    enabled?: boolean;
+    id: string;
+    label?: string;
+    priority?: number;
+    restorePreviousState?: boolean;
+};
+
+export type TimeAutomationRule = PresenceAutomationRule & {
+    domain: 'time';
+    conditions: PresenceRuleCondition[];
+};
+
+export type ContextAutomationRule = PresenceAutomationRule & {
+    domain: 'context';
+    friendCountValue?: number;
+    playerCountValue?: number;
+    preset?: string;
+    selectedGroups?: string[];
+    selectedInstanceTypes?: string[];
+    specificFriendIds?: string[];
+};
+
+export type PresenceOption = {
+    label: string;
+    value: string;
+};
+
+type TranslationFunction = (key: string) => string;
 
 export const dayOptions = [
     { value: 1, labelKey: 'common.days.monday' },
@@ -8,7 +59,7 @@ export const dayOptions = [
     { value: 5, labelKey: 'common.days.friday' },
     { value: 6, labelKey: 'common.days.saturday' },
     { value: 7, labelKey: 'common.days.sunday' }
-];
+] as const;
 
 export const contextPresetOptions = [
     {
@@ -43,7 +94,7 @@ export const contextPresetOptions = [
         value: 'inSelectedInstanceTypes',
         labelKey: 'view.tools.social_automation.preset_in_selected_room_types'
     }
-];
+] as const;
 
 export const priorityOptions = [
     {
@@ -61,12 +112,24 @@ export const priorityOptions = [
         labelKey: 'view.tools.social_automation.priority_low',
         priority: 100
     }
-];
+] as const;
+
+type PriorityValue = (typeof priorityOptions)[number]['value'];
+
+function asRuleRecord(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object'
+        ? (value as Record<string, unknown>)
+        : {};
+}
+
+function asStringArray(value: unknown): string[] {
+    return Array.isArray(value) ? (value as string[]) : [];
+}
 
 export function priorityValueFromNumber(
-    priority: any,
-    fallback: any = 'medium'
-) {
+    priority: unknown,
+    fallback = 'medium'
+): PriorityValue | string {
     const numericPriority = Number(priority);
     if (!Number.isFinite(numericPriority)) {
         return fallback;
@@ -81,32 +144,38 @@ export function priorityValueFromNumber(
 }
 
 export function priorityLabelKeyFromNumber(
-    priority: any,
-    fallback: any = 'medium'
+    priority: unknown,
+    fallback = 'medium'
 ) {
     const value = priorityValueFromNumber(priority, fallback);
     return (
-        priorityOptions.find((option: any) => option.value === value)
-            ?.labelKey || priorityOptions[1].labelKey
+        priorityOptions.find((option) => option.value === value)?.labelKey ||
+        priorityOptions[1].labelKey
     );
 }
 
-export function priorityNumberFromValue(value: any, fallback: any = 400) {
+export function priorityNumberFromValue(
+    value: unknown,
+    fallback = 400
+): number {
     return (
-        priorityOptions.find((option: any) => option.value === value)
-            ?.priority || fallback
+        priorityOptions.find((option) => option.value === value)?.priority ||
+        fallback
     );
 }
 
-export function contextPresetLabelKeyFromValue(value: any) {
+export function contextPresetLabelKeyFromValue(value: unknown) {
     return (
-        contextPresetOptions.find((option: any) => option.value === value)
+        contextPresetOptions.find((option) => option.value === value)
             ?.labelKey || 'view.tools.social_automation.preset_custom'
     );
 }
 
-export function createInstanceOptions(instanceTypes: any, t: any) {
-    return instanceTypes.map((type: any) => {
+export function createInstanceOptions(
+    instanceTypes: readonly string[],
+    t: TranslationFunction
+): PresenceOption[] {
+    return instanceTypes.map((type) => {
         const mapKey = type === 'groupOnly' ? 'groupMembers' : type;
         const localeKey = accessTypeLocaleKeyMap[mapKey];
         const groupKey = accessTypeLocaleKeyMap.group;
@@ -127,25 +196,26 @@ export function createInstanceOptions(instanceTypes: any, t: any) {
 export function createGroupOptions({
     favoriteFriendGroups,
     localFriendFavoriteGroups
-}: any) {
-    const remoteGroupOptions = (favoriteFriendGroups || []).map(
-        (group: any) => ({
-            value: group.key,
-            label: group.displayName || group.name || group.key
-        })
-    );
+}: {
+    favoriteFriendGroups?: FavoriteGroup[];
+    localFriendFavoriteGroups?: string[];
+}): PresenceOption[] {
+    const remoteGroupOptions = (favoriteFriendGroups || []).map((group) => ({
+        value: group.key || '',
+        label: group.displayName || group.name || group.key || ''
+    }));
     const localGroupOptions = (localFriendFavoriteGroups || []).map(
-        (group: any) => ({
+        (group) => ({
             value: `local:${group}`,
             label: group
         })
     );
     return [...remoteGroupOptions, ...localGroupOptions].filter(
-        (group: any) => group.value
+        (group) => group.value
     );
 }
 
-export function createTimeRule(label: any = '') {
+export function createTimeRule(label = ''): TimeAutomationRule {
     const days: number[] = [];
 
     return {
@@ -168,49 +238,48 @@ export function createTimeRule(label: any = '') {
     };
 }
 
-export function getTimeWindow(rule: any) {
-    return (
-        rule.conditions?.find(
-            (condition: any) => condition.type === 'timeWindow'
-        ) || {
-            type: 'timeWindow',
-            start: '21:00',
-            end: '02:00',
-            days: [],
-            timezone: 'local'
-        }
-    );
+export function getTimeWindow(rule: PresenceAutomationRule) {
+    return (rule.conditions?.find(
+        (condition) => condition.type === 'timeWindow'
+    ) || {
+        type: 'timeWindow',
+        start: '21:00',
+        end: '02:00',
+        days: [],
+        timezone: 'local'
+    }) as TimeWindowCondition;
 }
 
-export function shouldRestorePreviousState(rule: any) {
+export function shouldRestorePreviousState(rule: PresenceAutomationRule) {
     return rule?.restorePreviousState !== false;
 }
 
-export function hasGameRunningCondition(rule: any) {
+export function hasGameRunningCondition(rule: PresenceAutomationRule) {
     return Boolean(
         rule.conditions?.some(
-            (condition: any) =>
+            (condition) =>
                 condition?.type === 'isGameRunning' && condition.value !== false
         )
     );
 }
 
-export function setGameRunningCondition(rule: any, enabled: any) {
+export function setGameRunningCondition<TRule extends PresenceAutomationRule>(
+    rule: TRule,
+    enabled: boolean
+): TRule {
     const otherConditions = (rule.conditions || []).filter(
-        (condition: any) => condition?.type !== 'isGameRunning'
+        (condition) => condition?.type !== 'isGameRunning'
     );
     return {
         ...rule,
         conditions: enabled
             ? [{ type: 'isGameRunning' }, ...otherConditions]
             : otherConditions
-    };
+    } as TRule;
 }
 
-export function buildContextConditions(rule: any) {
-    const conditions: Array<Record<string, unknown>> = [
-        { type: 'isGameRunning' }
-    ];
+export function buildContextConditions(rule: ContextAutomationRule) {
+    const conditions: PresenceRuleCondition[] = [{ type: 'isGameRunning' }];
     if (rule.preset === 'alone') {
         conditions.push({ type: 'isAlone' });
     } else if (rule.preset === 'withAnyone') {
@@ -250,8 +319,8 @@ export function buildContextConditions(rule: any) {
     return conditions;
 }
 
-export function createContextRule(label: any = '') {
-    const rule: any = {
+export function createContextRule(label = ''): ContextAutomationRule {
+    const rule: ContextAutomationRule = {
         id: `context-${Date.now()}`,
         enabled: true,
         domain: 'context',
@@ -273,23 +342,19 @@ export function createContextRule(label: any = '') {
     };
 }
 
-export function normalizeContextRule(rule: any) {
-    const normalized: any = {
-        ...rule,
+export function normalizeContextRule(rule: unknown): ContextAutomationRule {
+    const source = asRuleRecord(rule);
+    const normalized: ContextAutomationRule = {
+        ...source,
+        id: String(source.id || `context-${Date.now()}`),
         domain: 'context',
-        preset: rule.preset || 'alone',
-        selectedGroups: Array.isArray(rule.selectedGroups)
-            ? rule.selectedGroups
-            : [],
-        selectedInstanceTypes: Array.isArray(rule.selectedInstanceTypes)
-            ? rule.selectedInstanceTypes
-            : [],
-        specificFriendIds: Array.isArray(rule.specificFriendIds)
-            ? rule.specificFriendIds
-            : [],
-        friendCountValue: Number(rule.friendCountValue) || 1,
-        playerCountValue: Number(rule.playerCountValue) || 1,
-        actions: rule.actions || {}
+        preset: String(source.preset || 'alone'),
+        selectedGroups: asStringArray(source.selectedGroups),
+        selectedInstanceTypes: asStringArray(source.selectedInstanceTypes),
+        specificFriendIds: asStringArray(source.specificFriendIds),
+        friendCountValue: Number(source.friendCountValue) || 1,
+        playerCountValue: Number(source.playerCountValue) || 1,
+        actions: asRuleRecord(source.actions) as PresenceRuleActions
     };
     return {
         ...normalized,
@@ -297,8 +362,12 @@ export function normalizeContextRule(rule: any) {
     };
 }
 
-export function updateRule(rules: any, ruleId: any, updater: any) {
-    return rules.map((rule: any) => {
+export function updateRule<TRule extends PresenceAutomationRule>(
+    rules: readonly TRule[],
+    ruleId: string,
+    updater: (rule: TRule) => TRule
+): TRule[] {
+    return rules.map((rule) => {
         if (rule.id !== ruleId) {
             return rule;
         }

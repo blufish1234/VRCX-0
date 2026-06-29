@@ -1,4 +1,8 @@
-import type { PaginationState } from '@tanstack/react-table';
+import type {
+    PaginationState,
+    Table as ReactTable
+} from '@tanstack/react-table';
+import type { KeyboardEvent, MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useDataTableColumnDnd } from '@/components/data-table/dataTableColumnDndContext';
@@ -26,11 +30,11 @@ import {
 } from '@/ui/shadcn/context-menu';
 import { Table, TableBody, TableHeader, TableRow } from '@/ui/shadcn/table';
 
-import type { MyAvatarActionHandler } from '../myAvatarsTypes';
+import type { MyAvatarActionHandler, MyAvatarRow } from '../myAvatarsTypes';
 import { AvatarActionMenuItems, openAvatarDetails } from './MyAvatarsViewParts';
 
 type MyAvatarsTableViewProps = {
-    table: any;
+    table: ReactTable<MyAvatarRow>;
     savingTagsAvatarId: string;
     updatingAvatarId: string;
     uploadingImageAvatarId: string;
@@ -38,10 +42,12 @@ type MyAvatarsTableViewProps = {
     pageSizes: number[];
     pagination: PaginationState;
     onAvatarAction: MyAvatarActionHandler;
-    onPageSizeChange: (value: number) => void;
+    onPageSizeChange: (value: string) => void;
 };
 
-function isInteractiveRowEvent(event: any) {
+function isInteractiveRowEvent(
+    event: KeyboardEvent<HTMLElement> | MouseEvent<HTMLElement>
+) {
     return (
         event.target instanceof HTMLElement &&
         Boolean(
@@ -52,26 +58,26 @@ function isInteractiveRowEvent(event: any) {
     );
 }
 
-function MyAvatarsTableHeader({ table }: any) {
+function MyAvatarsTableHeader({ table }: { table: ReactTable<MyAvatarRow> }) {
     const columnDnd = useDataTableColumnDnd();
 
     return (
         <TableHeader>
-            {table.getHeaderGroups().map((headerGroup: any) => (
+            {table.getHeaderGroups().map((headerGroup) => (
                 <DataTableColumnSortableContext
                     key={headerGroup.id}
                     table={table}
                 >
                     <TableRow className="hover:bg-transparent">
-                        {headerGroup.headers.map((header: any) => (
+                        {headerGroup.headers.map((header) => (
                             <ResizableTableHead
                                 key={header.id}
                                 header={header}
                                 enableColumnReorder={columnDnd.enabled}
-                                className={
+                                className={String(
                                     header.column.columnDef.meta
-                                        ?.tableHeadClassName
-                                }
+                                        ?.tableHeadClassName || ''
+                                )}
                             />
                         ))}
                     </TableRow>
@@ -110,7 +116,7 @@ export function MyAvatarsTableView({
                             <DataTableColumnSizeColGroup table={table} />
                             <MyAvatarsTableHeader table={table} />
                             <TableBody>
-                                {table.getRowModel().rows.map((row: any) => (
+                                {table.getRowModel().rows.map((row) => (
                                     <ContextMenu
                                         key={row.original?.id || row.id}
                                     >
@@ -175,7 +181,7 @@ export function MyAvatarsTableView({
                                                 >
                                                     {row
                                                         .getVisibleCells()
-                                                        .map((cell: any) => (
+                                                        .map((cell) => (
                                                             <ResizableTableCell
                                                                 key={cell.id}
                                                                 cell={cell}

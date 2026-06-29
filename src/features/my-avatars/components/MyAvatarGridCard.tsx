@@ -9,7 +9,7 @@ import {
     RefreshCwIcon,
     TagIcon
 } from 'lucide-react';
-import type { ComponentType } from 'react';
+import type { CSSProperties, ElementType, MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/utils';
@@ -53,7 +53,7 @@ import type {
     MyAvatarsGridDensityConfig
 } from '../myAvatarsTypes';
 
-type MenuComponent = ComponentType<any>;
+type MenuComponent = ElementType;
 
 type AvatarActionMenuItemsProps = {
     avatar: MyAvatarRow;
@@ -79,7 +79,7 @@ export function AvatarActionMenuItems({
     const releaseAction: MyAvatarAction =
         avatar?.releaseStatus === 'public' ? 'makePrivate' : 'makePublic';
 
-    const stopMenuClick = (event: any) => {
+    const stopMenuClick = (event: MouseEvent) => {
         event.stopPropagation();
     };
 
@@ -89,8 +89,8 @@ export function AvatarActionMenuItems({
 
     const actionItemProps = (action: MyAvatarAction) => ({
         onClick: stopMenuClick,
-        onSelect: (event: any) => {
-            event.stopPropagation?.();
+        onSelect: (event: Event) => {
+            event.stopPropagation();
             handleAction(action);
         }
     });
@@ -186,17 +186,17 @@ export function MyAvatarGridCard({
     const platforms = getAvailablePlatforms(avatar?.unityPackages);
     const disabled = resolveMyAvatarActionDisabled(avatar, isUpdating);
     const canWear = !disabled && !isActive;
-    const tags = avatar?.$tags || [];
+    const tags: MyAvatarTag[] = avatar?.$tags || [];
     const visibleTags = tags.slice(0, 2);
     const hiddenTagCount = Math.max(0, tags.length - visibleTags.length);
     const platformDotClassName =
         'size-2.5 -ml-1 rounded-full border border-background/80 opacity-80 shadow-sm first:ml-0';
     const avatarName =
         avatar?.name || t('view.my_avatars.label.untitled_avatar');
-    const overlayStyle: any = {
+    const overlayStyle: CSSProperties = {
         padding: `${densityConfig.overlayNameOnlyPaddingTop}px ${densityConfig.overlayPaddingX}px ${densityConfig.overlayPaddingY}px`
     };
-    const avatarNameStyle: any = {
+    const avatarNameStyle: CSSProperties = {
         fontSize: `${densityConfig.nameFontSize}px`,
         lineHeight: densityConfig.nameLineHeight,
         textShadow: '0 1px 2px rgb(0 0 0 / 0.9), 0 0 10px rgb(0 0 0 / 0.65)'
@@ -256,26 +256,24 @@ export function MyAvatarGridCard({
                                                     'dialog.avatar.info.tags'
                                                 )}
                                             >
-                                                {visibleTags.map(
-                                                    (entry: any) => (
-                                                        <Badge
-                                                            key={`${avatar.id}:${entry.tag}`}
-                                                            variant="secondary"
-                                                            className={cn(
-                                                                MY_AVATAR_TAG_BADGE_CLASS_NAME,
-                                                                'max-w-16 min-w-0 shrink truncate shadow-sm'
-                                                            )}
-                                                            style={{
-                                                                ...resolveMyAvatarGridTagBadgeStyle(
-                                                                    entry
-                                                                ),
-                                                                fontSize: `${densityConfig.tagFontSize}px`
-                                                            }}
-                                                        >
-                                                            {entry.tag}
-                                                        </Badge>
-                                                    )
-                                                )}
+                                                {visibleTags.map((entry) => (
+                                                    <Badge
+                                                        key={`${avatar.id}:${entry.tag}`}
+                                                        variant="secondary"
+                                                        className={cn(
+                                                            MY_AVATAR_TAG_BADGE_CLASS_NAME,
+                                                            'max-w-16 min-w-0 shrink truncate shadow-sm'
+                                                        )}
+                                                        style={{
+                                                            ...resolveMyAvatarGridTagBadgeStyle(
+                                                                entry
+                                                            ),
+                                                            fontSize: `${densityConfig.tagFontSize}px`
+                                                        }}
+                                                    >
+                                                        {entry.tag}
+                                                    </Badge>
+                                                ))}
                                                 {hiddenTagCount ? (
                                                     <Badge
                                                         variant="outline"
@@ -297,7 +295,7 @@ export function MyAvatarGridCard({
                                             align="start"
                                             className="flex w-64 flex-wrap gap-1.5"
                                         >
-                                            {tags.map((entry: any) => (
+                                            {tags.map((entry) => (
                                                 <Badge
                                                     key={`${avatar.id}:hover:${entry.tag}`}
                                                     variant="secondary"

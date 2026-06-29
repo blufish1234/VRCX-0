@@ -15,6 +15,45 @@ import { Switch } from '@/ui/shadcn/switch';
 import { Field, SettingsGroup } from '../SettingsField';
 import { SettingsTabContent } from '../SettingsViewParts';
 
+type SettingsOptionList = ReadonlyArray<readonly [string, string]>;
+
+type SettingsNotificationsPrefs = Record<string, unknown> & {
+    afkDesktopToast?: boolean;
+    desktopNotificationSound?: boolean;
+    desktopToast?: string;
+    notificationIconDot?: boolean;
+    notificationLayout?: string;
+    notificationTTS?: string;
+    notificationTTSNickName?: boolean;
+    notificationTTSVoice?: string;
+    showPostUpdateChangelogToast?: boolean;
+};
+
+type SettingsNotificationsTabProps = {
+    desktopToastOptions: SettingsOptionList;
+    notificationLayoutOptions: SettingsOptionList;
+    notificationTtsOptions: SettingsOptionList;
+    notificationTtsTest: string;
+    notificationTtsTestVisible: boolean;
+    onAfkDesktopToastChange: (checked: boolean) => unknown;
+    onDesktopNotificationSoundChange: (checked: boolean) => unknown;
+    onDesktopToastChange: (value: string) => unknown;
+    onNotificationIconDotChange: (checked: boolean) => unknown;
+    onNotificationLayoutChange: (value: string) => unknown;
+    onNotificationTtsModeChange: (value: string) => unknown;
+    onNotificationTtsNicknameChange: (checked: boolean) => unknown;
+    onNotificationTtsTestChange: (value: string) => unknown;
+    onNotificationTtsTestVisibleChange: (visible: boolean) => unknown;
+    onNotificationTtsVoiceChange: (value: string) => unknown;
+    onOpenDesktopNotificationFiltersDialog: () => unknown;
+    onOpenFeedFilterDialog: () => unknown;
+    onPostUpdateChangelogToastChange: (checked: boolean) => unknown;
+    onSpeakNotificationTts: (message: string) => unknown;
+    onTestDesktopNotification: () => unknown;
+    prefs: SettingsNotificationsPrefs;
+    ttsVoices: SpeechSynthesisVoice[];
+};
+
 export function SettingsNotificationsTab({
     prefs,
     notificationLayoutOptions,
@@ -38,7 +77,7 @@ export function SettingsNotificationsTab({
     onNotificationTtsTestVisibleChange,
     onNotificationTtsTestChange,
     onSpeakNotificationTts
-}: any) {
+}: SettingsNotificationsTabProps) {
     const { t } = useTranslation();
     return (
         <SettingsTabContent value="notifications">
@@ -64,7 +103,7 @@ export function SettingsNotificationsTab({
                         <SelectContent>
                             <SelectGroup>
                                 {notificationLayoutOptions.map(
-                                    ([value, labelKey]: any) => (
+                                    ([value, labelKey]) => (
                                         <SelectItem key={value} value={value}>
                                             {t(labelKey)}
                                         </SelectItem>
@@ -156,7 +195,7 @@ export function SettingsNotificationsTab({
                         <SelectContent>
                             <SelectGroup>
                                 {desktopToastOptions.map(
-                                    ([value, labelKey]: any) => (
+                                    ([value, labelKey]) => (
                                         <SelectItem key={value} value={value}>
                                             {t(labelKey)}
                                         </SelectItem>
@@ -227,7 +266,7 @@ export function SettingsNotificationsTab({
                         <SelectContent>
                             <SelectGroup>
                                 {notificationTtsOptions.map(
-                                    ([value, labelKey]: any) => (
+                                    ([value, labelKey]) => (
                                         <SelectItem key={value} value={value}>
                                             {t(labelKey)}
                                         </SelectItem>
@@ -264,7 +303,7 @@ export function SettingsNotificationsTab({
                         </SelectTrigger>
                         <SelectContent>
                             <SelectGroup>
-                                {ttsVoices.map((voice: any, index: any) => (
+                                {ttsVoices.map((voice, index) => (
                                     <SelectItem
                                         key={`${voice.name}-${index}`}
                                         value={String(index)}

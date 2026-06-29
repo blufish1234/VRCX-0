@@ -1,4 +1,7 @@
+import type { RowData, Table } from '@tanstack/react-table';
+import type { TFunction } from 'i18next';
 import { Settings2Icon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/ui/shadcn/button';
@@ -31,17 +34,25 @@ import {
     setColumnOrderLocked
 } from './tableColumnLayout';
 
-function renderColumnLockLabel(locked: any, t: any) {
+type ResetTableLayoutHandler<TData extends RowData> = (
+    table: Table<TData>
+) => void;
+
+function renderColumnLockLabel(locked: boolean, t: TFunction) {
     return locked
         ? t('table.label.unlock_column_order')
         : t('table.label.lock_column_order');
 }
 
-export function TableColumnVisibilityMenu({
+export function TableColumnVisibilityMenu<TData extends RowData>({
     table,
     label,
     onResetLayout
-}: any) {
+}: {
+    table: Table<TData>;
+    label?: string;
+    onResetLayout?: ResetTableLayoutHandler<TData>;
+}) {
     const { t } = useTranslation();
 
     const allLeafColumns = table.getAllLeafColumns();
@@ -98,7 +109,7 @@ export function TableColumnVisibilityMenu({
                     <>
                         <DropdownMenuSeparator />
                         <DropdownMenuGroup>
-                            {columns.map((column: any) => (
+                            {columns.map((column) => (
                                 <DropdownMenuCheckboxItem
                                     key={column.id}
                                     checked={column.getIsVisible()}
@@ -122,12 +133,17 @@ export function TableColumnVisibilityMenu({
     );
 }
 
-export function TableColumnHeaderContextMenu({
+export function TableColumnHeaderContextMenu<TData extends RowData>({
     table,
     onResetLayout,
     children,
     className = 'w-56'
-}: any) {
+}: {
+    table: Table<TData>;
+    onResetLayout?: ResetTableLayoutHandler<TData>;
+    children: ReactNode;
+    className?: string;
+}) {
     const { t } = useTranslation();
 
     const allLeafColumns = table?.getAllLeafColumns?.() ?? [];
@@ -154,7 +170,7 @@ export function TableColumnHeaderContextMenu({
             <ContextMenuContent className={className}>
                 {columns.length ? (
                     <ContextMenuGroup>
-                        {columns.map((column: any) => (
+                        {columns.map((column) => (
                             <ContextMenuCheckboxItem
                                 key={column.id}
                                 checked={column.getIsVisible()}

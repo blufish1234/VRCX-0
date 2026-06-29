@@ -29,13 +29,19 @@ import {
     readFriendStatusSource,
     resolveCurrentInviteLocation,
     sortActiveRows,
-    sortRows
+    sortRows,
+    type LastLocationSnapshot,
+    type SidebarFriendRecord,
+    type SidebarPreferences
 } from './friends-sidebar/friendsSidebarModel';
 import {
     buildSidebarLocationMetadataEntry,
     estimateFriendSidebarRowSize
 } from './friends-sidebar/FriendsSidebarRows';
-import { buildFriendsSidebarVirtualRows } from './friends-sidebar/friendsSidebarVirtualRowBuilder';
+import {
+    buildFriendsSidebarVirtualRows,
+    type SidebarVirtualRow
+} from './friends-sidebar/friendsSidebarVirtualRowBuilder';
 import { FriendsSidebarVirtualRow } from './friends-sidebar/FriendsSidebarVirtualRows';
 import { useFriendsSidebarActions } from './friends-sidebar/useFriendsSidebarActions';
 import { useFriendsSidebarPreferences } from './friends-sidebar/useFriendsSidebarPreferences';
@@ -46,6 +52,34 @@ function hasFavoriteGroupKey(
     group: FavoriteGroup
 ): group is FavoriteGroup & { key: string } {
     return typeof group.key === 'string' && group.key.length > 0;
+}
+
+type FavoriteCollectionTab = {
+    id?: string;
+    sourceGroupKeys?: string[];
+};
+
+type FriendsSidebarProps = {
+    prefs: SidebarPreferences;
+    excludedFavoriteGroupKeys?: string[];
+    favoriteCollectionTab?: FavoriteCollectionTab | null;
+};
+
+type FavoriteGroupSection = {
+    key: string;
+    label: string;
+    rows: readonly SidebarFriendRecord[];
+};
+
+function isSidebarFriendRecord(value: unknown): value is SidebarFriendRecord {
+    return Boolean(value && typeof value === 'object');
+}
+
+function rowsByIds(
+    ids: readonly string[],
+    friendsById: Record<string, unknown>
+) {
+    return ids.map((id) => friendsById[id]).filter(isSidebarFriendRecord);
 }
 
 function useFriendsSidebarRuntimeSnapshot() {
@@ -189,7 +223,7 @@ export function FriendsSidebar({
     prefs,
     excludedFavoriteGroupKeys = [],
     favoriteCollectionTab = null
-}: any) {
+}: FriendsSidebarProps) {
     const { t } = useTranslation();
     const {
         currentEndpoint,
@@ -226,12 +260,12 @@ export function FriendsSidebar({
     const { openGroups, statusPresets, toggleSection } =
         useFriendsSidebarPreferences();
     const [recentActionVersion, setRecentActionVersion] = useState(0);
-    const sameInstanceFallbackJoinTimesRef = useRef(new Map());
+    const sameInstanceFallbackJoinTimesRef = useRef(new Map<string, number>());
     const currentInviteLocation = useMemo(
         () => resolveCurrentInviteLocation(gameState, currentUser),
         [currentUser, gameState]
     );
-    const currentLocationSnapshot = useMemo(
+    const currentLocationSnapshot = useMemo<LastLocationSnapshot>(
         () => ({
             location: currentLocation,
             friendList: new Set(
@@ -279,14 +313,13 @@ export function FriendsSidebar({
     useEffect(
         () =>
             subscribeRecentActions(() => {
-                setRecentActionVersion((version: any) => version + 1);
+                setRecentActionVersion((version) => version + 1);
             }),
         []
     );
 
     const rows = useMemo(
-        () =>
-            orderedFriendIds.map((id: any) => friendsById[id]).filter(Boolean),
+        () => rowsByIds(orderedFriendIds, friendsById),
         [friendsById, orderedFriendIds]
     );
     const favoriteIds = useMemo(
@@ -312,7 +345,7 @@ export function FriendsSidebar({
             return [];
         }
         return sortRows(
-            rows.filter((friend: any) =>
+            rows.filter((friend) =>
                 favoriteCollectionIdSet.has(normalizeId(friend?.id))
             ),
             prefs
@@ -321,12 +354,12 @@ export function FriendsSidebar({
     const allFavoriteGroupKeys = useMemo(
         () => [
             ...(favoriteFriendGroups || [])
-                .map((group: any) => group.key)
-                .filter(Boolean),
+                .map((group) => group.key)
+                .filter((key): key is string => Boolean(key)),
             ...(localFriendFavoriteGroups?.length
                 ? localFriendFavoriteGroups
                 : Object.keys(localFriendFavorites || {})
-            ).map((groupName: any) => `local:${groupName}`)
+            ).map((groupName) => `local:${groupName}`)
         ],
         [favoriteFriendGroups, localFriendFavoriteGroups, localFriendFavorites]
     );
@@ -334,7 +367,7 @@ export function FriendsSidebar({
         () =>
             new Set<string>(
                 (excludedFavoriteGroupKeys || [])
-                    .map((key: any) => normalizeId(key))
+                    .map((key) => normalizeId(key))
                     .filter(Boolean)
             ),
         [excludedFavoriteGroupKeys]
@@ -343,8 +376,8 @@ export function FriendsSidebar({
         const configured = Array.isArray(prefs.sidebarFavoriteGroups)
             ? prefs.sidebarFavoriteGroups.filter(Boolean)
             : [];
-        const removeExcluded = (keys: any) =>
-            keys.filter((key: any) => !excludedFavoriteGroupKeySet.has(key));
+        const removeExcluded = (keys: string[]) =>
+            keys.filter((key) => !excludedFavoriteGroupKeySet.has(key));
         if (!configured.length) {
             return new Set<string>(removeExcluded(allFavoriteGroupKeys));
         }
@@ -364,7 +397,7 @@ export function FriendsSidebar({
         if (!allFavoriteGroupKeys.length) {
             return favoriteIds;
         }
-        const ids = new Set();
+        const ids = new Set<string>();
         for (const key of selectedFavoriteGroupKeys) {
             if (key.startsWith('local:')) {
                 for (const id of localFriendFavorites?.[key.slice(6)] || []) {
@@ -429,8 +462,8 @@ export function FriendsSidebar({
     const favoriteCollectionSameInstanceIds = useMemo(
         () =>
             new Set(
-                favoriteCollectionSameInstanceGroups.flatMap((group: any) =>
-                    group.rows.map((friend: any) => friend.id)
+                favoriteCollectionSameInstanceGroups.flatMap((group) =>
+                    group.rows.map((friend) => friend.id)
                 )
             ),
         [favoriteCollectionSameInstanceGroups]
@@ -440,14 +473,11 @@ export function FriendsSidebar({
             return [];
         }
         return sortRows(
-            onlineIds
-                .map((id: any) => friendsById[id])
-                .filter(
-                    (friend: any) =>
-                        friend &&
-                        favoriteCollectionIdSet.has(normalizeId(friend.id)) &&
-                        !favoriteCollectionSameInstanceIds.has(friend.id)
-                ),
+            rowsByIds(onlineIds, friendsById).filter(
+                (friend) =>
+                    favoriteCollectionIdSet.has(normalizeId(friend.id)) &&
+                    !favoriteCollectionSameInstanceIds.has(friend.id)
+            ),
             prefs
         );
     }, [
@@ -462,13 +492,9 @@ export function FriendsSidebar({
             return [];
         }
         return sortActiveRows(
-            activeIds
-                .map((id: any) => friendsById[id])
-                .filter(
-                    (friend: any) =>
-                        friend &&
-                        favoriteCollectionIdSet.has(normalizeId(friend.id))
-                ),
+            rowsByIds(activeIds, friendsById).filter((friend) =>
+                favoriteCollectionIdSet.has(normalizeId(friend.id))
+            ),
             prefs
         );
     }, [activeIds, favoriteCollectionIdSet, friendsById, prefs]);
@@ -477,21 +503,17 @@ export function FriendsSidebar({
             return [];
         }
         return sortRows(
-            offlineIds
-                .map((id: any) => friendsById[id])
-                .filter(
-                    (friend: any) =>
-                        friend &&
-                        favoriteCollectionIdSet.has(normalizeId(friend.id))
-                ),
+            rowsByIds(offlineIds, friendsById).filter((friend) =>
+                favoriteCollectionIdSet.has(normalizeId(friend.id))
+            ),
             prefs
         );
     }, [favoriteCollectionIdSet, friendsById, offlineIds, prefs]);
     const sameInstanceIds = useMemo(
         () =>
             new Set(
-                sameInstanceGroups.flatMap((group: any) =>
-                    group.rows.map((friend: any) => friend.id)
+                sameInstanceGroups.flatMap((group) =>
+                    group.rows.map((friend) => friend.id)
                 )
             ),
         [sameInstanceGroups]
@@ -502,7 +524,7 @@ export function FriendsSidebar({
             return [];
         }
         return sortRows(
-            rows.filter((friend: any) => {
+            rows.filter((friend) => {
                 const source = readFriendStatusSource(friend);
                 const state = normalizeLocationStatus(
                     source?.stateBucket || source?.state
@@ -530,17 +552,14 @@ export function FriendsSidebar({
             return [];
         }
         return sortRows(
-            onlineIds
-                .map((id: any) => friendsById[id])
-                .filter(
-                    (friend: any) =>
-                        friend &&
-                        !excludedFavoriteIds.has(normalizeId(friend.id)) &&
-                        !(
-                            prefs.isHideFriendsInSameInstance &&
-                            sameInstanceIds.has(friend.id)
-                        )
-                ),
+            rowsByIds(onlineIds, friendsById).filter(
+                (friend) =>
+                    !excludedFavoriteIds.has(normalizeId(friend.id)) &&
+                    !(
+                        prefs.isHideFriendsInSameInstance &&
+                        sameInstanceIds.has(friend.id)
+                    )
+            ),
             prefs
         );
     }, [
@@ -555,29 +574,23 @@ export function FriendsSidebar({
         if (favoriteCollectionTab) {
             return [];
         }
-        return sortActiveRows(
-            activeIds.map((id: any) => friendsById[id]).filter(Boolean),
-            prefs
-        );
+        return sortActiveRows(rowsByIds(activeIds, friendsById), prefs);
     }, [activeIds, favoriteCollectionTab, friendsById, prefs]);
     const offlineRows = useMemo(() => {
         if (favoriteCollectionTab) {
             return [];
         }
-        return sortRows(
-            offlineIds.map((id: any) => friendsById[id]).filter(Boolean),
-            prefs
-        );
+        return sortRows(rowsByIds(offlineIds, friendsById), prefs);
     }, [favoriteCollectionTab, offlineIds, friendsById, prefs]);
     const favoriteGroupSections = useMemo(() => {
         if (!prefs.isSidebarDivideByFriendGroup) {
             return [];
         }
-        const favoriteRowById = new Map(
-            favoriteRows.map((friend: any) => [normalizeId(friend.id), friend])
+        const favoriteRowById = new Map<string, SidebarFriendRecord>(
+            favoriteRows.map((friend) => [normalizeId(friend.id), friend])
         );
-        const seen = new Set();
-        const sections = [];
+        const seen = new Set<string>();
+        const sections: FavoriteGroupSection[] = [];
 
         const orderedRemoteGroups = [...(favoriteFriendGroups || [])]
             .filter(hasFavoriteGroupKey)
@@ -606,7 +619,7 @@ export function FriendsSidebar({
             ...(localFriendFavoriteGroups?.length
                 ? localFriendFavoriteGroups
                 : Object.keys(localFriendFavorites || {}))
-        ].sort((left: any, right: any) => {
+        ].sort((left, right) => {
             const order = Array.isArray(prefs.sidebarFavoriteGroupOrder)
                 ? prefs.sidebarFavoriteGroupOrder
                 : [];
@@ -631,10 +644,10 @@ export function FriendsSidebar({
             const rowsForGroup = (
                 groupedFavoriteFriendIdsByGroupKey?.[group.key] || []
             )
-                .map((id: any) => favoriteRowById.get(normalizeId(id)))
-                .filter(Boolean);
+                .map((id) => favoriteRowById.get(normalizeId(id)))
+                .filter(isSidebarFriendRecord);
             if (rowsForGroup.length) {
-                rowsForGroup.forEach((friend: any) =>
+                rowsForGroup.forEach((friend) =>
                     seen.add(normalizeId(friend.id))
                 );
                 sections.push({
@@ -650,10 +663,10 @@ export function FriendsSidebar({
                 continue;
             }
             const rowsForGroup = (localFriendFavorites?.[groupName] || [])
-                .map((id: any) => favoriteRowById.get(normalizeId(id)))
-                .filter(Boolean);
+                .map((id) => favoriteRowById.get(normalizeId(id)))
+                .filter(isSidebarFriendRecord);
             if (rowsForGroup.length) {
-                rowsForGroup.forEach((friend: any) =>
+                rowsForGroup.forEach((friend) =>
                     seen.add(normalizeId(friend.id))
                 );
                 sections.push({
@@ -665,7 +678,7 @@ export function FriendsSidebar({
         }
 
         const ungrouped = favoriteRows.filter(
-            (friend: any) => !seen.has(normalizeId(friend.id))
+            (friend) => !seen.has(normalizeId(friend.id))
         );
         if (ungrouped.length) {
             sections.push({
@@ -687,7 +700,7 @@ export function FriendsSidebar({
         t
     ]);
 
-    const virtualRows = useMemo(() => {
+    const virtualRows = useMemo<SidebarVirtualRow[]>(() => {
         if (favoriteCollectionTab) {
             return buildFavoriteCollectionSidebarVirtualRows({
                 activeRows: favoriteCollectionActiveRows,
@@ -750,8 +763,8 @@ export function FriendsSidebar({
     const visibleLocationMetadataEntries = useMemo(
         () =>
             virtualItems
-                .map((item: any) => item.row)
-                .map((row: any) => buildSidebarLocationMetadataEntry(row))
+                .map((item) => item.row)
+                .map((row) => buildSidebarLocationMetadataEntry(row))
                 .filter(Boolean),
         [virtualItems]
     );
@@ -806,9 +819,9 @@ export function FriendsSidebar({
                     className="relative w-full"
                     style={{ height: `${totalSize}px` }}
                 >
-                    {virtualItems.map((item: any) => (
+                    {virtualItems.map((item) => (
                         <div
-                            key={item.key}
+                            key={String(item.key)}
                             ref={getRowRef(item.key)}
                             className="absolute top-0 left-0 w-full"
                             style={{ transform: `translateY(${item.start}px)` }}

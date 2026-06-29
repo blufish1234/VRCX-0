@@ -4,7 +4,7 @@ import myAvatarRepository from '@/repositories/myAvatarRepository';
 import vrchatFavoriteRepository from '@/repositories/vrchatFavoriteRepository';
 import worldProfileRepository from '@/repositories/worldProfileRepository';
 
-type QuickSearchCatalog = {
+export type QuickSearchCatalog = {
     status: string;
     detail: string;
     ownAvatars: unknown[];
@@ -15,6 +15,28 @@ type QuickSearchCatalog = {
     userMemos: unknown[];
     userNotes: unknown[];
 };
+
+export type QuickSearchEntityType = 'friend' | 'avatar' | 'world' | 'group';
+
+export type QuickSearchResult = {
+    id: string;
+    type: QuickSearchEntityType;
+    source: string;
+    name: string;
+    subtitle?: string;
+    imageUrl?: string;
+    seedData?: Record<string, unknown> | null;
+    memo?: string;
+    note?: string;
+    matchedField?: 'name' | 'memo' | 'note';
+    userColour?: string;
+};
+
+function recordValue(value: unknown): Record<string, unknown> | null {
+    return value && typeof value === 'object'
+        ? (value as Record<string, unknown>)
+        : null;
+}
 
 export function createEmptyCatalog(
     status: string = 'idle',
@@ -33,7 +55,7 @@ export function createEmptyCatalog(
     };
 }
 
-function normalize(value: any) {
+function normalize(value: unknown) {
     return typeof value === 'string'
         ? value.trim()
         : String(value ?? '').trim();
@@ -45,18 +67,26 @@ function settledRows(result: PromiseSettledResult<unknown>): unknown[] {
         : [];
 }
 
-export function buildUserTextMap(rows: any, fieldName: any) {
-    const map = new Map();
+export function buildUserTextMap(rows: unknown, fieldName: string) {
+    const map = new Map<string, unknown>();
     for (const row of Array.isArray(rows) ? rows : []) {
-        const userId = normalize(row?.userId);
+        const record = recordValue(row);
+        const userId = normalize(record?.userId);
         if (userId) {
-            map.set(userId, row?.[fieldName] || '');
+            map.set(userId, record?.[fieldName] || '');
         }
     }
     return map;
 }
 
-export async function loadQuickSearchCatalog({ currentUserId, endpoint }: any) {
+export async function loadQuickSearchCatalog({
+    currentUserId,
+    endpoint
+}: {
+    currentUserId: string;
+    endpoint?: string | null;
+}) {
+    const resolvedEndpoint = endpoint || undefined;
     const [
         ownAvatars,
         ownWorlds,
@@ -66,16 +96,20 @@ export async function loadQuickSearchCatalog({ currentUserId, endpoint }: any) {
         userMemos,
         userNotes
     ] = await Promise.allSettled([
-        myAvatarRepository.getMyAvatars({ endpoint }),
+        myAvatarRepository.getMyAvatars({ endpoint: resolvedEndpoint }),
         worldProfileRepository.getAllWorldsByUser({
             userId: currentUserId,
-            endpoint
+            endpoint: resolvedEndpoint
         }),
-        vrchatFavoriteRepository.getAllFavoriteAvatars({ endpoint }),
-        vrchatFavoriteRepository.getAllFavoriteWorlds({ endpoint }),
+        vrchatFavoriteRepository.getAllFavoriteAvatars({
+            endpoint: resolvedEndpoint
+        }),
+        vrchatFavoriteRepository.getAllFavoriteWorlds({
+            endpoint: resolvedEndpoint
+        }),
         groupProfileRepository.getUserGroups({
             userId: currentUserId,
-            endpoint
+            endpoint: resolvedEndpoint
         }),
         memoPersistenceRepository.getAllUserMemos(),
         memoPersistenceRepository.getAllUserNotes(currentUserId)
@@ -89,7 +123,7 @@ export async function loadQuickSearchCatalog({ currentUserId, endpoint }: any) {
         groups,
         userMemos,
         userNotes
-    ].filter((result: any) => result.status === 'rejected').length;
+    ].filter((result) => result.status === 'rejected').length;
 
     return {
         ...createEmptyCatalog(

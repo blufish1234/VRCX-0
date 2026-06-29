@@ -158,7 +158,7 @@ export function useNotificationTableState({
         }));
     }, [activeTypes, deferredSearchQuery]);
 
-    function handlePageSizeChange(value: number) {
+    function handlePageSizeChange(value: unknown) {
         setPagination({
             pageIndex: 0,
             pageSize: resolvePageSize(value, pageSizes, pagination.pageSize)

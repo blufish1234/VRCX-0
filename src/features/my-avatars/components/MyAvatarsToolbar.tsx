@@ -1,9 +1,11 @@
+import type { Table as ReactTable } from '@tanstack/react-table';
 import {
     LayoutGridIcon,
     ListIcon,
     RefreshCwIcon,
     SearchIcon
 } from 'lucide-react';
+import type { Dispatch, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { TableColumnVisibilityMenu } from '@/components/data-table/TableColumnVisibilityMenu';
@@ -21,6 +23,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 import type {
     MyAvatarsGridDensity,
     MyAvatarsLoadStatus,
+    MyAvatarRow,
     MyAvatarsViewMode
 } from '../myAvatarsTypes';
 import { GridSettingsMenu, MyAvatarFilterPopover } from './MyAvatarsViewParts';
@@ -35,14 +38,14 @@ type MyAvatarsToolbarProps = {
     loadStatus: MyAvatarsLoadStatus;
     searchQuery: string;
     gridDensity: MyAvatarsGridDensity;
-    table: any;
+    table: ReactTable<MyAvatarRow>;
     onViewModeChange: (value: MyAvatarsViewMode) => void;
     onReleaseStatusChange: (value: string) => void;
     onPlatformChange: (value: string) => void;
-    onTagFiltersChange: (value: Set<string>) => void;
+    onTagFiltersChange: Dispatch<SetStateAction<Set<string>>>;
     onClearFilters: () => void;
     onSearchChange: (value: string) => void;
-    onGridDensityChange: (value: MyAvatarsGridDensity) => void;
+    onGridDensityChange: (value: string) => void;
     onRefresh: () => void;
 };
 

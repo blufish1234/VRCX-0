@@ -461,7 +461,7 @@ export function WorldDialogTabbedView({
                         completeScan(status);
                     }
                 })
-                .catch((error: any) => {
+                .catch((error: unknown) => {
                     if (!active) {
                         return;
                     }
@@ -502,7 +502,7 @@ export function WorldDialogTabbedView({
                 }
                 completeScan(status);
             })
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 if (!active) {
                     return;
                 }

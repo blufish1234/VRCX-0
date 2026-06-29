@@ -2,7 +2,19 @@ import { useEffect, useState } from 'react';
 
 import configRepository from '@/repositories/configRepository';
 
-const groupToggleKeys: any = {
+import type { StatusPreset } from './FriendsSidebarActionItems';
+
+export type FriendsSidebarGroupKey =
+    | 'me'
+    | 'favorites'
+    | 'online'
+    | 'active'
+    | 'offline'
+    | 'sameInstance';
+
+export type FriendsSidebarOpenGroups = Record<FriendsSidebarGroupKey, boolean>;
+
+const groupToggleKeys: Record<FriendsSidebarGroupKey, string> = {
     me: 'isFriendsGroupMe',
     favorites: 'isFriendsGroupFavorites',
     online: 'isFriendsGroupOnline',
@@ -11,7 +23,7 @@ const groupToggleKeys: any = {
     sameInstance: 'sidebarGroupByInstanceCollapsed'
 };
 
-const defaultGroupState: any = {
+const defaultGroupState: FriendsSidebarOpenGroups = {
     me: true,
     favorites: true,
     online: true,
@@ -22,7 +34,7 @@ const defaultGroupState: any = {
 
 export function useFriendsSidebarPreferences() {
     const [openGroups, setOpenGroups] = useState(defaultGroupState);
-    const [statusPresets, setStatusPresets] = useState<unknown[]>([]);
+    const [statusPresets, setStatusPresets] = useState<StatusPreset[]>([]);
 
     useEffect(() => {
         let active = true;
@@ -42,7 +54,7 @@ export function useFriendsSidebarPreferences() {
                     activeFriends,
                     offline,
                     sameInstanceCollapsed
-                ]: any) => {
+                ]: boolean[]) => {
                     if (!active) {
                         return;
                     }
@@ -66,10 +78,17 @@ export function useFriendsSidebarPreferences() {
         let active = true;
         configRepository
             .getArray('VRCX_statusPresets', [])
-            .then((nextPresets: any) => {
+            .then((nextPresets: unknown) => {
                 if (active) {
                     setStatusPresets(
-                        Array.isArray(nextPresets) ? nextPresets : []
+                        Array.isArray(nextPresets)
+                            ? nextPresets.filter(
+                                  (preset): preset is StatusPreset =>
+                                      Boolean(
+                                          preset && typeof preset === 'object'
+                                      )
+                              )
+                            : []
                     );
                 }
             })
@@ -83,9 +102,9 @@ export function useFriendsSidebarPreferences() {
         };
     }, []);
 
-    function toggleSection(id: any) {
-        setOpenGroups((current: any) => {
-            const next: any = {
+    function toggleSection(id: FriendsSidebarGroupKey) {
+        setOpenGroups((current) => {
+            const next = {
                 ...current,
                 [id]: !current[id]
             };

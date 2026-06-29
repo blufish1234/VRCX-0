@@ -5,22 +5,32 @@ import { normalizeString } from '@/shared/utils/string';
 
 import { isLiveLocation } from './playerListRows';
 
-function normalizeLogLocationSnapshot(snapshot: any) {
+type LogLocationSnapshot = {
+    createdAt: string;
+    fileName: string;
+    location: string;
+    worldName: string;
+};
+
+function normalizeLogLocationSnapshot(
+    snapshot: unknown
+): LogLocationSnapshot | null {
     if (!snapshot || typeof snapshot !== 'object') {
         return null;
     }
+    const source = snapshot as Record<string, unknown>;
 
-    const location = normalizeString(snapshot.location);
+    const location = normalizeString(source.location);
     if (!isLiveLocation(location)) {
         return null;
     }
 
     return {
         createdAt:
-            normalizeString(snapshot.createdAt) || new Date().toISOString(),
-        fileName: normalizeString(snapshot.fileName),
+            normalizeString(source.createdAt) || new Date().toISOString(),
+        fileName: normalizeString(source.fileName),
         location,
-        worldName: normalizeString(snapshot.worldName)
+        worldName: normalizeString(source.worldName)
     };
 }
 
@@ -30,7 +40,13 @@ export function usePlayerListLogLocation({
     currentUserLocation,
     gameLogDisabled,
     isGameRunning
-}: any) {
+}: {
+    addGameLogEventCount?: unknown;
+    currentUserId?: unknown;
+    currentUserLocation?: unknown;
+    gameLogDisabled: boolean;
+    isGameRunning: boolean;
+}) {
     const [logLocationSnapshot, setLogLocationSnapshot] =
         useState<ReturnType<typeof normalizeLogLocationSnapshot>>(null);
 
@@ -51,14 +67,14 @@ export function usePlayerListLogLocation({
         }
 
         getCurrentLogLocation()
-            .then((snapshot: any) => {
+            .then((snapshot) => {
                 if (!active) {
                     return;
                 }
 
                 const normalized = normalizeLogLocationSnapshot(snapshot);
                 const normalizedKey = JSON.stringify(normalized || null);
-                setLogLocationSnapshot((previous: any) =>
+                setLogLocationSnapshot((previous) =>
                     JSON.stringify(previous || null) === normalizedKey
                         ? previous
                         : normalized

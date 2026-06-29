@@ -160,7 +160,7 @@ function refreshFavoritesSnapshot() {
         userId: auth.currentUserId,
         endpoint: auth.endpoint,
         currentUserSnapshot: auth.currentUserSnapshot
-    }).catch((error: any) => {
+    }).catch((error: unknown) => {
         console.warn('Failed to refresh favorites after import:', error);
     });
 }

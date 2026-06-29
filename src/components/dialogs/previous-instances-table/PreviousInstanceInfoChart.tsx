@@ -115,7 +115,7 @@ export function PreviousInstanceInfoChart({ rows }: any) {
         () =>
             normalizeInfoChartRows(
                 rows,
-                currentUserId,
+                currentUserId || '',
                 friendsById,
                 favoriteIdSet,
                 knownUsersById
@@ -235,7 +235,7 @@ export function PreviousInstanceInfoChart({ rows }: any) {
             });
         }
 
-        renderChart().catch((error: any) => {
+        renderChart().catch((error: unknown) => {
             console.error(
                 '[PreviousInstancesTableDialog] Failed to load chart renderer.',
                 error

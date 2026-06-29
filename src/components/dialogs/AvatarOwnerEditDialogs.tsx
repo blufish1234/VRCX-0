@@ -180,7 +180,7 @@ export function AvatarContentTagsDialog({
                     setOwnAvatars(mergeAvatars(avatar, rows));
                 }
             })
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 if (active) {
                     setOwnAvatars([avatar]);
                     toast.error(

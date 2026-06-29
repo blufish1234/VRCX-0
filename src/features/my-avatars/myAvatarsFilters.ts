@@ -1,6 +1,11 @@
 import { getAvailablePlatforms } from '@/shared/utils/avatarPlatform';
 
-export function toggleMyAvatarsTagFilter(currentTags: any, tag: any) {
+import type { MyAvatarRow, MyAvatarTag } from './myAvatarsTypes';
+
+export function toggleMyAvatarsTagFilter(
+    currentTags: Iterable<string> | null | undefined,
+    tag: string
+) {
     const next = new Set(currentTags);
     if (next.has(tag)) {
         next.delete(tag);
@@ -10,8 +15,8 @@ export function toggleMyAvatarsTagFilter(currentTags: any, tag: any) {
     return next;
 }
 
-export function collectMyAvatarTags(avatars: any) {
-    const tagSet = new Set();
+export function collectMyAvatarTags(avatars: readonly MyAvatarRow[]) {
+    const tagSet = new Set<string>();
     for (const avatar of avatars) {
         for (const entry of avatar?.$tags || []) {
             if (entry?.tag) {
@@ -19,14 +24,12 @@ export function collectMyAvatarTags(avatars: any) {
             }
         }
     }
-    return Array.from(tagSet).sort((left: any, right: any) =>
-        left.localeCompare(right)
-    );
+    return Array.from(tagSet).sort((left, right) => left.localeCompare(right));
 }
 
 export function matchesMyAvatarsPlatformFilter(
-    avatar: any,
-    platformFilter: any
+    avatar: MyAvatarRow,
+    platformFilter: string
 ) {
     if (platformFilter === 'all') {
         return true;
@@ -40,19 +43,31 @@ export function matchesMyAvatarsPlatformFilter(
     );
 }
 
+type FilterMyAvatarsInput = {
+    avatars: readonly MyAvatarRow[] | null | undefined;
+    searchQuery?: unknown;
+    platformFilter: string;
+    releaseStatusFilter: string;
+    tagFilters?: Set<string>;
+};
+
 export function filterMyAvatars({
     avatars,
     searchQuery,
     platformFilter,
     releaseStatusFilter,
     tagFilters
-}: any) {
+}: FilterMyAvatarsInput) {
     const searchValue = String(searchQuery || '')
         .trim()
         .toLowerCase();
-    const selectedTags = tagFilters instanceof Set ? tagFilters : new Set();
+    const selectedTags =
+        tagFilters instanceof Set ? tagFilters : new Set<string>();
+    const avatarRows: readonly MyAvatarRow[] = Array.isArray(avatars)
+        ? avatars
+        : [];
 
-    return (Array.isArray(avatars) ? avatars : []).filter((avatar: any) => {
+    return avatarRows.filter((avatar) => {
         if (
             releaseStatusFilter !== 'all' &&
             avatar?.releaseStatus !== releaseStatusFilter
@@ -66,9 +81,9 @@ export function filterMyAvatars({
 
         if (selectedTags.size > 0) {
             const avatarTags = new Set(
-                (avatar?.$tags || []).map((entry: any) => entry.tag)
+                (avatar?.$tags || []).map((entry: MyAvatarTag) => entry.tag)
             );
-            if (![...selectedTags].some((tag: any) => avatarTags.has(tag))) {
+            if (![...selectedTags].some((tag) => avatarTags.has(tag))) {
                 return false;
             }
         }
@@ -84,7 +99,7 @@ export function filterMyAvatars({
             String(avatar?.description || '')
                 .toLowerCase()
                 .includes(searchValue) ||
-            (avatar?.$tags || []).some((entry: any) =>
+            (avatar?.$tags || []).some((entry) =>
                 String(entry?.tag || '')
                     .toLowerCase()
                     .includes(searchValue)

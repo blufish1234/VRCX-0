@@ -153,7 +153,7 @@ export function useMyAvatarsActions({
         avatarId: string;
         tags: MyAvatarTag[];
     }) {
-        const avatar = avatars.find((entry: any) => entry.id === avatarId);
+        const avatar = avatars.find((entry) => entry.id === avatarId);
         const previousTags = avatar?.$tags || [];
         setSavingTagsAvatarId(avatarId);
         try {
@@ -162,8 +162,8 @@ export function useMyAvatarsActions({
                 previousTags,
                 nextTags: tags
             });
-            setAvatars((currentAvatars: any) =>
-                currentAvatars.map((entry: any) =>
+            setAvatars((currentAvatars) =>
+                currentAvatars.map((entry) =>
                     entry.id === avatarId
                         ? {
                               ...entry,
@@ -199,8 +199,8 @@ export function useMyAvatarsActions({
             return;
         }
         const nextAvatarRow = nextAvatar as MyAvatarRow;
-        setAvatars((currentAvatars: any) =>
-            currentAvatars.map((entry: any) =>
+        setAvatars((currentAvatars) =>
+            currentAvatars.map((entry) =>
                 entry.id === nextAvatarRow.id
                     ? {
                           ...entry,
@@ -253,7 +253,7 @@ export function useMyAvatarsActions({
             setDetail(message);
             toast.error(message);
         } finally {
-            setUpdatingAvatarId((current: any) =>
+            setUpdatingAvatarId((current) =>
                 current === avatarId ? '' : current
             );
         }
@@ -311,7 +311,7 @@ export function useMyAvatarsActions({
                 toast.error(message);
             }
         } finally {
-            setUpdatingAvatarId((current: any) =>
+            setUpdatingAvatarId((current) =>
                 current === avatarId ? '' : current
             );
         }
@@ -407,7 +407,7 @@ export function useMyAvatarsActions({
             setDetail(message);
             toast.error(message);
         } finally {
-            setUpdatingAvatarId((current: any) =>
+            setUpdatingAvatarId((current) =>
                 current === avatarId ? '' : current
             );
         }
@@ -560,7 +560,7 @@ export function useMyAvatarsActions({
             imageUploadAvatarRef.current = null;
             imageUploadAuthTargetRef.current = null;
             setImageCropRequest(null);
-            setUploadingImageAvatarId((current: any) =>
+            setUploadingImageAvatarId((current) =>
                 current === avatarId ? '' : current
             );
         }

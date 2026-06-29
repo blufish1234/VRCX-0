@@ -31,27 +31,39 @@ import {
 import { Spinner } from '@/ui/shadcn/spinner';
 import { Textarea } from '@/ui/shadcn/textarea';
 
+import type { MyAvatarRow, MyAvatarsAuthTarget } from './myAvatarsTypes';
+
 const CLEAR_STYLE_VALUE = '__clear__';
 
-function normalizeStyleName(value: any) {
+type AvatarStylesDialogProps = {
+    open: boolean;
+    avatar: MyAvatarRow | null;
+    currentUserId?: string;
+    endpoint?: string;
+    onOpenChange: (open: boolean) => void;
+    onSaved?: (avatar: unknown) => void;
+};
+
+function normalizeStyleName(value: unknown) {
     return typeof value === 'string'
         ? value.trim()
         : String(value ?? '').trim();
 }
 
-function resolveAuthorTags(tags: any) {
+function resolveAuthorTags(tags: unknown) {
     return (Array.isArray(tags) ? tags : [])
         .filter(
-            (tag: any) =>
+            (tag): tag is string =>
                 typeof tag === 'string' && tag.startsWith('author_tag_')
         )
-        .map((tag: any) => tag.slice('author_tag_'.length))
+        .map((tag) => tag.slice('author_tag_'.length))
         .join(',');
 }
 
-function buildTags(initialTags: any, authorTags: any) {
+function buildTags(initialTags: unknown, authorTags: unknown) {
     const tags = (Array.isArray(initialTags) ? initialTags : []).filter(
-        (tag: any) => typeof tag === 'string' && !tag.startsWith('author_tag_')
+        (tag): tag is string =>
+            typeof tag === 'string' && !tag.startsWith('author_tag_')
     );
     for (const tag of String(authorTags || '').split(',')) {
         const normalized = tag.trim();
@@ -66,7 +78,7 @@ function buildTags(initialTags: any, authorTags: any) {
     return tags;
 }
 
-function arraysMatch(left: any, right: any) {
+function arraysMatch(left: unknown, right: unknown) {
     if (
         !Array.isArray(left) ||
         !Array.isArray(right) ||
@@ -75,7 +87,7 @@ function arraysMatch(left: any, right: any) {
         return false;
     }
 
-    return left.every((entry: any, index: any) => entry === right[index]);
+    return left.every((entry, index) => entry === right[index]);
 }
 
 function applyStyleParam(
@@ -98,7 +110,7 @@ function applyStyleParam(
     return styleName === initialStyleName;
 }
 
-function isRuntimeAuthTarget(authTarget: any) {
+function isRuntimeAuthTarget(authTarget: MyAvatarsAuthTarget) {
     const runtimeAuth = useRuntimeStore.getState().auth;
     return (
         runtimeAuth.currentUserId === authTarget.currentUserId &&
@@ -113,7 +125,7 @@ export function AvatarStylesDialog({
     endpoint = '',
     onOpenChange,
     onSaved
-}: any) {
+}: AvatarStylesDialogProps) {
     const { t } = useTranslation();
 
     const avatarId = normalizeStyleName(avatar?.id);
@@ -214,7 +226,7 @@ export function AvatarStylesDialog({
             return;
         }
 
-        const authTarget: any = {
+        const authTarget: MyAvatarsAuthTarget = {
             currentUserId,
             currentEndpoint: endpoint || ''
         };
@@ -235,7 +247,7 @@ export function AvatarStylesDialog({
 
         setSaving(true);
         try {
-            const params: any = { tags: nextTags };
+            const params: Record<string, unknown> = { tags: nextTags };
             const hasPrimaryStyleParam = applyStyleParam(
                 params,
                 'primaryStyle',

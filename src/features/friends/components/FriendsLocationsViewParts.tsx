@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { FriendLocationCard } from '@/components/friends/FriendLocationCard';
 import { EmptyState } from '@/components/layout/PageScaffold';
 import { Location } from '@/components/Location';
+import type { FriendRecord } from '@/domain/friends/friendRosterTypes';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
@@ -20,8 +21,67 @@ import {
     resolveLocationSummary,
     resolveLocationTarget
 } from '../friendsLocationsRows';
+import type { FriendsLocationsSection } from '../useFriendsLocationsPageDerivedState';
 
-export function FriendsLocationsEmptyState({ title, description }: any) {
+type BivariantCallback<Args extends unknown[]> = {
+    bivarianceHack(...args: Args): void;
+}['bivarianceHack'];
+
+type FriendsLocationsFriend = FriendRecord & {
+    $travelingToLocation?: unknown;
+    ref?: FriendLocationSource | null;
+    travelingToLocation?: unknown;
+    userId?: unknown;
+};
+
+type FriendLocationSource = {
+    $travelingToLocation?: unknown;
+    location?: unknown;
+    travelingToLocation?: unknown;
+};
+
+type FriendsLocationsEmptyStateProps = {
+    title: string;
+    description: string;
+};
+
+type FriendsLocationsSectionHeaderProps = {
+    section: FriendsLocationsSection;
+    onOpenWorld: (section: FriendsLocationsSection) => void;
+    onOpenGroup: (section: FriendsLocationsSection) => void;
+};
+
+type FriendsLocationsFavoriteGroupHeaderProps = {
+    section: FriendsLocationsSection;
+    onToggle: BivariantCallback<[string | undefined]>;
+};
+
+type FriendsLocationCardItemProps = {
+    section: FriendsLocationsSection;
+    friend: FriendsLocationsFriend;
+    currentUserId?: string | null;
+    densityConfig: unknown;
+    canUseFriendLocation: (location: string) => boolean;
+    canSendInvite: boolean;
+    canBoop: boolean;
+    onOpenUser: (friend: FriendRecord) => void;
+    onOpenWorld: BivariantCallback<[target: unknown, location: unknown]>;
+    onOpenGroup: BivariantCallback<[target: unknown]>;
+    onLaunchLocation: (location: string) => void;
+    onSelfInviteLocation: (location: string) => void;
+    onSendInvite: (friend: FriendRecord) => void;
+    onRequestInvite: (friend: FriendRecord) => void;
+    onSendBoop: (friend: FriendRecord) => void;
+};
+
+function isFriendLocationSource(value: unknown): value is FriendLocationSource {
+    return typeof value === 'object' && value !== null;
+}
+
+export function FriendsLocationsEmptyState({
+    title,
+    description
+}: FriendsLocationsEmptyStateProps) {
     return <EmptyState title={title} description={description} />;
 }
 
@@ -29,7 +89,7 @@ export function FriendsLocationsSectionHeader({
     section,
     onOpenWorld,
     onOpenGroup
-}: any) {
+}: FriendsLocationsSectionHeaderProps) {
     const { t } = useTranslation();
 
     return (
@@ -90,7 +150,7 @@ export function FriendsLocationsSectionHeader({
 export function FriendsLocationsFavoriteGroupHeader({
     section,
     onToggle
-}: any) {
+}: FriendsLocationsFavoriteGroupHeaderProps) {
     return (
         <Button
             type="button"
@@ -128,14 +188,13 @@ export function FriendsLocationCardItem({
     onSendInvite,
     onRequestInvite,
     onSendBoop
-}: any) {
+}: FriendsLocationCardItemProps) {
     const { t } = useTranslation();
     const location = resolveLocationSummary(friend, t);
     const target = resolveLocationTarget(friend);
     const rawLocation = target.rawLocation;
     const groupHint = resolveFriendGroupName(friend);
-    const source =
-        friend?.ref && typeof friend.ref === 'object' ? friend.ref : friend;
+    const source = isFriendLocationSource(friend.ref) ? friend.ref : friend;
     const isTravelingLocation =
         normalizeId(source?.location).toLowerCase() === 'traveling';
     const travelingLocation =

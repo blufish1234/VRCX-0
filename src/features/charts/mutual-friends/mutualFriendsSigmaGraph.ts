@@ -77,8 +77,9 @@ export async function fetchMutualFriendIds(
                     error?.status === 429 ||
                     String(error?.message || '').includes('429')
             }
-        ).catch((error: any): null => {
-            if (String(error?.message || '') === 'cancelled') {
+        ).catch((error: unknown): null => {
+            const message = error instanceof Error ? error.message : '';
+            if (message === 'cancelled') {
                 return null;
             }
             throw error;

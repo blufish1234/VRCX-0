@@ -17,6 +17,7 @@ import { ScrollArea } from '@/ui/shadcn/scroll-area';
 import { Switch } from '@/ui/shadcn/switch';
 
 import { updateArrayValue } from '../toolsDialogUtils';
+import type { PresenceOption } from './presenceAutomationDialogUtils';
 
 export function AutomationSplitLayout({
     list,
@@ -225,7 +226,7 @@ export function CompactCheckList({
 }: {
     idPrefix: string;
     values: string[];
-    options: Array<{ value: string; label: string }>;
+    options: PresenceOption[];
     disabled?: boolean;
     columns?: 'auto' | 'two';
     onChange: (next: string[]) => void;
@@ -240,7 +241,7 @@ export function CompactCheckList({
                     : 'sm:grid-cols-2 xl:grid-cols-3'
             )}
         >
-            {options.map((option: any) => {
+            {options.map((option) => {
                 const id = `${idPrefix}-${option.value}`;
                 return (
                     <Field

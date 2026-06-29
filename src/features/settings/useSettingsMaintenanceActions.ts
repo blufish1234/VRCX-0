@@ -1,9 +1,14 @@
+import type {
+    AppDataDirState,
+    AppDataDirValidation
+} from '@/platform/tauri/bindings';
 import { assetBundleRepository } from '@/repositories/assetBundleRepository';
 import {
     clearFavoriteRemoteDetailsCache,
     getFavoriteRemoteDetailsCacheStats
 } from '@/services/favoriteRemoteDetailsCacheService';
 import { promptLegacyVrcxForceMigration } from '@/services/legacyVrcxMigrationService';
+import type { IntConfigPreferenceKey } from '@/services/preferencesService';
 import {
     clearAppDataDir,
     deleteAllScreenshotMetadata as deleteAllScreenshotMetadataFromShell,
@@ -13,8 +18,147 @@ import {
     setAppDataDir,
     validateAppDataDir
 } from '@/services/shellIntegrationService';
+import type { PreferencesSnapshot } from '@/state/preferencesStore';
 
 import { normalizeCheckedState } from './settingsValues';
+import type {
+    SettingsActionPrefs,
+    useSettingsPreferenceActions
+} from './useSettingsPreferenceActions';
+
+type PreferenceAction = () => unknown | Promise<unknown>;
+type PreferenceRollback = void | (() => void);
+type PreferenceActions = ReturnType<typeof useSettingsPreferenceActions>;
+type SettingsPrefs = SettingsActionPrefs;
+type StateSetter<Value> = {
+    bivarianceHack(
+        value: Value | ((current: Value) => Value | Record<string, unknown>)
+    ): void;
+}['bivarianceHack'];
+type SettingsCacheStats = {
+    queryCache: number;
+    userCache: number;
+    worldCache: number;
+    avatarCache: number;
+    groupCache: number;
+    avatarNameCache: number;
+    instanceCache: number;
+    favoriteDetailsCache: number;
+    favoriteDetailsPending: number;
+    assetBundleCacheSize: string;
+};
+type SettingsSharedFeedFilters = PreferencesSnapshot['sharedFeedFilters'];
+type SettingsDialogResult = {
+    ok: boolean;
+    value?: unknown;
+};
+type SettingsConfirmOptions = {
+    title: string;
+    description: string;
+    confirmText?: string;
+    cancelText?: string;
+    destructive?: boolean;
+};
+type SettingsPromptOptions = SettingsConfirmOptions & {
+    inputValue: string;
+    pattern?: RegExp;
+    errorMessage?: string;
+};
+type SettingsToast = {
+    dismiss(id: unknown): unknown;
+    error(message: string): unknown;
+    success(message: string): unknown;
+    warning(message: string, options?: { duration?: number }): unknown;
+};
+type SettingsMaintenanceActionsDeps = {
+    auth: {
+        currentUserId?: unknown;
+    };
+    avatarProfileRepository: {
+        clearAvatarNameCache(): number;
+        getAvatarNameCacheSize(): number;
+    };
+    clearEntityQueryCache: () => unknown | Promise<unknown>;
+    commit: (
+        action: PreferenceAction,
+        optimistic?: () => PreferenceRollback
+    ) => Promise<boolean>;
+    configRepository: {
+        getInt(key: string, defaultValue?: number): Promise<number>;
+        setInt(key: string, value: number): Promise<unknown>;
+    };
+    confirm: (options: SettingsConfirmOptions) => Promise<SettingsDialogResult>;
+    databaseMaintenanceRepository: {
+        vacuum(): Promise<unknown>;
+    };
+    feedRepository: {
+        purgeAvatarFeedData(
+            userId: unknown,
+            cutoffDate: string | null
+        ): Promise<unknown>;
+    };
+    formatByteSize: (value: unknown) => string;
+    gameState: {
+        isGameRunning: boolean | null;
+    };
+    getEntityQueryCacheSize: () => number;
+    getEntityQueryCacheStats: () => {
+        avatars: number;
+        groups: number;
+        users: number;
+        worlds: number;
+    };
+    mediaRepository: {
+        cropAllPrints(path: string): Promise<unknown>;
+        getUgcPhotoLocation(path: unknown): Promise<string>;
+    };
+    normalizeSharedFeedFilters: (value?: unknown) => SettingsSharedFeedFilters;
+    prefs: SettingsPrefs;
+    prompt: (options: SettingsPromptOptions) => Promise<SettingsDialogResult>;
+    purgePeriod: string;
+    saveBoolPreference: PreferenceActions['saveBoolPreference'];
+    savePreferenceValue: PreferenceActions['savePreferenceValue'];
+    saveStringPreference: PreferenceActions['saveStringPreference'];
+    setAppDataDirState: (value: AppDataDirState | null) => void;
+    setCacheStats: StateSetter<SettingsCacheStats>;
+    setCacheStatsVisible: (value: boolean) => void;
+    setCropInstancePrintsPreference: (value: boolean) => Promise<unknown>;
+    setIntConfigPreference: (
+        key: IntConfigPreferenceKey,
+        value: string | number,
+        options?: { min?: number; max?: number; fallback?: number }
+    ) => Promise<unknown>;
+    setPrefs: StateSetter<SettingsPrefs>;
+    setPurgeDialogOpen: (value: boolean) => void;
+    setPurgeInProgress: (value: boolean) => void;
+    setSharedFeedFilters: (value: SettingsSharedFeedFilters) => void;
+    setSharedFeedFiltersPreference: (value: unknown) => Promise<unknown>;
+    setUserGeneratedContentPathPreference: (value: string) => Promise<string>;
+    sharedFeedFilters: SettingsSharedFeedFilters;
+    sharedFeedFiltersDefaults: SettingsSharedFeedFilters;
+    speakNotificationTts: PreferenceActions['speakNotificationTts'];
+    t: (key: string, options?: Record<string, unknown>) => string;
+    toast: SettingsToast;
+    useRuntimeStore: {
+        getState(): {
+            groupInstances: {
+                instances: { length: number };
+            };
+        };
+    };
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object');
+}
+
+function readFilterMode(
+    filters: SettingsSharedFeedFilters,
+    mode: string
+): Record<string, unknown> {
+    const value = (filters as unknown as Record<string, unknown>)[mode];
+    return isRecord(value) ? value : {};
+}
 
 export function useSettingsMaintenanceActions({
     auth,
@@ -54,8 +198,8 @@ export function useSettingsMaintenanceActions({
     t,
     toast,
     useRuntimeStore
-}: any) {
-    async function saveNotificationTtsMode(value: any) {
+}: SettingsMaintenanceActionsDeps) {
+    async function saveNotificationTtsMode(value: string) {
         if (prefs.notificationTTS === 'Never' && value !== 'Never') {
             speakNotificationTts('Notification text-to-speech enabled');
         } else if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -63,7 +207,7 @@ export function useSettingsMaintenanceActions({
         }
         await saveStringPreference('notificationTTS', 'notificationTTS', value);
     }
-    async function saveNotificationTtsVoice(value: any) {
+    async function saveNotificationTtsVoice(value: string) {
         await saveStringPreference(
             'notificationTTSVoice',
             'notificationTTSVoice',
@@ -96,7 +240,7 @@ export function useSettingsMaintenanceActions({
         await deleteAllScreenshotMetadataFromShell();
         toast.success(t('view.settings.success.screenshot_metadata_removed'));
     }
-    function appDataDirConfirmDescription(validation: any) {
+    function appDataDirConfirmDescription(validation: AppDataDirValidation) {
         const description = [
             t(
                 'view.settings.advanced.advanced.data_directory.confirm_description',
@@ -143,7 +287,7 @@ export function useSettingsMaintenanceActions({
         }
         const selectedPath = await openFolderSelectorDialog(
             state?.persistedDir || state?.currentDir || state?.defaultDir || ''
-        ).catch((error: any) => {
+        ).catch((error: unknown) => {
             toast.error(error instanceof Error ? error.message : String(error));
             return '';
         });
@@ -251,7 +395,7 @@ export function useSettingsMaintenanceActions({
         const avatarNameCacheCount =
             avatarProfileRepository.clearAvatarNameCache();
         const favoriteStats = clearFavoriteRemoteDetailsCache();
-        setCacheStats((current: any) => ({
+        setCacheStats((current) => ({
             ...current,
             queryCache: 0,
             userCache: 0,
@@ -293,7 +437,7 @@ export function useSettingsMaintenanceActions({
         if (!result.ok) {
             return;
         }
-        const units = Number.parseInt(result.value, 10);
+        const units = Number.parseInt(String(result.value), 10);
         if (!Number.isFinite(units) || units <= 0) {
             return;
         }
@@ -316,7 +460,7 @@ export function useSettingsMaintenanceActions({
         }
         const seconds = Math.min(
             10,
-            Math.max(0, Number.parseInt(result.value, 10) || 0)
+            Math.max(0, Number.parseInt(String(result.value), 10) || 0)
         );
         await savePreferenceValue('autoLoginDelaySeconds', seconds, () =>
             setIntConfigPreference('autoLoginDelaySeconds', seconds, {
@@ -331,12 +475,12 @@ export function useSettingsMaintenanceActions({
             () => setUserGeneratedContentPathPreference(''),
             () => {
                 const previous = prefs.userGeneratedContentPath;
-                setPrefs((current: any) => ({
+                setPrefs((current) => ({
                     ...current,
                     userGeneratedContentPath: ''
                 }));
                 return () =>
-                    setPrefs((current: any) => ({
+                    setPrefs((current) => ({
                         ...current,
                         userGeneratedContentPath: previous
                     }));
@@ -376,7 +520,7 @@ export function useSettingsMaintenanceActions({
                 )
             );
             setPurgeDialogOpen(false);
-            await new Promise((resolve: any) =>
+            await new Promise<void>((resolve) =>
                 window.setTimeout(resolve, 1500)
             );
             await restartApplication();
@@ -403,7 +547,7 @@ export function useSettingsMaintenanceActions({
     async function openUgcFolderSelector() {
         const selectedPath = await openFolderSelectorDialog(
             prefs.userGeneratedContentPath || ''
-        ).catch((error: any) => {
+        ).catch((error: unknown) => {
             toast.error(error instanceof Error ? error.message : String(error));
             return '';
         });
@@ -434,24 +578,24 @@ export function useSettingsMaintenanceActions({
         await mediaRepository.cropAllPrints(ugcFolderPath);
         toast.success(t('view.settings.label.existing_saved_prints_cropped'));
     }
-    async function handleCropInstancePrintsChange(checked: any) {
+    async function handleCropInstancePrintsChange(checked: unknown) {
         const enabled = normalizeCheckedState(checked);
         const saved = await commit(
             () => setCropInstancePrintsPreference(enabled),
             () => {
-                setPrefs((current: any) => ({
+                setPrefs((current) => ({
                     ...current,
                     cropInstancePrints: enabled
                 }));
                 return () =>
-                    setPrefs((current: any) => ({
+                    setPrefs((current) => ({
                         ...current,
                         cropInstancePrints: !enabled
                     }));
             }
         );
         if (saved && enabled) {
-            await promptCropExistingPrints().catch((error: any) => {
+            await promptCropExistingPrints().catch((error: unknown) => {
                 toast.error(
                     error instanceof Error
                         ? error.message
@@ -462,7 +606,7 @@ export function useSettingsMaintenanceActions({
             });
         }
     }
-    async function handleGameLogDisabledChange(checked: any) {
+    async function handleGameLogDisabledChange(checked: unknown) {
         const enabled = normalizeCheckedState(checked);
         if (gameState.isGameRunning) {
             toast.error(t('message.gamelog.vrchat_must_be_closed'));
@@ -483,9 +627,9 @@ export function useSettingsMaintenanceActions({
             enabled
         );
     }
-    function saveSharedFeedFilters(nextFilters: any) {
+    function saveSharedFeedFilters(nextFilters: SettingsSharedFeedFilters) {
         setSharedFeedFilters(nextFilters);
-        setSharedFeedFiltersPreference(nextFilters).catch((error: any) => {
+        setSharedFeedFiltersPreference(nextFilters).catch((error: unknown) => {
             toast.error(
                 error instanceof Error
                     ? error.message
@@ -493,21 +637,21 @@ export function useSettingsMaintenanceActions({
             );
         });
     }
-    function updateSharedFeedFilter(mode: any, key: any, value: any) {
+    function updateSharedFeedFilter(mode: string, key: string, value: unknown) {
         const nextFilters = normalizeSharedFeedFilters({
             ...sharedFeedFilters,
             [mode]: {
-                ...sharedFeedFilters[mode],
+                ...readFilterMode(sharedFeedFilters, mode),
                 [key]: value
             }
         });
         saveSharedFeedFilters(nextFilters);
     }
-    function resetSharedFeedFilters(mode: any) {
+    function resetSharedFeedFilters(mode: string) {
         const nextFilters = normalizeSharedFeedFilters({
             ...sharedFeedFilters,
             [mode]: {
-                ...sharedFeedFiltersDefaults[mode]
+                ...readFilterMode(sharedFeedFiltersDefaults, mode)
             }
         });
         saveSharedFeedFilters(nextFilters);

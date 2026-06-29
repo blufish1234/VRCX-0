@@ -4,13 +4,21 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/ui/shadcn/button';
 import { DialogFooter } from '@/ui/shadcn/dialog';
 
+type CustomNavDialogFooterProps = {
+    onAddDashboard: () => void;
+    onAddFolder: () => void;
+    onCancel: () => void;
+    onReset: () => void;
+    onSave: () => void;
+};
+
 export function CustomNavDialogFooter({
     onAddDashboard,
     onAddFolder,
     onCancel,
     onReset,
     onSave
-}: any) {
+}: CustomNavDialogFooterProps) {
     const { t } = useTranslation();
 
     return (

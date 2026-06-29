@@ -21,7 +21,65 @@ import { Field, SettingsGroup } from '../SettingsField';
 import { SettingsTabContent } from '../SettingsViewParts';
 import { SettingsAdvancedDataCards } from './SettingsAdvancedDataCards';
 
-function DataDirectoryPath({ value }: any) {
+type AppDataDirState = {
+    cliOverride?: boolean;
+    currentDir?: string | null;
+    defaultDir?: string | null;
+    persistedDir?: string | null;
+    source?: string;
+};
+
+type SettingsAdvancedPrefs = Record<string, unknown> & {
+    anonymousUsageTelemetry?: boolean;
+    defaultLaunchMode?: string;
+    gameLogDisabled?: boolean;
+    logResourceLoad?: boolean;
+    relaunchVRChatAfterCrash?: boolean;
+    showConfirmationOnSwitchAvatar?: boolean;
+    udonExceptionLogging?: boolean;
+    vrcQuitFix?: boolean;
+};
+
+type SettingsAdvancedTabProps = {
+    advanced: Record<string, unknown> & {
+        appDataDirState?: AppDataDirState | null;
+        avatarAutoCleanupOptions: string[];
+        cacheStats: unknown;
+        cacheStatsVisible: boolean;
+        configTreeData: unknown;
+        gameLogDisabledLabel: string;
+        onAnonymousUsageTelemetryChange: (checked: boolean) => unknown;
+        onAutoSweepVRChatCacheChange: (checked: boolean) => unknown;
+        onAvatarAutoCleanupChange: (value: string) => unknown;
+        onClearConfigTreeData: () => unknown;
+        onClearVrcxCache: () => unknown;
+        onDefaultLaunchModeChange: (value: string) => unknown;
+        onGameLogDisabledChange: (checked: boolean) => unknown;
+        onLogResourceLoadChange: (checked: boolean) => unknown;
+        onMigrateLegacyVrcxData: () => unknown;
+        onOpenAppDataDirSelector: () => unknown;
+        onOpenPurgeDialog: () => unknown;
+        onPromptAutoClearVrcxCacheFrequency: () => unknown;
+        onRefreshCacheSize: () => unknown;
+        onRefreshConfigTreeData: () => unknown;
+        onRefreshOnlineVisits: () => unknown;
+        onRefreshRuntimeAppSnapshot: () => unknown;
+        onRefreshSqliteTableSizes: () => unknown;
+        onRelaunchVRChatAfterCrashChange: (checked: boolean) => unknown;
+        onResetAppDataDir: () => unknown;
+        onRestartForAppDataDir: () => unknown;
+        onShowConfirmationOnSwitchAvatarChange: (checked: boolean) => unknown;
+        onUdonExceptionLoggingChange: (checked: boolean) => unknown;
+        onVrcQuitFixChange: (checked: boolean) => unknown;
+        onlineVisitCount: unknown;
+        prefs: SettingsAdvancedPrefs;
+        sqliteTableSizeRows: ReadonlyArray<readonly [string, string]>;
+        sqliteTableSizes: unknown;
+        tauriAppSnapshot: unknown;
+    };
+};
+
+function DataDirectoryPath({ value }: { value?: string | null }) {
     return (
         <div className="bg-muted/40 text-muted-foreground w-full min-w-0 rounded-md border px-2 py-1 font-mono text-xs break-all">
             {value || '-'}
@@ -29,7 +87,7 @@ function DataDirectoryPath({ value }: any) {
     );
 }
 
-export function SettingsAdvancedTab({ advanced }: any) {
+export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
     const {
         prefs,
         cacheStats,

@@ -1,3 +1,4 @@
+import type { ColumnDef } from '@tanstack/react-table';
 import { CheckIcon, PersonStandingIcon } from 'lucide-react';
 import { useMemo } from 'react';
 import type { ReactNode } from 'react';
@@ -45,17 +46,17 @@ export function useMyAvatarsColumns({
     );
     const currentAvatarId = currentUserSnapshot?.currentAvatar || '';
 
-    return useMemo(
+    return useMemo<ColumnDef<MyAvatarRow>[]>(
         () => [
             {
                 id: 'active',
                 size: 32,
                 minSize: 32,
                 maxSize: 36,
-                accessorFn: (row: any) => (row?.id === currentAvatarId ? 1 : 0),
+                accessorFn: (row) => (row.id === currentAvatarId ? 1 : 0),
                 header: (): ReactNode => null,
                 enableResizing: false,
-                cell: ({ row }: any) =>
+                cell: ({ row }) =>
                     row.original?.id === currentAvatarId ? (
                         <CheckIcon className="text-primary size-3.5" />
                     ) : (
@@ -67,11 +68,11 @@ export function useMyAvatarsColumns({
                 size: 56,
                 minSize: 52,
                 maxSize: 72,
-                accessorFn: (row: any) => row?.thumbnailImageUrl || '',
+                accessorFn: (row) => row.thumbnailImageUrl || '',
                 header: (): ReactNode => null,
                 enableSorting: false,
                 enableResizing: false,
-                cell: ({ row }: any) =>
+                cell: ({ row }) =>
                     row.original?.thumbnailImageUrl ? (
                         <Button
                             type="button"
@@ -104,15 +105,15 @@ export function useMyAvatarsColumns({
                 id: 'name',
                 size: 240,
                 minSize: 160,
-                accessorFn: (row: any) => row?.name || '',
+                accessorFn: (row) => row.name || '',
                 meta: { label: t('dialog.avatar.info.name') },
-                header: ({ column }: any) => (
+                header: ({ column }) => (
                     <SortButton
                         column={column}
                         label={t('dialog.avatar.info.name')}
                     />
                 ),
-                cell: ({ row }: any) => (
+                cell: ({ row }) => (
                     <Button
                         type="button"
                         variant="ghost"
@@ -129,21 +130,20 @@ export function useMyAvatarsColumns({
                 id: 'customTags',
                 size: 220,
                 minSize: 140,
-                accessorFn: (row: any) =>
-                    (row?.$tags || [])
-                        .map((entry: any) => entry.tag)
-                        .join(', '),
+                accessorFn: (row) =>
+                    (row?.$tags || []).map((entry) => entry.tag).join(', '),
                 meta: { label: t('dialog.avatar.info.tags') },
-                header: ({ column }: any) => (
+                header: ({ column }) => (
                     <SortButton
                         column={column}
                         label={t('dialog.avatar.info.tags')}
                     />
                 ),
-                cell: ({ row }: any) =>
-                    (row.original?.$tags || []).length ? (
+                cell: ({ row }) => {
+                    const tags = row.original.$tags || [];
+                    return tags.length ? (
                         <div className="flex max-h-7 flex-wrap gap-1 overflow-hidden">
-                            {row.original.$tags.map((entry: any) => (
+                            {tags.map((entry) => (
                                 <Badge
                                     key={`${row.original.id}:${entry.tag}`}
                                     variant="secondary"
@@ -154,13 +154,14 @@ export function useMyAvatarsColumns({
                                 </Badge>
                             ))}
                         </div>
-                    ) : null
+                    ) : null;
+                }
             },
             {
                 id: 'platforms',
                 size: 110,
                 minSize: 90,
-                accessorFn: (row: any) => (row?.unityPackages?.length ? 1 : 0),
+                accessorFn: (row) => (row.unityPackages?.length ? 1 : 0),
                 meta: { label: t('dialog.avatar.info.platform') },
                 header: () => (
                     <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
@@ -168,7 +169,7 @@ export function useMyAvatarsColumns({
                     </span>
                 ),
                 enableSorting: false,
-                cell: ({ row }: any) => (
+                cell: ({ row }) => (
                     <PlatformBadges
                         unityPackages={row.original?.unityPackages}
                     />
@@ -178,15 +179,15 @@ export function useMyAvatarsColumns({
                 id: 'visibility',
                 size: 110,
                 minSize: 90,
-                accessorFn: (row: any) => row?.releaseStatus || '',
+                accessorFn: (row) => row.releaseStatus || '',
                 meta: { label: t('dialog.avatar.info.visibility') },
-                header: ({ column }: any) => (
+                header: ({ column }) => (
                     <SortButton
                         column={column}
                         label={t('dialog.avatar.info.visibility')}
                     />
                 ),
-                cell: ({ row }: any) => (
+                cell: ({ row }) => (
                     <Badge variant="outline">
                         {row.original?.releaseStatus === 'public'
                             ? t('dialog.avatar.tags.public')
@@ -198,13 +199,13 @@ export function useMyAvatarsColumns({
                 id: 'timeSpent',
                 size: 116,
                 minSize: 104,
-                accessorFn: (row: any) => Number(row?.$timeSpent) || 0,
+                accessorFn: (row) => Number(row.$timeSpent) || 0,
                 meta: {
                     label: t('dialog.avatar.info.time_spent'),
                     tableHeadClassName: 'text-right',
                     tableCellClassName: 'text-right tabular-nums'
                 },
-                header: ({ column }: any) => (
+                header: ({ column }) => (
                     <div className="flex w-full min-w-0 justify-end overflow-hidden">
                         <SortButton
                             column={column}
@@ -213,7 +214,7 @@ export function useMyAvatarsColumns({
                         />
                     </div>
                 ),
-                cell: ({ row }: any) => (
+                cell: ({ row }) => (
                     <span className="block">
                         {row.original?.$timeSpent
                             ? timeToText(row.original.$timeSpent)
@@ -225,13 +226,13 @@ export function useMyAvatarsColumns({
                 id: 'version',
                 size: 80,
                 minSize: 64,
-                accessorFn: (row: any) => Number(row?.version) || 0,
+                accessorFn: (row) => Number(row.version) || 0,
                 meta: {
                     label: t('dialog.avatar.info.version'),
                     tableHeadClassName: 'text-right',
                     tableCellClassName: 'text-right tabular-nums'
                 },
-                header: ({ column }: any) => (
+                header: ({ column }) => (
                     <div className="flex w-full min-w-0 justify-end overflow-hidden">
                         <SortButton
                             column={column}
@@ -240,7 +241,7 @@ export function useMyAvatarsColumns({
                         />
                     </div>
                 ),
-                cell: ({ row }: any) => (
+                cell: ({ row }) => (
                     <span className="block">
                         {row.original?.version ?? '-'}
                     </span>
@@ -250,16 +251,16 @@ export function useMyAvatarsColumns({
                 id: 'pcPerf',
                 size: 140,
                 minSize: 110,
-                accessorFn: (row: any) =>
+                accessorFn: (row) =>
                     getMyAvatarPlatformInfo(row)?.pc?.performanceRating || '',
                 meta: { label: t('dialog.avatar.info.pc_performance') },
-                header: ({ column }: any) => (
+                header: ({ column }) => (
                     <SortButton
                         column={column}
                         label={t('dialog.avatar.info.pc_performance')}
                     />
                 ),
-                cell: ({ row }: any) => {
+                cell: ({ row }) => {
                     const platformInfo = getMyAvatarPlatformInfo(row.original);
                     return (
                         <span>
@@ -274,17 +275,17 @@ export function useMyAvatarsColumns({
                 id: 'androidPerf',
                 size: 160,
                 minSize: 130,
-                accessorFn: (row: any) =>
+                accessorFn: (row) =>
                     getMyAvatarPlatformInfo(row)?.android?.performanceRating ||
                     '',
                 meta: { label: t('dialog.avatar.info.android_performance') },
-                header: ({ column }: any) => (
+                header: ({ column }) => (
                     <SortButton
                         column={column}
                         label={t('dialog.avatar.info.android_performance')}
                     />
                 ),
-                cell: ({ row }: any) => {
+                cell: ({ row }) => {
                     const platformInfo = getMyAvatarPlatformInfo(row.original);
                     return (
                         <span>
@@ -299,16 +300,16 @@ export function useMyAvatarsColumns({
                 id: 'iosPerf',
                 size: 140,
                 minSize: 110,
-                accessorFn: (row: any) =>
+                accessorFn: (row) =>
                     getMyAvatarPlatformInfo(row)?.ios?.performanceRating || '',
                 meta: { label: t('dialog.avatar.info.ios_performance') },
-                header: ({ column }: any) => (
+                header: ({ column }) => (
                     <SortButton
                         column={column}
                         label={t('dialog.avatar.info.ios_performance')}
                     />
                 ),
-                cell: ({ row }: any) => {
+                cell: ({ row }) => {
                     const platformInfo = getMyAvatarPlatformInfo(row.original);
                     return (
                         <span>
@@ -323,16 +324,16 @@ export function useMyAvatarsColumns({
                 id: 'updated_at',
                 size: 170,
                 minSize: 130,
-                accessorFn: (row: any) => row?.updated_at || '',
+                accessorFn: (row) => row.updated_at || '',
                 meta: { label: t('dialog.avatar.info.last_updated') },
-                header: ({ column }: any) => (
+                header: ({ column }) => (
                     <SortButton
                         column={column}
                         label={t('dialog.avatar.info.last_updated')}
                         descFirst
                     />
                 ),
-                cell: ({ row }: any) => (
+                cell: ({ row }) => (
                     <span>
                         {row.original?.updated_at
                             ? formatDateFilter(row.original.updated_at, 'long')
@@ -344,16 +345,16 @@ export function useMyAvatarsColumns({
                 id: 'created_at',
                 size: 170,
                 minSize: 130,
-                accessorFn: (row: any) => row?.created_at || '',
+                accessorFn: (row) => row.created_at || '',
                 meta: { label: t('dialog.avatar.info.created_at') },
-                header: ({ column }: any) => (
+                header: ({ column }) => (
                     <SortButton
                         column={column}
                         label={t('dialog.avatar.info.created_at')}
                         descFirst
                     />
                 ),
-                cell: ({ row }: any) => (
+                cell: ({ row }) => (
                     <span>
                         {row.original?.created_at
                             ? formatDateFilter(row.original.created_at, 'long')
@@ -378,7 +379,7 @@ export function useMyAvatarsColumns({
                         'bg-background group-hover:bg-muted/50 sticky right-0 z-10 border-l'
                 },
                 header: (): ReactNode => null,
-                cell: ({ row }: any) => {
+                cell: ({ row }) => {
                     const isUpdating =
                         updatingAvatarId === row.original?.id ||
                         savingTagsAvatarId === row.original?.id ||

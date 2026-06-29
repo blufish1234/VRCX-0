@@ -8,6 +8,7 @@ import { useMemo } from 'react';
 
 import { useModerationColumns } from './components/ModerationColumns';
 import { matchesModerationSearch } from './moderationPageState';
+import type { ModerationRow } from './moderationPageTypes';
 import { useModerationFilters } from './useModerationFilters';
 import { useModerationRowActions } from './useModerationRowActions';
 import { useModerationRows } from './useModerationRows';
@@ -27,8 +28,8 @@ export function useModerationPageController({
         const activeTypeSet = filters.selectedTypes.length
             ? new Set(filters.selectedTypes)
             : null;
-        return rowsState.rows.filter((row: any) => {
-            if (activeTypeSet && !activeTypeSet.has(row?.type)) {
+        return rowsState.rows.filter((row) => {
+            if (activeTypeSet && !activeTypeSet.has(row.type || '')) {
                 return false;
             }
             return matchesModerationSearch(row, filters.searchQuery);
@@ -51,7 +52,7 @@ export function useModerationPageController({
         onOpenUser: actions.openModerationUser,
         shiftHeld
     });
-    const table = useReactTable({
+    const table = useReactTable<ModerationRow>({
         data: filteredRows,
         columns,
         state: {

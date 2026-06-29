@@ -8,39 +8,106 @@ import {
     shrinkFavoriteImage as shrinkImage,
     sortFavoriteItems as sortItems
 } from './favoritesItems';
-import type { FavoriteGroup, FavoriteItem } from './favoritesTypes';
+import type {
+    FavoriteGroup,
+    FavoriteItem,
+    FavoriteKind
+} from './favoritesTypes';
 
 type FavoriteItemsByGroup = Record<string, FavoriteItem[]>;
+type TranslateFn = (key: string) => string;
+type FavoriteGroupRecord = Record<string, unknown> & {
+    capacity?: unknown;
+    count?: unknown;
+    displayName?: unknown;
+    key?: unknown;
+    name?: unknown;
+    type?: unknown;
+    visibility?: unknown;
+};
+type FavoriteGroupInput = Record<string, unknown> & {
+    key: string;
+    label: string;
+};
+type FavoriteEntityDetail = Record<string, unknown> & {
+    authorName?: unknown;
+    description?: unknown;
+    imageUrl?: unknown;
+    name?: unknown;
+    occupants?: unknown;
+    releaseStatus?: unknown;
+    tags?: unknown;
+    thumbnailImageUrl?: unknown;
+};
+type FavoriteRecord = Record<string, unknown> & {
+    $groupKey?: unknown;
+    favoriteId?: unknown;
+    type?: unknown;
+};
+type FavoriteProfileRecord = Record<string, unknown> & {
+    $userColour?: unknown;
+    displayName?: unknown;
+    isFriend?: unknown;
+    state?: unknown;
+    stateBucket?: unknown;
+    statusDescription?: unknown;
+    travelingToLocation?: unknown;
+    username?: unknown;
+};
+type FavoriteGroupSourceMap = Record<string, unknown[]>;
+type FavoriteDetailMap = Record<string, FavoriteEntityDetail | undefined>;
+type FavoriteProfileMap = Record<string, FavoriteProfileRecord | undefined>;
+type FavoriteSortIndex = Record<string, number | undefined>;
+type FavoriteSortValue = unknown;
+
+function textValue(value: unknown) {
+    return typeof value === 'string'
+        ? value
+        : value === null || value === undefined
+          ? ''
+          : String(value);
+}
+
+function stringArray(value: unknown): string[] {
+    return Array.isArray(value) ? value.map(textValue).filter(Boolean) : [];
+}
 
 function firstDisplayableDetail(candidates: unknown[]) {
     return candidates.find((candidate) =>
         hasDisplayableEntityDetail(candidate)
-    );
+    ) as FavoriteEntityDetail | undefined;
 }
 
 function buildRemoteFavoriteGroups(
-    kind: any,
-    sourceGroups: any
+    kind: FavoriteKind,
+    sourceGroups: readonly FavoriteGroupRecord[]
 ): FavoriteGroup[] {
-    return sourceGroups.map((group: any) => ({
-        source: 'remote',
-        key: group.key,
-        name:
-            group.name ||
-            String(group.key || '')
+    return sourceGroups.map((group) => {
+        const key = textValue(group.key);
+        const name =
+            textValue(group.name) ||
+            String(key || '')
                 .split(':')
                 .pop() ||
-            '',
-        type: group.type || favoriteGroupType(kind, group),
-        label: group.displayName || group.name || group.key,
-        count: Number(group.count) || 0,
-        capacity: Number(group.capacity) || 0,
-        visibility: group.visibility || ''
-    }));
+            '';
+        return {
+            source: 'remote',
+            key,
+            name,
+            type: group.type || favoriteGroupType(kind, group),
+            label: textValue(group.displayName || group.name || group.key),
+            count: Number(group.count) || 0,
+            capacity: Number(group.capacity) || 0,
+            visibility: textValue(group.visibility)
+        };
+    });
 }
 
-function buildLocalFavoriteGroups(names: any, source: any): FavoriteGroup[] {
-    return names.map((name: any) => ({
+function buildLocalFavoriteGroups(
+    names: readonly string[],
+    source: FavoriteGroupSourceMap
+): FavoriteGroup[] {
+    return names.map((name) => ({
         source: 'local',
         key: name,
         label: name,
@@ -50,18 +117,22 @@ function buildLocalFavoriteGroups(names: any, source: any): FavoriteGroup[] {
     }));
 }
 
-function resolveTranslator(t: any) {
-    return typeof t === 'function' ? t : (key: any) => key;
+function resolveTranslator(t: unknown): TranslateFn {
+    return typeof t === 'function' ? (t as TranslateFn) : (key) => key;
 }
 
-function defaultFavoriteEntityTitle(kind: any, t: any) {
+function defaultFavoriteEntityTitle(kind: FavoriteKind, t: unknown) {
     const translate = resolveTranslator(t);
     return kind === 'world'
         ? translate('view.favorites.empty.world_fallback')
         : translate('view.favorites.empty.avatar_fallback');
 }
 
-function defaultFavoriteDetailSubtitle(kind: any, isUnavailable: any, t: any) {
+function defaultFavoriteDetailSubtitle(
+    kind: FavoriteKind,
+    isUnavailable: boolean,
+    t: unknown
+) {
     const translate = resolveTranslator(t);
     if (kind === 'world') {
         return isUnavailable
@@ -74,13 +145,16 @@ function defaultFavoriteDetailSubtitle(kind: any, isUnavailable: any, t: any) {
         : translate('view.favorites.loading.loading_avatar_details');
 }
 
-function resolveFavoriteSubtitle(friend: any, location: any) {
+function resolveFavoriteSubtitle(
+    friend: FavoriteProfileRecord | null | undefined,
+    location: string
+) {
     if (!friend) {
         return '';
     }
     return location && location !== 'offline'
         ? location
-        : friend?.statusDescription || '';
+        : textValue(friend?.statusDescription);
 }
 
 function buildFriendFavoriteItem({
@@ -94,7 +168,18 @@ function buildFriendFavoriteItem({
     index,
     favoritesSortIndex,
     t
-}: any): FavoriteItem {
+}: {
+    kind: FavoriteKind;
+    source: 'remote' | 'local';
+    groupKey: string;
+    groupLabel: string;
+    friendId: unknown;
+    friend?: FavoriteProfileRecord | null;
+    knownUser?: FavoriteProfileRecord | null;
+    index: number;
+    favoritesSortIndex?: FavoriteSortIndex;
+    t: TranslateFn;
+}): FavoriteItem {
     const translate = resolveTranslator(t);
     const normalizedId = normalizeEntityId(friendId);
     const profile = friend
@@ -116,16 +201,15 @@ function buildFriendFavoriteItem({
         groupLabel,
         id: normalizedId,
         title:
-            profile?.displayName ||
-            profile?.username ||
+            textValue(profile?.displayName || profile?.username) ||
             translate('view.favorites.empty.user_fallback'),
-        titleColor: profile?.$userColour || '',
+        titleColor: textValue(profile?.$userColour),
         subtitle: resolveFavoriteSubtitle(profile, location),
         detailText: '',
         location,
-        travelingToLocation: profile?.travelingToLocation || '',
+        travelingToLocation: textValue(profile?.travelingToLocation),
         imageUrl: profile ? userImage(profile, true) : '',
-        statusLabel: status,
+        statusLabel: textValue(status),
         statusVariant:
             status === 'online' || status === 'active'
                 ? 'default'
@@ -135,11 +219,11 @@ function buildFriendFavoriteItem({
     };
 }
 
-export function resolveFavoritePresenceLocation(profile: any) {
+export function resolveFavoritePresenceLocation(profile: unknown) {
     return resolveFriendPresenceLocation(profile);
 }
 
-export function getFavoritesPageConfig(kind: any, t: any) {
+export function getFavoritesPageConfig(kind: FavoriteKind, t: unknown) {
     const translate = resolveTranslator(t);
     const remoteSectionTitle =
         kind === 'avatar'
@@ -178,7 +262,12 @@ export function buildFavoriteRemoteGroups({
     favoriteFriendGroups,
     favoriteAvatarGroups,
     favoriteWorldGroups
-}: any): FavoriteGroup[] {
+}: {
+    kind: FavoriteKind;
+    favoriteFriendGroups?: readonly FavoriteGroupRecord[];
+    favoriteAvatarGroups?: readonly FavoriteGroupRecord[];
+    favoriteWorldGroups?: readonly FavoriteGroupRecord[];
+}): FavoriteGroup[] {
     const sourceGroups =
         kind === 'friend'
             ? favoriteFriendGroups
@@ -186,7 +275,7 @@ export function buildFavoriteRemoteGroups({
               ? favoriteAvatarGroups
               : favoriteWorldGroups;
 
-    return buildRemoteFavoriteGroups(kind, sourceGroups);
+    return buildRemoteFavoriteGroups(kind, sourceGroups || []);
 }
 
 export function buildFavoriteLocalGroups({
@@ -197,7 +286,15 @@ export function buildFavoriteLocalGroups({
     localFriendFavorites,
     localAvatarFavorites,
     localWorldFavorites
-}: any): FavoriteGroup[] {
+}: {
+    kind: FavoriteKind;
+    localFriendFavoriteGroups?: readonly string[];
+    localAvatarFavoriteGroups?: readonly string[];
+    localWorldFavoriteGroups?: readonly string[];
+    localFriendFavorites?: FavoriteGroupSourceMap;
+    localAvatarFavorites?: FavoriteGroupSourceMap;
+    localWorldFavorites?: FavoriteGroupSourceMap;
+}): FavoriteGroup[] {
     const names =
         kind === 'friend'
             ? localFriendFavoriteGroups
@@ -211,14 +308,18 @@ export function buildFavoriteLocalGroups({
               ? localAvatarFavorites
               : localWorldFavorites;
 
-    return buildLocalFavoriteGroups(names, source);
+    return buildLocalFavoriteGroups(names || [], source || {});
 }
 
 export function buildFavoriteAvatarHistoryGroups({
     kind,
     avatarHistoryLength,
     t
-}: any): FavoriteGroup[] {
+}: {
+    kind: FavoriteKind;
+    avatarHistoryLength: number;
+    t: unknown;
+}): FavoriteGroup[] {
     if (kind !== 'avatar') {
         return [];
     }
@@ -236,9 +337,14 @@ export function buildFavoriteAvatarHistoryGroups({
     ];
 }
 
-export function buildFavoriteGroupLabelByKey(groups: any) {
+export function buildFavoriteGroupLabelByKey(
+    groups: readonly FavoriteGroupInput[] | null | undefined
+) {
     return Object.fromEntries(
-        groups.map((group: any) => [group.key, group.label])
+        (Array.isArray(groups) ? groups : []).map((group) => [
+            group.key,
+            group.label
+        ])
     );
 }
 
@@ -260,7 +366,25 @@ export function buildFavoriteRemoteItemsByGroup({
     localAvatarDetailsById = {},
     remoteGroupLabelByKey,
     t
-}: any): FavoriteItemsByGroup {
+}: {
+    kind: FavoriteKind;
+    remoteGroups: readonly FavoriteGroupInput[];
+    groupedFavoriteFriendIdsByGroupKey?: Record<string, unknown[]>;
+    friendsById?: FavoriteProfileMap;
+    knownUsersById?: FavoriteProfileMap;
+    favoritesSortIndex?: FavoriteSortIndex;
+    sortValue?: FavoriteSortValue;
+    remoteFavoritesById?: Record<string, FavoriteRecord | undefined>;
+    remoteEntityDetailsData?: FavoriteDetailMap;
+    remoteEntityDetailsStatus?: string;
+    worldFactsById?: FavoriteDetailMap;
+    remoteWorldCacheFallbacksById?: FavoriteDetailMap;
+    remoteAvatarCacheFallbacksById?: FavoriteDetailMap;
+    localWorldDetailsById?: FavoriteDetailMap;
+    localAvatarDetailsById?: FavoriteDetailMap;
+    remoteGroupLabelByKey?: Record<string, string | undefined>;
+    t: unknown;
+}): FavoriteItemsByGroup {
     const translate = resolveTranslator(t);
     const itemsByGroup: FavoriteItemsByGroup = Object.create(null);
     for (const group of remoteGroups) {
@@ -269,16 +393,16 @@ export function buildFavoriteRemoteItemsByGroup({
 
     if (kind === 'friend') {
         for (const group of remoteGroups) {
-            const ids = groupedFavoriteFriendIdsByGroupKey[group.key] || [];
-            const items = ids.map((friendId: any, index: any) =>
+            const ids = groupedFavoriteFriendIdsByGroupKey?.[group.key] || [];
+            const items = ids.map((friendId, index) =>
                 buildFriendFavoriteItem({
                     kind,
                     source: 'remote',
                     groupKey: group.key,
                     groupLabel: group.label,
                     friendId,
-                    friend: friendsById[normalizeEntityId(friendId)],
-                    knownUser: knownUsersById[normalizeEntityId(friendId)],
+                    friend: friendsById?.[normalizeEntityId(friendId)],
+                    knownUser: knownUsersById?.[normalizeEntityId(friendId)],
                     index,
                     favoritesSortIndex,
                     t: translate
@@ -290,7 +414,7 @@ export function buildFavoriteRemoteItemsByGroup({
         return itemsByGroup;
     }
 
-    const remoteFavorites = Object.values(remoteFavoritesById)
+    const remoteFavorites = Object.values(remoteFavoritesById || {})
         .filter((favorite): favorite is Record<string, unknown> =>
             Boolean(favorite && typeof favorite === 'object')
         )
@@ -307,9 +431,9 @@ export function buildFavoriteRemoteItemsByGroup({
             continue;
         }
 
-        const detail = remoteEntityDetailsData[favoriteId];
-        let liveDetail: any = null;
-        let fallbackDetail: any = null;
+        const detail = remoteEntityDetailsData?.[favoriteId];
+        let liveDetail: FavoriteEntityDetail | null = null;
+        let fallbackDetail: FavoriteEntityDetail | null | undefined = null;
 
         if (kind === 'world') {
             liveDetail = hasDisplayableEntityDetail(detail) ? detail : null;
@@ -338,20 +462,21 @@ export function buildFavoriteRemoteItemsByGroup({
         const isUnavailable =
             remoteEntityDetailsStatus === 'ready' && !displayDetail;
         const isPrivate =
-            displayDetail?.releaseStatus === 'private' || usedFallback;
+            textValue(displayDetail?.releaseStatus) === 'private' ||
+            usedFallback;
         const playerCount = Number(displayDetail?.occupants) || 0;
         const subtitle =
             kind === 'world'
-                ? displayDetail?.authorName
+                ? textValue(displayDetail?.authorName)
                     ? playerCount
-                        ? `${displayDetail.authorName} (${playerCount})`
-                        : displayDetail.authorName
+                        ? `${textValue(displayDetail?.authorName)} (${playerCount})`
+                        : textValue(displayDetail?.authorName)
                     : defaultFavoriteDetailSubtitle(
                           kind,
                           isUnavailable,
                           translate
                       )
-                : displayDetail?.authorName ||
+                : textValue(displayDetail?.authorName) ||
                   defaultFavoriteDetailSubtitle(kind, isUnavailable, translate);
 
         itemsByGroup[groupKey].push({
@@ -360,14 +485,14 @@ export function buildFavoriteRemoteItemsByGroup({
             source: 'remote',
             groupKey,
             groupLabel:
-                remoteGroupLabelByKey[groupKey] ||
+                remoteGroupLabelByKey?.[groupKey] ||
                 translate('view.favorites.empty.favorites_fallback'),
             id: favoriteId,
             title:
-                displayDetail?.name ||
+                textValue(displayDetail?.name) ||
                 defaultFavoriteEntityTitle(kind, translate),
             subtitle,
-            description: displayDetail?.description || '',
+            description: textValue(displayDetail?.description),
             seedData: displayDetail || null,
             imageUrl: shrinkImage(
                 displayDetail?.thumbnailImageUrl ||
@@ -376,10 +501,10 @@ export function buildFavoriteRemoteItemsByGroup({
             ),
             isPrivate,
             isUnavailable,
-            tags: displayDetail?.tags || [],
+            tags: stringArray(displayDetail?.tags),
             playerCount,
             orderIndex:
-                favoritesSortIndex[favoriteId] ?? Number.MAX_SAFE_INTEGER
+                favoritesSortIndex?.[favoriteId] ?? Number.MAX_SAFE_INTEGER
         });
     }
 
@@ -405,24 +530,36 @@ export function buildFavoriteLocalItemsByGroup({
     knownUsersById = {},
     sortValue,
     t
-}: any): FavoriteItemsByGroup {
+}: {
+    kind: FavoriteKind;
+    localGroups: readonly FavoriteGroupInput[];
+    localFriendFavorites?: FavoriteGroupSourceMap;
+    localAvatarFavorites?: FavoriteGroupSourceMap;
+    localWorldFavorites?: FavoriteGroupSourceMap;
+    localAvatarDetailsById?: FavoriteDetailMap;
+    localWorldDetailsById?: FavoriteDetailMap;
+    friendsById?: FavoriteProfileMap;
+    knownUsersById?: FavoriteProfileMap;
+    sortValue?: FavoriteSortValue;
+    t: unknown;
+}): FavoriteItemsByGroup {
     const translate = resolveTranslator(t);
     const itemsByGroup: FavoriteItemsByGroup = Object.create(null);
 
     if (kind === 'friend') {
         for (const group of localGroups) {
-            const ids = Array.isArray(localFriendFavorites[group.key])
+            const ids = Array.isArray(localFriendFavorites?.[group.key])
                 ? localFriendFavorites[group.key]
                 : [];
-            const items = ids.map((friendId: any, index: any) =>
+            const items = ids.map((friendId, index) =>
                 buildFriendFavoriteItem({
                     kind,
                     source: 'local',
                     groupKey: group.key,
                     groupLabel: group.label,
                     friendId,
-                    friend: friendsById[normalizeEntityId(friendId)],
-                    knownUser: knownUsersById[normalizeEntityId(friendId)],
+                    friend: friendsById?.[normalizeEntityId(friendId)],
+                    knownUser: knownUsersById?.[normalizeEntityId(friendId)],
                     index,
                     t: translate
                 })
@@ -439,12 +576,12 @@ export function buildFavoriteLocalItemsByGroup({
         kind === 'avatar' ? localAvatarDetailsById : localWorldDetailsById;
 
     for (const group of localGroups) {
-        const ids = Array.isArray(localFavorites[group.key])
+        const ids = Array.isArray(localFavorites?.[group.key])
             ? localFavorites[group.key]
             : [];
-        const items = ids.map((entityId: any, index: any) => {
+        const items = ids.map((entityId, index) => {
             const normalizedId = normalizeEntityId(entityId);
-            const detail = localDetailsById[normalizedId] || {
+            const detail = localDetailsById?.[normalizedId] || {
                 id: normalizedId
             };
             const playerCount = Number(detail.occupants) || 0;
@@ -456,16 +593,17 @@ export function buildFavoriteLocalItemsByGroup({
                 groupLabel: group.label,
                 id: normalizedId,
                 title:
-                    detail.name || defaultFavoriteEntityTitle(kind, translate),
-                subtitle: detail.authorName || '',
-                description: detail.description || '',
+                    textValue(detail.name) ||
+                    defaultFavoriteEntityTitle(kind, translate),
+                subtitle: textValue(detail.authorName),
+                description: textValue(detail.description),
                 seedData: detail || null,
                 imageUrl: shrinkImage(
                     detail.thumbnailImageUrl || detail.imageUrl || ''
                 ),
-                isPrivate: detail.releaseStatus === 'private',
+                isPrivate: textValue(detail.releaseStatus) === 'private',
                 isUnavailable: false,
-                tags: detail.tags || [],
+                tags: stringArray(detail.tags),
                 playerCount,
                 orderIndex: index
             };
@@ -480,7 +618,11 @@ export function buildFavoriteAvatarHistoryItems({
     kind,
     avatarHistory,
     t
-}: any): FavoriteItem[] {
+}: {
+    kind: FavoriteKind;
+    avatarHistory: readonly FavoriteEntityDetail[];
+    t: unknown;
+}): FavoriteItem[] {
     if (kind !== 'avatar') {
         return [];
     }
@@ -488,7 +630,7 @@ export function buildFavoriteAvatarHistoryItems({
     const translate = resolveTranslator(t);
     const groupLabel = translate('view.favorite.avatars.local_history');
 
-    return avatarHistory.map((detail: any, index: any) => {
+    return avatarHistory.map((detail, index) => {
         const normalizedId = normalizeEntityId(detail?.id);
         return {
             key: `history:local-history:${normalizedId || index}`,
@@ -498,17 +640,17 @@ export function buildFavoriteAvatarHistoryItems({
             groupLabel,
             id: normalizedId,
             title:
-                detail?.name ||
+                textValue(detail?.name) ||
                 translate('view.favorites.empty.avatar_fallback'),
-            subtitle: detail?.authorName || '',
-            description: detail?.description || '',
+            subtitle: textValue(detail?.authorName),
+            description: textValue(detail?.description),
             seedData: detail || null,
             imageUrl: shrinkImage(
                 detail?.thumbnailImageUrl || detail?.imageUrl || ''
             ),
-            isPrivate: detail?.releaseStatus === 'private',
+            isPrivate: textValue(detail?.releaseStatus) === 'private',
             isUnavailable: false,
-            tags: detail?.tags || [],
+            tags: stringArray(detail?.tags),
             playerCount: 0,
             orderIndex: index
         };

@@ -4,7 +4,7 @@ export const notificationLayoutOptions = [
         'view.settings.notifications.notifications.layout_notification_center'
     ],
     ['table', 'view.settings.notifications.notifications.layout_table']
-];
+] as const;
 
 export const desktopToastOptions = [
     ['Never', 'view.settings.notifications.notifications.conditions.never'],
@@ -29,7 +29,7 @@ export const desktopToastOptions = [
         'view.settings.notifications.notifications.conditions.outside_vrchat'
     ],
     ['Always', 'view.settings.notifications.notifications.conditions.always']
-];
+] as const;
 
 export const notificationTtsOptions = [
     ['Never', 'view.settings.notifications.notifications.conditions.never'],
@@ -46,7 +46,7 @@ export const notificationTtsOptions = [
         'view.settings.notifications.notifications.conditions.outside_vrchat'
     ],
     ['Always', 'view.settings.notifications.notifications.conditions.always']
-];
+] as const;
 
 export const avatarAutoCleanupOptions = ['Off', '30', '90', '180', '365'];
 
@@ -81,7 +81,7 @@ export const sqliteTableSizeRows = [
         'view.settings.advanced.advanced.sqlite_table_size.video_play'
     ],
     ['event', 'view.settings.advanced.advanced.sqlite_table_size.event']
-];
+] as const;
 
 export const translationProviderOptions = [
     ['google', 'dialog.translation_api.mode_google'],

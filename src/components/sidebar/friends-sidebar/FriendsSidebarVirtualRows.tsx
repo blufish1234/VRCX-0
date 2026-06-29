@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils';
 import { checkCanInviteSelf } from '@/shared/utils/invite';
 import { Skeleton } from '@/ui/shadcn/skeleton';
 
+import type { StatusPreset } from './FriendsSidebarActionItems';
 import { FriendRow } from './FriendsSidebarFriendRow';
 import {
     FriendSectionHeader,
@@ -11,18 +12,79 @@ import {
     normalizeLocationStatus,
     readFriendRefLocation,
     readFriendStatusSource,
-    resolvePresenceLocation
+    resolvePresenceLocation,
+    type SidebarFriendRecord
 } from './friendsSidebarModel';
+import type { SidebarVirtualRow } from './friendsSidebarVirtualRowBuilder';
+import type { FriendsSidebarGroupKey } from './useFriendsSidebarPreferences';
 
-function FavoriteGroupHeaderRow({ label, count }: any) {
+type FriendCommandsView = {
+    onOpenFriend: (friend: SidebarFriendRecord) => void;
+    onToggleSection: (id: FriendsSidebarGroupKey) => void;
+    onLaunch?: (location: unknown) => void;
+    onSelfInvite?: (location: unknown) => void;
+    onInvite?: (friend: SidebarFriendRecord) => void;
+    onRequestInvite?: (friend: SidebarFriendRecord) => void;
+    onBoop?: (friend: SidebarFriendRecord) => void;
+};
+
+type RuntimeView = {
+    canInviteFromCurrentLocation?: boolean;
+    currentInviteLocation?: unknown;
+    currentUser?:
+        | (Record<string, unknown> & { isBoopingEnabled?: unknown })
+        | null;
+    currentUserId?: string | null;
+    friendsMap: Map<string, unknown>;
+    gameState: { isGameRunning?: boolean | null };
+    onlineIdSet: Set<string>;
+};
+
+type AppearanceView = {
+    ageGatedInstancesVisible?: boolean;
+    isDarkMode?: boolean;
+    randomUserColours?: boolean;
+    recentActionVersion?: number;
+    showInstanceIdInLocation?: boolean;
+    trustColor?: unknown;
+};
+
+type LocationView = {
+    locationMetadataByKey: Map<
+        unknown,
+        Record<string, unknown> | null | undefined
+    >;
+};
+
+type StatusCommandsView = {
+    statusPresets?: StatusPreset[];
+    onChangeStatus?: (status: string) => unknown;
+    onSetStatusDescription?: (statusDescription: string) => unknown;
+    onEditStatusDescription?: () => unknown;
+    onApplyStatusPreset?: (preset: StatusPreset) => unknown;
+};
+
+function FavoriteGroupHeaderRow({
+    label,
+    count
+}: {
+    label?: unknown;
+    count?: number;
+}) {
     return (
         <div className="text-muted-foreground flex w-full items-center px-1.5 py-1 text-left text-xs">
-            {label} - {count}
+            {String(label || '')} - {count || 0}
         </div>
     );
 }
 
-function SidebarMessageRow({ className = '', text }: any) {
+function SidebarMessageRow({
+    className = '',
+    text
+}: {
+    className?: string;
+    text?: unknown;
+}) {
     return (
         <div
             className={cn(
@@ -30,7 +92,7 @@ function SidebarMessageRow({ className = '', text }: any) {
                 className
             )}
         >
-            {text}
+            {String(text || '')}
         </div>
     );
 }
@@ -57,11 +119,22 @@ function FriendVirtualRow({
     location,
     runtime,
     statusCommands
-}: any) {
+}: {
+    appearance: AppearanceView;
+    friend: SidebarFriendRecord;
+    metadataKey?: unknown;
+    isCurrentUser?: boolean;
+    isGroupByInstance?: boolean;
+    friendCommands: FriendCommandsView;
+    location: LocationView;
+    runtime: RuntimeView;
+    statusCommands: StatusCommandsView;
+}) {
     const source = readFriendStatusSource(friend);
     const state = normalizeLocationStatus(source?.stateBucket || source?.state);
+    const friendId = friend.id || '';
     const isOnlineFriend =
-        runtime.onlineIdSet.has(friend.id) || state === 'online';
+        runtime.onlineIdSet.has(friendId) || state === 'online';
 
     return (
         <FriendRow
@@ -83,7 +156,7 @@ function FriendVirtualRow({
                             ? resolvePresenceLocation(friend)
                             : readFriendRefLocation(friend),
                         {
-                            currentUserId: runtime.currentUserId,
+                            currentUserId: runtime.currentUserId || '',
                             cachedInstances: new Map(),
                             friends: runtime.friendsMap
                         }
@@ -127,7 +200,15 @@ function FriendsSidebarVirtualRow({
     row,
     runtime,
     statusCommands
-}: any) {
+}: {
+    appearance: AppearanceView;
+    friendCommands: FriendCommandsView;
+    isFirstRow?: boolean;
+    location: LocationView;
+    row: SidebarVirtualRow;
+    runtime: RuntimeView;
+    statusCommands: StatusCommandsView;
+}) {
     switch (row?.type) {
         case 'section':
             return (
@@ -137,7 +218,11 @@ function FriendsSidebarVirtualRow({
                     count={row.count}
                     open={row.open}
                     isFirst={isFirstRow}
-                    onToggle={friendCommands.onToggleSection}
+                    onToggle={(id) =>
+                        friendCommands.onToggleSection(
+                            id as FriendsSidebarGroupKey
+                        )
+                    }
                 />
             );
         case 'favorite-group-header':
@@ -168,7 +253,7 @@ function FriendsSidebarVirtualRow({
             return <div className="h-4" />;
         case 'friend':
         default:
-            return (
+            return row.friend ? (
                 <FriendVirtualRow
                     appearance={appearance}
                     friend={row.friend}
@@ -180,7 +265,7 @@ function FriendsSidebarVirtualRow({
                     runtime={runtime}
                     statusCommands={statusCommands}
                 />
-            );
+            ) : null;
     }
 }
 

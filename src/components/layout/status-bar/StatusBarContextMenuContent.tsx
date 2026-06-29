@@ -12,31 +12,47 @@ import {
     ContextMenuSubTrigger
 } from '@/ui/shadcn/context-menu';
 
-const VISIBILITY_MENU_ITEMS = [
-    ['vrchat', 'status_bar.game'],
-    ['servers', 'status_bar.servers'],
-    ['steamvr', 'status_bar.steamvr'],
-    ['instanceQueue', 'status_bar.instance_queue'],
-    ['mutualGraph', 'status_bar.mutual_graph'],
-    ['proxy', 'status_bar.proxy'],
-    ['ws', 'status_bar.realtime_connection'],
-    ['uptime', 'status_bar.app_uptime_short'],
-    ['zoom', 'status_bar.zoom'],
-    ['nowPlaying', 'status_bar.now_playing']
-];
+import type {
+    StatusBarVisibility,
+    StatusBarVisibilityKey
+} from './statusBarTypes';
+
+type StatusBarContextMenuContentProps = {
+    clockCount: number;
+    onSetClockCountValue: (nextValue: number) => unknown;
+    onToggleVisibility: (
+        key: StatusBarVisibilityKey,
+        checked: boolean
+    ) => unknown;
+    visibility: StatusBarVisibility;
+};
+
+const VISIBILITY_MENU_ITEMS: Array<readonly [StatusBarVisibilityKey, string]> =
+    [
+        ['vrchat', 'status_bar.game'],
+        ['servers', 'status_bar.servers'],
+        ['steamvr', 'status_bar.steamvr'],
+        ['instanceQueue', 'status_bar.instance_queue'],
+        ['mutualGraph', 'status_bar.mutual_graph'],
+        ['proxy', 'status_bar.proxy'],
+        ['ws', 'status_bar.realtime_connection'],
+        ['uptime', 'status_bar.app_uptime_short'],
+        ['zoom', 'status_bar.zoom'],
+        ['nowPlaying', 'status_bar.now_playing']
+    ];
 
 export function StatusBarContextMenuContent({
     clockCount,
     onSetClockCountValue,
     onToggleVisibility,
     visibility
-}: any) {
+}: StatusBarContextMenuContentProps) {
     const { t } = useTranslation();
 
     return (
         <ContextMenuContent className="w-52">
             <ContextMenuGroup>
-                {VISIBILITY_MENU_ITEMS.map(([key, label]: any) => (
+                {VISIBILITY_MENU_ITEMS.map(([key, label]) => (
                     <ContextMenuCheckboxItem
                         key={key}
                         checked={Boolean(visibility[key])}
@@ -61,7 +77,7 @@ export function StatusBarContextMenuContent({
                             onSetClockCountValue(Number(value))
                         }
                     >
-                        {[0, 1, 2, 3].map((count: any) => (
+                        {[0, 1, 2, 3].map((count) => (
                             <ContextMenuRadioItem
                                 key={count}
                                 value={String(count)}

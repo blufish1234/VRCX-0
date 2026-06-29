@@ -216,7 +216,7 @@ export function LaunchDialogHost() {
                     setDetails(nextDetails);
                 }
             })
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 if (active) {
                     setDetails({
                         ...emptyDetails,

@@ -5,6 +5,7 @@ import {
     RectangleGogglesIcon,
     SettingsIcon
 } from 'lucide-react';
+import type { Dispatch, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { DataTableSortButton } from '@/components/data-table/DataTableSortButton';
@@ -38,13 +39,51 @@ import {
     MY_AVATARS_PLATFORM_OPTIONS,
     MY_AVATARS_RELEASE_STATUS_OPTIONS
 } from '../myAvatarsState';
+import type {
+    MyAvatarActionHandler,
+    MyAvatarRow,
+    MyAvatarsGridDensity
+} from '../myAvatarsTypes';
 import { AvatarActionMenuItems, MyAvatarGridCard } from './MyAvatarGridCard';
 
 export { AvatarActionMenuItems, MyAvatarGridCard };
 
 export { DataTableSortButton as SortButton };
 
-export function PlatformBadges({ unityPackages }: any) {
+type PlatformBadgesProps = {
+    unityPackages?: MyAvatarRow['unityPackages'];
+};
+
+type MyAvatarsEmptyStateProps = {
+    title?: string;
+    description?: string;
+};
+
+type AvatarActionsDropdownProps = {
+    avatar: MyAvatarRow;
+    isActive: boolean;
+    isUpdating: boolean;
+    onAction: MyAvatarActionHandler;
+};
+
+type MyAvatarFilterPopoverProps = {
+    activeFilterCount: number;
+    allTags: string[];
+    releaseStatusFilter: string;
+    platformFilter: string;
+    tagFilters: Set<string>;
+    onReleaseStatusChange: (value: string) => void;
+    onPlatformChange: (value: string) => void;
+    onTagFiltersChange: Dispatch<SetStateAction<Set<string>>>;
+    onClearFilters: () => void;
+};
+
+type GridSettingsMenuProps = {
+    gridDensity: MyAvatarsGridDensity;
+    onGridDensityChange: (value: string) => void;
+};
+
+export function PlatformBadges({ unityPackages }: PlatformBadgesProps) {
     const platforms = getAvailablePlatforms(unityPackages);
 
     return (
@@ -64,11 +103,14 @@ export function PlatformBadges({ unityPackages }: any) {
     );
 }
 
-export function MyAvatarsEmptyState({ title, description }: any) {
+export function MyAvatarsEmptyState({
+    title,
+    description
+}: MyAvatarsEmptyStateProps) {
     return <EmptyState title={title} description={description} />;
 }
 
-export function openAvatarDetails(avatar: any) {
+export function openAvatarDetails(avatar: MyAvatarRow | null | undefined) {
     const avatarId =
         typeof avatar?.id === 'string'
             ? avatar.id.trim()
@@ -89,7 +131,7 @@ export function AvatarActionsDropdown({
     isActive,
     isUpdating,
     onAction
-}: any) {
+}: AvatarActionsDropdownProps) {
     const { t } = useTranslation();
 
     const disabled = resolveMyAvatarActionDisabled(avatar, isUpdating);
@@ -141,15 +183,15 @@ export function MyAvatarFilterPopover({
     onPlatformChange,
     onTagFiltersChange,
     onClearFilters
-}: any) {
+}: MyAvatarFilterPopoverProps) {
     const { t } = useTranslation();
-    const visibilityFilterLabel = (option: any) =>
+    const visibilityFilterLabel = (option: string) =>
         option === 'all'
             ? t('view.search.avatar.all')
             : option === 'public'
               ? t('view.search.avatar.public')
               : t('view.search.avatar.private');
-    const platformFilterLabel = (option: any) =>
+    const platformFilterLabel = (option: string) =>
         option === 'all'
             ? t('view.search.avatar.all')
             : option === 'pc'
@@ -188,22 +230,18 @@ export function MyAvatarFilterPopover({
                             }}
                             className="grid w-full grid-cols-3"
                         >
-                            {MY_AVATARS_RELEASE_STATUS_OPTIONS.map(
-                                (option: any) => (
-                                    <ToggleGroupItem
-                                        key={option}
-                                        value={option}
-                                        aria-label={visibilityFilterLabel(
-                                            option
-                                        )}
-                                        className="w-full min-w-0 justify-center px-2"
-                                    >
-                                        <span className="truncate">
-                                            {visibilityFilterLabel(option)}
-                                        </span>
-                                    </ToggleGroupItem>
-                                )
-                            )}
+                            {MY_AVATARS_RELEASE_STATUS_OPTIONS.map((option) => (
+                                <ToggleGroupItem
+                                    key={option}
+                                    value={option}
+                                    aria-label={visibilityFilterLabel(option)}
+                                    className="w-full min-w-0 justify-center px-2"
+                                >
+                                    <span className="truncate">
+                                        {visibilityFilterLabel(option)}
+                                    </span>
+                                </ToggleGroupItem>
+                            ))}
                         </ToggleGroup>
                     </div>
                     <div className="flex flex-col gap-1.5">
@@ -223,7 +261,7 @@ export function MyAvatarFilterPopover({
                             }}
                             className="grid w-full grid-cols-4"
                         >
-                            {MY_AVATARS_PLATFORM_OPTIONS.map((option: any) => {
+                            {MY_AVATARS_PLATFORM_OPTIONS.map((option) => {
                                 const label = platformFilterLabel(option);
                                 return (
                                     <ToggleGroupItem
@@ -246,7 +284,7 @@ export function MyAvatarFilterPopover({
                                 {t('dialog.avatar.info.tags')}
                             </div>
                             <div className="flex max-h-40 flex-wrap gap-1 overflow-y-auto">
-                                {allTags.map((tag: any) => {
+                                {allTags.map((tag) => {
                                     const selected = tagFilters.has(tag);
                                     return (
                                         <Badge
@@ -269,7 +307,7 @@ export function MyAvatarFilterPopover({
                                                 aria-pressed={selected}
                                                 onClick={() =>
                                                     onTagFiltersChange(
-                                                        (current: any) =>
+                                                        (current) =>
                                                             toggleMyAvatarsTagFilter(
                                                                 current,
                                                                 tag
@@ -301,7 +339,10 @@ export function MyAvatarFilterPopover({
     );
 }
 
-export function GridSettingsMenu({ gridDensity, onGridDensityChange }: any) {
+export function GridSettingsMenu({
+    gridDensity,
+    onGridDensityChange
+}: GridSettingsMenuProps) {
     const { t } = useTranslation();
 
     return (
@@ -335,20 +376,18 @@ export function GridSettingsMenu({ gridDensity, onGridDensityChange }: any) {
                             }}
                             className="grid w-full grid-cols-3"
                         >
-                            {MY_AVATARS_GRID_DENSITY_OPTIONS.map(
-                                (option: any) => (
-                                    <ToggleGroupItem
-                                        key={option.value}
-                                        value={option.value}
-                                        aria-label={t(option.labelKey)}
-                                        className="w-full min-w-0 justify-center px-2"
-                                    >
-                                        <span className="truncate">
-                                            {t(option.labelKey)}
-                                        </span>
-                                    </ToggleGroupItem>
-                                )
-                            )}
+                            {MY_AVATARS_GRID_DENSITY_OPTIONS.map((option) => (
+                                <ToggleGroupItem
+                                    key={option.value}
+                                    value={option.value}
+                                    aria-label={t(option.labelKey)}
+                                    className="w-full min-w-0 justify-center px-2"
+                                >
+                                    <span className="truncate">
+                                        {t(option.labelKey)}
+                                    </span>
+                                </ToggleGroupItem>
+                            ))}
                         </ToggleGroup>
                     </Field>
                 </FieldGroup>

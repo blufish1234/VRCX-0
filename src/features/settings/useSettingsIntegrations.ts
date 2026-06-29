@@ -11,7 +11,10 @@ import {
     setYoutubeApiKeyPreference
 } from '@/services/preferencesService';
 import { normalizeDeepLTargetLanguage } from '@/services/translationService';
-import { normalizeTranslationApiType } from '@/state/preferencesStore';
+import {
+    normalizeTranslationApiType,
+    type DiscordPreferenceKey
+} from '@/state/preferencesStore';
 
 import {
     buildOpenAiModelsEndpoint,
@@ -20,7 +23,7 @@ import {
     parseWebJson
 } from './settingsValues';
 
-type SettingsIntegrationPrefs = {
+export type SettingsIntegrationPrefs = {
     youtubeAPI: boolean;
     youtubeAPIKey: string;
     translationAPI: boolean;
@@ -33,7 +36,7 @@ type SettingsIntegrationPrefs = {
     [key: string]: unknown;
 };
 
-type SettingsDiscordPrefs = {
+export type SettingsDiscordPrefs = {
     discordActive: boolean;
     discordInstance: boolean;
     discordHideInvite: boolean;
@@ -62,7 +65,51 @@ type SettingsTranslationDraft = {
     [key: string]: unknown;
 };
 
-export function useSettingsIntegrations({ commit }: any) {
+type PreferenceAction = () => unknown | Promise<unknown>;
+type PreferenceRollback = void | (() => void);
+type SettingsIntegrationsDeps = {
+    commit: (
+        action: PreferenceAction,
+        optimistic?: () => PreferenceRollback
+    ) => Promise<boolean>;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object');
+}
+
+function readModelId(model: unknown): string | null {
+    if (!isRecord(model)) {
+        return null;
+    }
+    return typeof model.id === 'string' && model.id ? model.id : null;
+}
+
+function readModelIdOrName(model: unknown): string | null {
+    if (!isRecord(model)) {
+        return null;
+    }
+    const value = model.id || model.name;
+    return typeof value === 'string' && value ? value : null;
+}
+
+function readTranslationModelNames(payload: unknown): string[] {
+    if (isRecord(payload) && Array.isArray(payload.data)) {
+        return payload.data
+            .map(readModelId)
+            .filter((modelName): modelName is string => Boolean(modelName))
+            .sort();
+    }
+    if (Array.isArray(payload)) {
+        return payload
+            .map(readModelIdOrName)
+            .filter((modelName): modelName is string => Boolean(modelName))
+            .sort();
+    }
+    return [];
+}
+
+export function useSettingsIntegrations({ commit }: SettingsIntegrationsDeps) {
     const { t } = useTranslation();
     const [integrationPrefs, setIntegrationPrefs] =
         useState<SettingsIntegrationPrefs>({
@@ -114,11 +161,11 @@ export function useSettingsIntegrations({ commit }: any) {
             configRepository.getString('youtubeAPIKey', ''),
             configRepository.getString('translationAPIKey', '')
         ])
-            .then(([youtubeAPIKey, translationAPIKey]: any) => {
+            .then(([youtubeAPIKey, translationAPIKey]) => {
                 if (!active) {
                     return;
                 }
-                setIntegrationPrefs((current: any) => ({
+                setIntegrationPrefs((current) => ({
                     ...current,
                     youtubeAPIKey: youtubeAPIKey || '',
                     translationAPIKey: translationAPIKey || ''
@@ -130,12 +177,18 @@ export function useSettingsIntegrations({ commit }: any) {
         };
     }, []);
 
-    function setIntegrationValue(key: any, value: any) {
-        setIntegrationPrefs((current: any) => ({ ...current, [key]: value }));
+    function setIntegrationValue(
+        key: keyof SettingsIntegrationPrefs,
+        value: unknown
+    ) {
+        setIntegrationPrefs((current) => ({ ...current, [key]: value }));
     }
 
-    function setTranslationDraftValue(key: any, value: any) {
-        setTranslationDraft((current: any) => ({ ...current, [key]: value }));
+    function setTranslationDraftValue(
+        key: keyof SettingsTranslationDraft,
+        value: string
+    ) {
+        setTranslationDraft((current) => ({ ...current, [key]: value }));
     }
 
     function openYoutubeApiDialog() {
@@ -162,11 +215,14 @@ export function useSettingsIntegrations({ commit }: any) {
         setTranslationApiDialogOpen(true);
     }
 
-    function setDiscordValue(key: any, value: any) {
-        setDiscordPrefs((current: any) => ({ ...current, [key]: value }));
+    function setDiscordValue(key: DiscordPreferenceKey, value: boolean) {
+        setDiscordPrefs((current) => ({ ...current, [key]: value }));
     }
 
-    async function saveDiscordBoolPreference(key: any, value: any) {
+    async function saveDiscordBoolPreference(
+        key: DiscordPreferenceKey,
+        value: boolean
+    ) {
         await commit(
             () => setDiscordBoolPreference(key, value),
             () => {
@@ -177,7 +233,7 @@ export function useSettingsIntegrations({ commit }: any) {
         );
     }
 
-    async function validateYoutubeApiKey(apiKey: any) {
+    async function validateYoutubeApiKey(apiKey: string) {
         if (!apiKey) {
             return;
         }
@@ -186,10 +242,11 @@ export function useSettingsIntegrations({ commit }: any) {
             apiKey
         });
         const payload = parseWebJson(response);
+        const items = isRecord(payload) ? payload.items : null;
         if (
             response.status !== 200 ||
-            !Array.isArray(payload.items) ||
-            payload.items.length === 0
+            !Array.isArray(items) ||
+            items.length === 0
         ) {
             throw new Error(t('dialog.youtube_api.msg_test_failed'));
         }
@@ -197,14 +254,14 @@ export function useSettingsIntegrations({ commit }: any) {
 
     async function saveYoutubeApiKey() {
         const apiKey = youtubeApiKeyDraft.trim();
-        setIntegrationStatus((current: any) => ({
+        setIntegrationStatus((current) => ({
             ...current,
             youtube: 'running'
         }));
         try {
             await validateYoutubeApiKey(apiKey);
             await setYoutubeApiKeyPreference(apiKey);
-            setIntegrationPrefs((current: any) => ({
+            setIntegrationPrefs((current) => ({
                 ...current,
                 youtubeAPIKey: apiKey
             }));
@@ -221,7 +278,7 @@ export function useSettingsIntegrations({ commit }: any) {
                     : t('dialog.youtube_api.msg_test_failed')
             );
         } finally {
-            setIntegrationStatus((current: any) => ({
+            setIntegrationStatus((current) => ({
                 ...current,
                 youtube: 'idle'
             }));
@@ -249,7 +306,7 @@ export function useSettingsIntegrations({ commit }: any) {
             return;
         }
 
-        setIntegrationStatus((current: any) => ({
+        setIntegrationStatus((current) => ({
             ...current,
             translation: 'running'
         }));
@@ -262,7 +319,7 @@ export function useSettingsIntegrations({ commit }: any) {
                 translationAPIModel: nextModel,
                 translationAPIPrompt: translationDraft.translationAPIPrompt
             });
-            setIntegrationPrefs((current: any) => ({
+            setIntegrationPrefs((current) => ({
                 ...current,
                 ...savedConfig
             }));
@@ -277,7 +334,7 @@ export function useSettingsIntegrations({ commit }: any) {
                       )
             );
         } finally {
-            setIntegrationStatus((current: any) => ({
+            setIntegrationStatus((current) => ({
                 ...current,
                 translation: 'idle'
             }));
@@ -288,12 +345,12 @@ export function useSettingsIntegrations({ commit }: any) {
         const endpoint =
             translationDraft.translationAPIEndpoint.trim() ||
             DEFAULT_TRANSLATION_ENDPOINT;
-        const headers: any = {};
+        const headers: Record<string, string> = {};
         if (translationDraft.translationAPIKey.trim()) {
             headers.Authorization = `Bearer ${translationDraft.translationAPIKey.trim()}`;
         }
 
-        setIntegrationStatus((current: any) => ({
+        setIntegrationStatus((current) => ({
             ...current,
             models: 'running'
         }));
@@ -308,17 +365,7 @@ export function useSettingsIntegrations({ commit }: any) {
                 throw new Error(`Failed to fetch models: ${response.status}`);
             }
             const payload = parseWebJson(response);
-            const models = Array.isArray(payload.data)
-                ? payload.data
-                      .map((model: any) => model?.id)
-                      .filter(Boolean)
-                      .sort()
-                : Array.isArray(payload)
-                  ? payload
-                        .map((model: any) => model?.id || model?.name)
-                        .filter(Boolean)
-                        .sort()
-                  : [];
+            const models = readTranslationModelNames(payload);
             setAvailableTranslationModels(models);
             if (models.length && !translationDraft.translationAPIModel.trim()) {
                 setTranslationDraftValue('translationAPIModel', models[0]);
@@ -339,7 +386,7 @@ export function useSettingsIntegrations({ commit }: any) {
                       )
             );
         } finally {
-            setIntegrationStatus((current: any) => ({
+            setIntegrationStatus((current) => ({
                 ...current,
                 models: 'idle'
             }));
@@ -351,7 +398,7 @@ export function useSettingsIntegrations({ commit }: any) {
             translationDraft.translationAPIType
         );
         const apiKey = translationDraft.translationAPIKey.trim();
-        setIntegrationStatus((current: any) => ({
+        setIntegrationStatus((current) => ({
             ...current,
             translation: 'running'
         }));
@@ -409,7 +456,9 @@ export function useSettingsIntegrations({ commit }: any) {
                 const model =
                     translationDraft.translationAPIModel.trim() ||
                     DEFAULT_TRANSLATION_MODEL;
-                const headers: any = { 'Content-Type': 'application/json' };
+                const headers: Record<string, string> = {
+                    'Content-Type': 'application/json'
+                };
                 if (apiKey) {
                     headers.Authorization = `Bearer ${apiKey}`;
                 }
@@ -445,7 +494,7 @@ export function useSettingsIntegrations({ commit }: any) {
                     : t('dialog.translation_api.msg_test_failed')
             );
         } finally {
-            setIntegrationStatus((current: any) => ({
+            setIntegrationStatus((current) => ({
                 ...current,
                 translation: 'idle'
             }));

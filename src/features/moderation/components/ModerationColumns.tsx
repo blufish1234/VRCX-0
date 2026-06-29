@@ -39,7 +39,7 @@ export function useModerationColumns({
 }: ModerationColumnsOptions) {
     const { t } = useTranslation();
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
-    const getModerationTypeLabel = (type: any) =>
+    const getModerationTypeLabel = (type: unknown) =>
         resolveModerationTypeLabel(type, t);
 
     return useMemo<ColumnDef<ModerationRow>[]>(
@@ -60,14 +60,14 @@ export function useModerationColumns({
                 meta: {
                     label: t('table.moderation.date')
                 },
-                accessorFn: (row: any) => row?.created || '',
-                header: ({ column }: any) => (
+                accessorFn: (row) => row?.created || '',
+                header: ({ column }) => (
                     <SortButton
                         column={column}
                         label={t('table.moderation.date')}
                     />
                 ),
-                sortingFn: (rowA: any, rowB: any) => {
+                sortingFn: (rowA, rowB) => {
                     const leftTs = Date.parse(rowA.original?.created ?? '');
                     const rightTs = Date.parse(rowB.original?.created ?? '');
                     if (
@@ -81,7 +81,7 @@ export function useModerationColumns({
                         String(rowB.original?.id || '')
                     );
                 },
-                cell: ({ row }: any) => {
+                cell: ({ row }) => {
                     const createdAt = row.original?.created || '';
                     return (
                         <Tooltip>
@@ -103,14 +103,14 @@ export function useModerationColumns({
                 meta: {
                     label: t('table.moderation.type')
                 },
-                accessorFn: (row: any) => row?.type || '',
-                header: ({ column }: any) => (
+                accessorFn: (row) => row?.type || '',
+                header: ({ column }) => (
                     <SortButton
                         column={column}
                         label={t('table.moderation.type')}
                     />
                 ),
-                cell: ({ row }: any) => (
+                cell: ({ row }) => (
                     <Badge variant="outline" className="text-muted-foreground">
                         {getModerationTypeLabel(row.original?.type)}
                     </Badge>
@@ -123,14 +123,14 @@ export function useModerationColumns({
                 meta: {
                     label: t('table.moderation.source')
                 },
-                accessorFn: (row: any) =>
+                accessorFn: (row) =>
                     row?.sourceDisplayName || row?.sourceUserId || '',
                 header: () => (
                     <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                         {t('table.moderation.source')}
                     </span>
                 ),
-                cell: ({ row }: any) => (
+                cell: ({ row }) => (
                     <Button
                         type="button"
                         variant="ghost"
@@ -160,14 +160,14 @@ export function useModerationColumns({
                     label: t('table.moderation.target'),
                     stretch: true
                 },
-                accessorFn: (row: any) =>
+                accessorFn: (row) =>
                     row?.targetDisplayName || row?.targetUserId || '',
                 header: () => (
                     <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                         {t('table.moderation.target')}
                     </span>
                 ),
-                cell: ({ row }: any) => (
+                cell: ({ row }) => (
                     <Button
                         type="button"
                         variant="ghost"
@@ -197,13 +197,13 @@ export function useModerationColumns({
                 meta: {
                     label: t('table.moderation.action')
                 },
-                accessorFn: (row: any) => getModerationRowKey(row),
+                accessorFn: (row) => getModerationRowKey(row),
                 header: () => (
                     <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                         {t('table.moderation.action')}
                     </span>
                 ),
-                cell: ({ row }: any) => {
+                cell: ({ row }) => {
                     const original = row.original;
                     const rowKey = getModerationRowKey(original);
                     const canDelete =

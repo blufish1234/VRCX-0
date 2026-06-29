@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 
+import type { SidebarFriendRecord } from '@/components/sidebar/friends-sidebar/friendsSidebarModel';
 import { entityQueryPolicies, queryKeys } from '@/lib/entityQueryCache';
 import memoPersistenceRepository from '@/repositories/memoPersistenceRepository';
 import userProfileRepository from '@/repositories/userProfileRepository';
@@ -18,22 +19,26 @@ import {
     normalizeInstanceCounts
 } from './userHoverCardModel';
 
-type FriendRosterSeedState = {
-    friendsById: Record<string, Record<string, unknown>>;
-};
-
 type UserHoverCardProfile = Awaited<
     ReturnType<typeof userProfileRepository.getUserProfile>
 >;
 type UserHoverCardPopulation = ReturnType<typeof normalizeInstanceCounts>;
 
-export function useUserHoverCardData({ userId, seed }: any) {
+type UserHoverCardDataInput = {
+    userId: unknown;
+    seed?: SidebarFriendRecord | Record<string, unknown> | null;
+};
+
+export function useUserHoverCardData({
+    userId,
+    seed = null
+}: UserHoverCardDataInput) {
     const endpoint = useRuntimeStore((state) => state.auth.currentUserEndpoint);
     const trustColor = usePreferencesStore((state) => state.trustColor);
 
     const normalizedInputUserId = normalizeId(userId);
     const shouldUseRosterSeed = !seed && Boolean(normalizedInputUserId);
-    const rosterSeed = useFriendRosterStore((state: FriendRosterSeedState) =>
+    const rosterSeed = useFriendRosterStore((state) =>
         shouldUseRosterSeed
             ? (state.friendsById[normalizedInputUserId] ?? null)
             : null
@@ -70,7 +75,7 @@ export function useUserHoverCardData({ userId, seed }: any) {
                 dialog: false,
                 isFriend
             })
-            .then((next: any) => {
+            .then((next: UserHoverCardProfile) => {
                 if (active) {
                     setProfile(next);
                 }
@@ -83,9 +88,13 @@ export function useUserHoverCardData({ userId, seed }: any) {
             });
         memoPersistenceRepository
             .getUserMemo(normalizedUserId)
-            .then((entry: any) => {
+            .then((entry: unknown) => {
                 if (active) {
-                    setMemo(String(entry?.memo || '').trim());
+                    const memoEntry =
+                        entry && typeof entry === 'object'
+                            ? (entry as { memo?: unknown })
+                            : null;
+                    setMemo(String(memoEntry?.memo || '').trim());
                 }
             })
             .catch(() => {});
@@ -125,10 +134,16 @@ export function useUserHoverCardData({ userId, seed }: any) {
         setPopulationLoading(true);
         vrchatInstanceRepository
             .getInstance({ worldId, instanceId, endpoint })
-            .then((response: any) => {
+            .then((response: unknown) => {
                 if (active) {
+                    const responseRecord =
+                        response && typeof response === 'object'
+                            ? (response as { json?: unknown })
+                            : null;
                     setPopulation(
-                        normalizeInstanceCounts(response?.json ?? response)
+                        normalizeInstanceCounts(
+                            responseRecord?.json ?? response
+                        )
                     );
                 }
             })

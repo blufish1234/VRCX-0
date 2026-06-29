@@ -1,6 +1,15 @@
-import { getFriendsSortFunction, sortStatus } from '@/shared/utils/friend';
+import {
+    getFriendsSortFunction,
+    sortStatus,
+    type FriendSortItem,
+    type FriendSortMethod
+} from '@/shared/utils/friend';
 import { isRealInstance } from '@/shared/utils/instance';
 export { resolveCurrentInviteLocation } from '@/shared/utils/invite';
+import type {
+    FriendLocationProjection,
+    FriendRecordInput
+} from '@/domain/friends/friendRosterTypes';
 import {
     parseLocation,
     resolveFriendPresenceLocation
@@ -9,7 +18,84 @@ import { normalizeString as normalizeId } from '@/shared/utils/string';
 import { getTrustColor } from '@/shared/utils/trustColors';
 import { computeTrustLevel } from '@/shared/utils/userTransforms';
 
-export function normalizeLocationStatus(value: any) {
+export type SidebarFriendRecord = FriendRecordInput & {
+    $friendNumber?: number;
+    $lastSeen?: string | number;
+    $location_at?: string | number | null;
+    $online_for?: string | number;
+    $userColour?: string;
+    created_at?: string;
+    developerType?: string;
+    displayName?: string;
+    id?: string;
+    last_activity?: string | number;
+    last_login?: string | number;
+    location?: string;
+    memberCount?: number;
+    name?: string;
+    state?: string;
+    stateBucket?: string;
+    status?: string | null;
+    tags?: string[];
+    updated_at?: string;
+    username?: string;
+    activeFriends?: unknown[];
+    isFriend?: unknown;
+    offlineFriends?: unknown[];
+    onlineFriends?: unknown[];
+    pendingOffline?: unknown;
+    ref?: SidebarFriendRecord | null;
+    statusDescription?: unknown;
+    travelingToLocation?: unknown;
+    traveling_to_time?: unknown;
+    travelingToTime?: unknown;
+};
+
+export type SidebarPreferences = {
+    gameLogDisabled?: boolean;
+    isHideFriendsInSameInstance?: boolean;
+    isSameInstanceAboveFavorites?: boolean;
+    isSidebarDivideByFriendGroup?: boolean;
+    sidebarFavoriteGroupOrder?: string[];
+    sidebarFavoriteGroups?: string[];
+    sidebarGroupByInstance?: boolean;
+    sidebarSortMethod1?: FriendSortMethod | '';
+    sidebarSortMethod2?: FriendSortMethod | '';
+    sidebarSortMethod3?: FriendSortMethod | '';
+};
+
+export type LastLocationSnapshot = {
+    friendList?:
+        | Set<unknown>
+        | Map<string, unknown>
+        | readonly string[]
+        | Record<string, unknown>;
+    location?: unknown;
+};
+
+type SidebarStatusOptions = {
+    hideNonFriend?: boolean;
+    isGameRunning?: boolean | null;
+};
+
+export type SameInstanceGroup = {
+    location: string;
+    rows: SidebarFriendRecord[];
+};
+
+function locationProjection(value: unknown): FriendLocationProjection | null {
+    return value && typeof value === 'object'
+        ? (value as FriendLocationProjection)
+        : null;
+}
+
+function isFriendSortMethod(
+    value: FriendSortMethod | '' | undefined
+): value is FriendSortMethod {
+    return Boolean(value);
+}
+
+export function normalizeLocationStatus(value: unknown) {
     const normalized = normalizeId(value).toLowerCase();
     if (normalized === 'offline:offline') {
         return 'offline';
@@ -23,15 +109,19 @@ export function normalizeLocationStatus(value: any) {
     return normalized;
 }
 
-export function resolvePresenceLocation(profile: any) {
+export function resolvePresenceLocation(profile: unknown) {
     return resolveFriendPresenceLocation(profile);
 }
 
-export function readFriendRef(friend: any) {
+export function readFriendRef(
+    friend: SidebarFriendRecord | null | undefined
+): SidebarFriendRecord | null | undefined {
     return friend?.ref && typeof friend.ref === 'object' ? friend.ref : friend;
 }
 
-export function readFriendStatusSource(friend: any) {
+export function readFriendStatusSource(
+    friend: SidebarFriendRecord | null | undefined
+) {
     const ref = readFriendRef(friend);
     if (!ref || ref === friend) {
         return friend;
@@ -44,19 +134,25 @@ export function readFriendStatusSource(friend: any) {
     };
 }
 
-export function readFriendRefLocation(friend: any) {
+export function readFriendRefLocation(
+    friend: SidebarFriendRecord | null | undefined
+) {
     const source = readFriendStatusSource(friend);
-    return normalizeId(source?.location || source?.$location?.tag);
+    return normalizeId(
+        source?.location || locationProjection(source?.$location)?.tag
+    );
 }
 
-export function readFriendRefTravelingLocation(friend: any) {
+export function readFriendRefTravelingLocation(
+    friend: SidebarFriendRecord | null | undefined
+) {
     const source = readFriendStatusSource(friend);
     return normalizeId(
         source?.travelingToLocation || source?.$travelingToLocation
     );
 }
 
-export function timestampMsFromValue(value: any) {
+export function timestampMsFromValue(value: unknown) {
     if (value === null || value === undefined || value === '') {
         return 0;
     }
@@ -64,11 +160,11 @@ export function timestampMsFromValue(value: any) {
     if (Number.isFinite(numberValue) && numberValue > 0) {
         return numberValue;
     }
-    const parsed = Date.parse(value);
+    const parsed = Date.parse(String(value));
     return Number.isFinite(parsed) ? parsed : 0;
 }
 
-export function clearStaleOfflineLocation(location: any, state: any) {
+export function clearStaleOfflineLocation(location: unknown, state: unknown) {
     const normalizedState = normalizeLocationStatus(state);
     if (
         (normalizedState === 'online' || normalizedState === 'active') &&
@@ -80,8 +176,8 @@ export function clearStaleOfflineLocation(location: any, state: any) {
 }
 
 export function buildFavoriteIdSet(
-    remoteFavoriteIds: any,
-    localFriendFavorites: any
+    remoteFavoriteIds: readonly unknown[] | null | undefined,
+    localFriendFavorites: Record<string, unknown> | null | undefined
 ) {
     const ids = new Set(
         (remoteFavoriteIds || []).map(normalizeId).filter(Boolean)
@@ -100,11 +196,14 @@ export function buildFavoriteIdSet(
     return ids;
 }
 
-export function resolveTrustNameColour(friend: any, trustColor: any) {
+export function resolveTrustNameColour(
+    friend: SidebarFriendRecord | null | undefined,
+    trustColor: unknown
+) {
     if (!friend?.$trustClass && Array.isArray(friend?.tags)) {
         const trust = computeTrustLevel(
             friend.tags,
-            friend.developerType || ''
+            typeof friend.developerType === 'string' ? friend.developerType : ''
         );
         return getTrustColor(
             {
@@ -120,7 +219,7 @@ export function resolveTrustNameColour(friend: any, trustColor: any) {
     return getTrustColor(friend, trustColor);
 }
 
-export function legacyStatusDotClassName(status: any) {
+export function legacyStatusDotClassName(status: unknown) {
     const normalizedStatus = normalizeLocationStatus(status);
     if (normalizedStatus === 'active') {
         return 'bg-[var(--status-online)]';
@@ -137,7 +236,7 @@ export function legacyStatusDotClassName(status: any) {
     return '';
 }
 
-export function normalizeStateBucket(value: any) {
+export function normalizeStateBucket(value: unknown) {
     const normalized = normalizeLocationStatus(value);
     return normalized === 'online' ||
         normalized === 'active' ||
@@ -146,7 +245,9 @@ export function normalizeStateBucket(value: any) {
         : '';
 }
 
-export function resolveCurrentUserStateBucket(currentUser: any) {
+export function resolveCurrentUserStateBucket(
+    currentUser: SidebarFriendRecord | null | undefined
+) {
     const explicitState =
         normalizeStateBucket(currentUser?.stateBucket) ||
         normalizeStateBucket(currentUser?.state);
@@ -155,7 +256,8 @@ export function resolveCurrentUserStateBucket(currentUser: any) {
     }
     if (
         normalizeLocationStatus(
-            currentUser?.location || currentUser?.$location?.tag
+            currentUser?.location ||
+                locationProjection(currentUser?.$location)?.tag
         ) === 'offline'
     ) {
         return 'offline';
@@ -163,7 +265,7 @@ export function resolveCurrentUserStateBucket(currentUser: any) {
     return 'online';
 }
 
-function activeStatusDotClassName(status: any) {
+function activeStatusDotClassName(status: unknown) {
     const normalizedStatus = normalizeLocationStatus(status);
     if (normalizedStatus === 'join me' || normalizedStatus === 'joinme') {
         return 'border-[var(--status-joinme)] bg-background';
@@ -177,7 +279,7 @@ function activeStatusDotClassName(status: any) {
     return 'border-[var(--status-online)] bg-background';
 }
 
-function activeStatusSortValue(friend: any) {
+function activeStatusSortValue(friend: SidebarFriendRecord) {
     const source = readFriendStatusSource(friend);
     const normalizedStatus = normalizeLocationStatus(source?.status);
     if (
@@ -190,7 +292,10 @@ function activeStatusSortValue(friend: any) {
     return 'active';
 }
 
-function compareByActiveStatus(left: any, right: any) {
+function compareByActiveStatus(
+    left: SidebarFriendRecord,
+    right: SidebarFriendRecord
+) {
     return sortStatus(
         activeStatusSortValue(left),
         activeStatusSortValue(right)
@@ -198,10 +303,10 @@ function compareByActiveStatus(left: any, right: any) {
 }
 
 export function resolveSidebarStatusDotClassName(
-    friend: any,
-    currentUser: any,
-    isCurrentUser: any = false,
-    { hideNonFriend = true, isGameRunning = true }: any = {}
+    friend: SidebarFriendRecord | null | undefined,
+    currentUser: SidebarFriendRecord | null | undefined,
+    isCurrentUser = false,
+    { hideNonFriend = true, isGameRunning = true }: SidebarStatusOptions = {}
 ) {
     const source = readFriendStatusSource(friend);
     if (!source) {
@@ -210,7 +315,7 @@ export function resolveSidebarStatusDotClassName(
     const userId = normalizeId(source?.id || source?.userId);
     const status = normalizeLocationStatus(source?.status);
     const location = normalizeLocationStatus(
-        source?.location || source?.$location?.tag
+        source?.location || locationProjection(source?.$location)?.tag
     );
     const isOnlineByCurrentSnapshot = (
         currentUser?.onlineFriends || []
@@ -292,7 +397,9 @@ export function resolveSidebarStatusDotClassName(
     return '';
 }
 
-export function toLegacyFriendSortRow(friend: any) {
+export function toLegacyFriendSortRow(
+    friend: SidebarFriendRecord
+): FriendSortItem {
     const ref = readFriendRef(friend);
     return {
         ...friend,
@@ -303,30 +410,39 @@ export function toLegacyFriendSortRow(friend: any) {
             friend?.id ||
             '',
         ref: ref && ref !== friend ? { ...ref, ...friend } : friend
-    };
+    } as FriendSortItem;
 }
 
-export function sortRows(rows: any, prefs: any) {
+export function sortRows(
+    rows: readonly SidebarFriendRecord[],
+    prefs: SidebarPreferences
+) {
     const methods = [
         prefs.sidebarSortMethod1,
         prefs.sidebarSortMethod2,
         prefs.sidebarSortMethod3
-    ].filter(Boolean);
+    ].filter(isFriendSortMethod);
     if (!methods.length) {
         return rows;
     }
     const sort = getFriendsSortFunction(methods);
-    return [...rows].sort((left: any, right: any) =>
+    return [...rows].sort((left, right) =>
         sort(toLegacyFriendSortRow(left), toLegacyFriendSortRow(right))
     );
 }
 
-export function sortActiveRows(rows: any, prefs: any) {
+export function sortActiveRows(
+    rows: readonly SidebarFriendRecord[],
+    prefs: SidebarPreferences
+) {
     const sortedRows = sortRows(rows, prefs);
     return [...sortedRows].sort(compareByActiveStatus);
 }
 
-export function lastLocationHasFriend(lastLocation: any, friendId: any) {
+export function lastLocationHasFriend(
+    lastLocation: LastLocationSnapshot | null | undefined,
+    friendId: unknown
+) {
     const normalizedFriendId = normalizeId(friendId);
     if (!normalizedFriendId) {
         return false;
@@ -336,12 +452,20 @@ export function lastLocationHasFriend(lastLocation: any, friendId: any) {
         return friendList.has(normalizedFriendId);
     }
     if (Array.isArray(friendList)) {
-        return friendList.includes(normalizedFriendId);
+        return friendList.some((id) => normalizeId(id) === normalizedFriendId);
     }
-    return Boolean(friendList?.[normalizedFriendId]);
+    if (friendList && typeof friendList === 'object') {
+        return Boolean(
+            (friendList as Record<string, unknown>)[normalizedFriendId]
+        );
+    }
+    return false;
 }
 
-export function sameInstanceLocationTag(friend: any, lastLocation: any) {
+export function sameInstanceLocationTag(
+    friend: SidebarFriendRecord,
+    lastLocation: LastLocationSnapshot | null | undefined
+) {
     const source = readFriendStatusSource(friend);
     if (
         normalizeLocationStatus(source?.stateBucket || source?.state) !==
@@ -350,9 +474,8 @@ export function sameInstanceLocationTag(friend: any, lastLocation: any) {
         return '';
     }
     const parsedLocation =
-        source?.$location && typeof source.$location === 'object'
-            ? source.$location
-            : parseLocation(source?.location);
+        locationProjection(source?.$location) ||
+        parseLocation(source?.location);
     let locationTag = normalizeId(parsedLocation?.tag || source?.location);
     if (
         !parsedLocation?.isRealInstance &&
@@ -363,7 +486,10 @@ export function sameInstanceLocationTag(friend: any, lastLocation: any) {
     return isRealInstance(locationTag) ? locationTag : '';
 }
 
-export function readFriendInstanceEpoch(source: any, isTraveling: any) {
+export function readFriendInstanceEpoch(
+    source: SidebarFriendRecord | null | undefined,
+    isTraveling: boolean
+) {
     const locationEpoch =
         source?.$location_at || source?.locationAt || source?.location_at;
     if (!isTraveling) {
@@ -377,15 +503,18 @@ export function readFriendInstanceEpoch(source: any, isTraveling: any) {
     );
 }
 
-export function sameInstanceFallbackKey(locationTag: any, friend: any) {
+export function sameInstanceFallbackKey(
+    locationTag: unknown,
+    friend: SidebarFriendRecord
+) {
     const friendId = normalizeId(friend?.id);
     return `${locationTag}:${friendId || normalizeId(readFriendRef(friend)?.id)}`;
 }
 
 export function withSameInstanceJoinTime(
-    friend: any,
-    locationTag: any,
-    fallbackJoinTimes: any
+    friend: SidebarFriendRecord,
+    locationTag: string,
+    fallbackJoinTimes: Map<string, number>
 ) {
     const source = readFriendStatusSource(friend);
     if (timestampMsFromValue(readFriendInstanceEpoch(source, false))) {
@@ -413,13 +542,13 @@ export function withSameInstanceJoinTime(
 }
 
 export function buildSameInstanceGroups(
-    rows: any,
-    prefs: any,
-    lastLocation: any,
-    fallbackJoinTimes: any
+    rows: readonly SidebarFriendRecord[],
+    prefs: SidebarPreferences,
+    lastLocation: LastLocationSnapshot | null | undefined,
+    fallbackJoinTimes: Map<string, number>
 ) {
-    const groupsByLocation = new Map();
-    const activeFallbackKeys = new Set();
+    const groupsByLocation = new Map<string, SidebarFriendRecord[]>();
+    const activeFallbackKeys = new Set<string>();
     for (const friend of sortRows(rows, prefs)) {
         const locationTag = sameInstanceLocationTag(friend, lastLocation);
         if (!locationTag) {
@@ -432,11 +561,13 @@ export function buildSameInstanceGroups(
         const needsFallback = !timestampMsFromValue(
             readFriendInstanceEpoch(source, false)
         );
-        groupsByLocation
-            .get(locationTag)
-            .push(
-                withSameInstanceJoinTime(friend, locationTag, fallbackJoinTimes)
-            );
+        const groupRows = groupsByLocation.get(locationTag);
+        if (!groupRows) {
+            continue;
+        }
+        groupRows.push(
+            withSameInstanceJoinTime(friend, locationTag, fallbackJoinTimes)
+        );
         if (needsFallback) {
             activeFallbackKeys.add(
                 sameInstanceFallbackKey(locationTag, friend)
@@ -449,7 +580,12 @@ export function buildSameInstanceGroups(
         }
     }
     return Array.from(groupsByLocation.entries())
-        .filter(([, groupRows]: any) => groupRows.length > 1)
-        .sort((left: any, right: any) => right[1].length - left[1].length)
-        .map(([location, groupRows]: any) => ({ location, rows: groupRows }));
+        .filter(([, groupRows]) => groupRows.length > 1)
+        .sort((left, right) => right[1].length - left[1].length)
+        .map(
+            ([location, groupRows]): SameInstanceGroup => ({
+                location,
+                rows: groupRows
+            })
+        );
 }

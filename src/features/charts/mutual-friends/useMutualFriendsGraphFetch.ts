@@ -75,7 +75,7 @@ export function useMutualFriendsGraphFetch({
             reloadSnapshot(
                 'Fetched and cached the mutual-friends graph.',
                 statusOwnerUserId
-            ).catch((error: any) => {
+            ).catch((error: unknown) => {
                 toast.error(
                     error instanceof Error
                         ? error.message
@@ -155,7 +155,7 @@ export function useMutualFriendsGraphFetch({
         if (!currentUserId) {
             return;
         }
-        cancelMutualGraphFetch(currentUserId).catch((error: any) => {
+        cancelMutualGraphFetch(currentUserId).catch((error: unknown) => {
             toast.error(
                 error instanceof Error
                     ? error.message

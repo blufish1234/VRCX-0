@@ -7,7 +7,6 @@ import {
     MY_AVATARS_DEFAULT_CARD_SCALE,
     MY_AVATARS_GRID_DENSITY_CONFIG_KEY,
     MY_AVATARS_LEGACY_GRID_DENSITY_CONFIG_KEY,
-    MY_AVATARS_VIEW_MODES,
     resolveMyAvatarsGridDensity,
     sanitizeMyAvatarsGridDensity
 } from './myAvatarsState';
@@ -44,12 +43,12 @@ export function useMyAvatarsFilters() {
                     nextGridDensity,
                     nextLegacyGridDensity,
                     nextLegacyCardScale
-                ]: any) => {
+                ]) => {
                     if (!active) {
                         return;
                     }
                     setViewMode(
-                        MY_AVATARS_VIEW_MODES.includes(nextViewMode)
+                        nextViewMode === 'grid' || nextViewMode === 'table'
                             ? nextViewMode
                             : 'grid'
                     );
@@ -74,7 +73,7 @@ export function useMyAvatarsFilters() {
         recordViewModeUsage('myAvatarsViewMode', nextViewMode);
     }
 
-    function handleGridDensityChange(value: MyAvatarsGridDensity) {
+    function handleGridDensityChange(value: string) {
         const nextDensity = sanitizeMyAvatarsGridDensity(
             value
         ) as MyAvatarsGridDensity;

@@ -17,7 +17,7 @@ export function useModerationFilters() {
         let active = true;
         configRepository
             .getString(MODERATION_TYPE_FILTERS_CONFIG_KEY, '[]')
-            .then((nextTypeFilters: any) => {
+            .then((nextTypeFilters) => {
                 if (!active) {
                     return;
                 }

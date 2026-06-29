@@ -6,6 +6,36 @@ import { useFriendRosterStore } from '@/state/friendRosterStore';
 
 import { enrichPlayerListRows } from './playerListEnrichment';
 import { buildFavoriteIdSet } from './playerListRows';
+import type {
+    PlayerListContext,
+    PlayerListModerationRecord,
+    PlayerListProfileRecord,
+    PlayerListSourceRow
+} from './playerListTypes';
+
+type PlayerListViewDataInput = {
+    clockNow: number;
+    context: PlayerListContext;
+    currentUserId?: unknown;
+    currentUserLocation?: unknown;
+    currentUserSnapshot?: PlayerListProfileRecord | null;
+    gameLogDisabled: boolean;
+    isGameRunning: boolean;
+    knownUsersById: Record<string, PlayerListProfileRecord | null | undefined>;
+    languageOptionsMap?: Parameters<
+        typeof enrichPlayerListRows
+    >[0]['languageOptionsMap'];
+    loadStatus: string;
+    moderationByUserId: Record<
+        string,
+        PlayerListModerationRecord | null | undefined
+    >;
+    playerSourceRows: PlayerListSourceRow[];
+    profilesByUserId: Record<
+        string,
+        PlayerListProfileRecord | null | undefined
+    >;
+};
 
 export function usePlayerListViewData({
     clockNow,
@@ -21,7 +51,7 @@ export function usePlayerListViewData({
     moderationByUserId,
     playerSourceRows,
     profilesByUserId
-}: any) {
+}: PlayerListViewDataInput) {
     const friendsById = useFriendRosterStore((state) => state.friendsById);
     const remoteFavoriteFriendIds = useFavoriteStore(
         (state) => state.favoriteFriendIds
@@ -67,7 +97,7 @@ export function usePlayerListViewData({
         ? filteredRows.length || Number(context.playerCount) || 0
         : 0;
     const headerFriendCount = filteredRows.reduce(
-        (total: any, row: any) => total + (row.isFriend ? 1 : 0),
+        (total, row) => total + (row.isFriend ? 1 : 0),
         0
     );
     const parsedLocation = useMemo(

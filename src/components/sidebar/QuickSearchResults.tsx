@@ -9,7 +9,12 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { CommandGroup, CommandItem } from '@/ui/shadcn/command';
 
-export function entityTypeLabel(type: any) {
+import type {
+    QuickSearchEntityType,
+    QuickSearchResult
+} from './quickSearchCatalog';
+
+export function entityTypeLabel(type: QuickSearchEntityType | string) {
     switch (type) {
         case 'friend':
             return 'User';
@@ -24,7 +29,13 @@ export function entityTypeLabel(type: any) {
     }
 }
 
-function ResultRow({ item, onSelect }: any) {
+function ResultRow({
+    item,
+    onSelect
+}: {
+    item: QuickSearchResult;
+    onSelect: (item: QuickSearchResult) => void;
+}) {
     const { t } = useTranslation();
     const Icon =
         item.type === 'friend'
@@ -89,13 +100,21 @@ function ResultRow({ item, onSelect }: any) {
     );
 }
 
-export function ResultGroup({ title, items, onSelect }: any) {
+export function ResultGroup({
+    title,
+    items,
+    onSelect
+}: {
+    title: string;
+    items: readonly QuickSearchResult[];
+    onSelect: (item: QuickSearchResult) => void;
+}) {
     if (!items.length) {
         return null;
     }
     return (
         <CommandGroup heading={title}>
-            {items.map((item: any) => (
+            {items.map((item) => (
                 <ResultRow
                     key={`${item.type}:${item.source}:${item.id}`}
                     item={item}

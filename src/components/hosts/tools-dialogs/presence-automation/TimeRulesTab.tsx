@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -46,20 +47,26 @@ import {
     priorityValueFromNumber,
     setGameRunningCondition,
     shouldRestorePreviousState,
+    type PresenceRuleActions,
+    type TimeAutomationRule,
+    type TimeWindowCondition,
     updateRule
 } from './presenceAutomationDialogUtils';
 import { PresenceRuleActionFields } from './PresenceRuleActionFields';
 
 const I18N_ROOT = 'view.tools.social_automation';
 
-function hasAction(rule: any, key: any) {
+function hasAction(rule: TimeAutomationRule, key: string) {
     return Object.prototype.hasOwnProperty.call(rule.actions || {}, key);
 }
 
-function updateTimeWindow(rule: any, patch: any) {
+function updateTimeWindow(
+    rule: TimeAutomationRule,
+    patch: Partial<TimeWindowCondition>
+): TimeAutomationRule {
     const timeWindow = getTimeWindow(rule);
     const otherConditions = (rule.conditions || []).filter(
-        (condition: any) => condition.type !== 'timeWindow'
+        (condition) => condition.type !== 'timeWindow'
     );
     return {
         ...rule,
@@ -67,7 +74,10 @@ function updateTimeWindow(rule: any, patch: any) {
     };
 }
 
-function updateAction(rule: any, patch: any) {
+function updateAction(
+    rule: TimeAutomationRule,
+    patch: Partial<PresenceRuleActions>
+): TimeAutomationRule {
     return {
         ...rule,
         actions: {
@@ -77,8 +87,8 @@ function updateAction(rule: any, patch: any) {
     };
 }
 
-function removeAction(rule: any, key: any) {
-    const actions: any = { ...(rule.actions || {}) };
+function removeAction(rule: TimeAutomationRule, key: string) {
+    const actions: PresenceRuleActions = { ...(rule.actions || {}) };
     delete actions[key];
     return {
         ...rule,
@@ -86,22 +96,22 @@ function removeAction(rule: any, key: any) {
     };
 }
 
-function ruleTitle(rule: any, t: any) {
+function ruleTitle(rule: TimeAutomationRule, t: TFunction) {
     return rule?.label || t(`${I18N_ROOT}.schedule_rule_default`);
 }
 
-function daysSummary(days: any, t: any) {
+function daysSummary(days: unknown, t: TFunction) {
     if (!Array.isArray(days) || days.length === 0) {
         return t(`${I18N_ROOT}.every_day`);
     }
     const selectedDays = new Set(days);
     return dayOptions
-        .filter((day: any) => selectedDays.has(day.value))
-        .map((day: any) => t(day.labelKey))
+        .filter((day) => selectedDays.has(day.value))
+        .map((day) => t(day.labelKey))
         .join(', ');
 }
 
-function actionSummary(rule: any, t: any) {
+function actionSummary(rule: TimeAutomationRule, t: TFunction) {
     const parts = [];
     if (rule.actions?.status) {
         parts.push(userStatusLabel(rule.actions.status, t));
@@ -112,7 +122,17 @@ function actionSummary(rule: any, t: any) {
     return parts.length ? parts.join(' / ') : t(`${I18N_ROOT}.do_not_change`);
 }
 
-export function TimeRulesTab({ rules, disabled, onRulesChange }: any) {
+type TimeRulesTabProps = {
+    disabled?: boolean;
+    onRulesChange: (rules: TimeAutomationRule[]) => unknown;
+    rules: TimeAutomationRule[];
+};
+
+export function TimeRulesTab({
+    rules,
+    disabled,
+    onRulesChange
+}: TimeRulesTabProps) {
     const { t } = useTranslation();
     const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
 
@@ -121,20 +141,23 @@ export function TimeRulesTab({ rules, disabled, onRulesChange }: any) {
             setSelectedRuleId(null);
             return;
         }
-        if (!rules.some((rule: any) => rule.id === selectedRuleId)) {
+        if (!rules.some((rule) => rule.id === selectedRuleId)) {
             setSelectedRuleId(rules[0].id);
         }
     }, [rules, selectedRuleId]);
 
     const selectedRule = useMemo(
-        () => rules.find((rule: any) => rule.id === selectedRuleId) || null,
+        () => rules.find((rule) => rule.id === selectedRuleId) || null,
         [rules, selectedRuleId]
     );
     const selectedTimeWindow = selectedRule
         ? getTimeWindow(selectedRule)
         : null;
 
-    function update(ruleId: any, updater: any) {
+    function update(
+        ruleId: string,
+        updater: (rule: TimeAutomationRule) => TimeAutomationRule
+    ) {
         onRulesChange(updateRule(rules, ruleId, updater));
     }
 
@@ -146,9 +169,9 @@ export function TimeRulesTab({ rules, disabled, onRulesChange }: any) {
         onRulesChange([...rules, nextRule]);
     }
 
-    function removeRule(ruleId: any) {
-        const ruleIndex = rules.findIndex((rule: any) => rule.id === ruleId);
-        const nextRules = rules.filter((rule: any) => rule.id !== ruleId);
+    function removeRule(ruleId: string) {
+        const ruleIndex = rules.findIndex((rule) => rule.id === ruleId);
+        const nextRules = rules.filter((rule) => rule.id !== ruleId);
         if (selectedRuleId === ruleId) {
             setSelectedRuleId(
                 nextRules[Math.min(ruleIndex, nextRules.length - 1)]?.id ?? null
@@ -168,7 +191,7 @@ export function TimeRulesTab({ rules, disabled, onRulesChange }: any) {
             emptyDescription={t(`${I18N_ROOT}.schedule_rules_description`)}
             onAdd={addRule}
         >
-            {rules.map((rule: any) => {
+            {rules.map((rule) => {
                 const timeWindow = getTimeWindow(rule);
                 return (
                     <RuleListItem
@@ -206,7 +229,7 @@ export function TimeRulesTab({ rules, disabled, onRulesChange }: any) {
                         }
                         onSelect={() => setSelectedRuleId(rule.id)}
                         onEnabledChange={(checked) =>
-                            update(rule.id, (current: any) => ({
+                            update(rule.id, (current) => ({
                                 ...current,
                                 enabled: checked
                             }))
@@ -242,7 +265,7 @@ export function TimeRulesTab({ rules, disabled, onRulesChange }: any) {
                                 value={selectedRule.label || ''}
                                 disabled={disabled}
                                 onChange={(event) =>
-                                    update(selectedRule.id, (current: any) => ({
+                                    update(selectedRule.id, (current) => ({
                                         ...current,
                                         label: event.target.value
                                     }))
@@ -260,7 +283,7 @@ export function TimeRulesTab({ rules, disabled, onRulesChange }: any) {
                                 )}
                                 disabled={disabled}
                                 onValueChange={(value) =>
-                                    update(selectedRule.id, (current: any) => ({
+                                    update(selectedRule.id, (current) => ({
                                         ...current,
                                         priority: priorityNumberFromValue(
                                             value,
@@ -274,7 +297,7 @@ export function TimeRulesTab({ rules, disabled, onRulesChange }: any) {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
-                                        {priorityOptions.map((option: any) => (
+                                        {priorityOptions.map((option) => (
                                             <SelectItem
                                                 key={option.value}
                                                 value={option.value}
@@ -295,7 +318,7 @@ export function TimeRulesTab({ rules, disabled, onRulesChange }: any) {
                                 value={selectedTimeWindow.start}
                                 disabled={disabled}
                                 onChange={(event) =>
-                                    update(selectedRule.id, (current: any) =>
+                                    update(selectedRule.id, (current) =>
                                         updateTimeWindow(current, {
                                             start: event.target.value
                                         })
@@ -310,7 +333,7 @@ export function TimeRulesTab({ rules, disabled, onRulesChange }: any) {
                                 value={selectedTimeWindow.end}
                                 disabled={disabled}
                                 onChange={(event) =>
-                                    update(selectedRule.id, (current: any) =>
+                                    update(selectedRule.id, (current) =>
                                         updateTimeWindow(current, {
                                             end: event.target.value
                                         })
@@ -333,16 +356,16 @@ export function TimeRulesTab({ rules, disabled, onRulesChange }: any) {
                             value={(selectedTimeWindow.days || []).map(String)}
                             className="flex flex-wrap"
                             onValueChange={(values) =>
-                                update(selectedRule.id, (current: any) =>
+                                update(selectedRule.id, (current) =>
                                     updateTimeWindow(current, {
-                                        days: values.map((value: any) =>
+                                        days: values.map((value) =>
                                             Number.parseInt(value, 10)
                                         )
                                     })
                                 )
                             }
                         >
-                            {dayOptions.map((day: any) => (
+                            {dayOptions.map((day) => (
                                 <ToggleGroupItem
                                     key={day.value}
                                     value={String(day.value)}
@@ -376,7 +399,7 @@ export function TimeRulesTab({ rules, disabled, onRulesChange }: any) {
                                     `${I18N_ROOT}.only_when_game_running`
                                 )}
                                 onCheckedChange={(checked) =>
-                                    update(selectedRule.id, (current: any) =>
+                                    update(selectedRule.id, (current) =>
                                         setGameRunningCondition(
                                             current,
                                             checked
@@ -411,7 +434,7 @@ export function TimeRulesTab({ rules, disabled, onRulesChange }: any) {
                                     `${I18N_ROOT}.restore_previous_status`
                                 )}
                                 onCheckedChange={(checked) =>
-                                    update(selectedRule.id, (current: any) => ({
+                                    update(selectedRule.id, (current) => ({
                                         ...current,
                                         restorePreviousState: checked
                                     }))
@@ -431,14 +454,14 @@ export function TimeRulesTab({ rules, disabled, onRulesChange }: any) {
                             selectedRule.actions?.statusDescription || ''
                         }
                         onStatusChange={(value) =>
-                            update(selectedRule.id, (current: any) =>
+                            update(selectedRule.id, (current) =>
                                 value === 'no-change'
                                     ? removeAction(current, 'status')
                                     : updateAction(current, { status: value })
                             )
                         }
                         onStatusDescriptionEnabledChange={(checked) =>
-                            update(selectedRule.id, (current: any) =>
+                            update(selectedRule.id, (current) =>
                                 checked
                                     ? updateAction(current, {
                                           statusDescription: ''
@@ -447,7 +470,7 @@ export function TimeRulesTab({ rules, disabled, onRulesChange }: any) {
                             )
                         }
                         onStatusDescriptionChange={(value) =>
-                            update(selectedRule.id, (current: any) =>
+                            update(selectedRule.id, (current) =>
                                 updateAction(current, {
                                     statusDescription: value
                                 })

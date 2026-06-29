@@ -60,13 +60,13 @@ export function useAvatarDialogState({ avatarId, seedData = null }: any) {
     const actionStatusRef = useRef('idle');
     const memoRevisionRef = useRef(0);
     const moderationRevisionRef = useRef(0);
-    const activeAvatarTargetRef = useRef<any>({
+    const activeAvatarTargetRef = useRef({
         avatarId: normalizedAvatarId,
         endpoint: currentEndpoint
     });
-    const imageUploadInputRef = useRef<any>(null);
-    const imageUploadAvatarRef = useRef<any>(null);
-    const galleryUploadInputRef = useRef<any>(null);
+    const imageUploadInputRef = useRef<HTMLInputElement | null>(null);
+    const imageUploadAvatarRef = useRef<unknown>(null);
+    const galleryUploadInputRef = useRef<HTMLInputElement | null>(null);
 
     useEffect(() => {
         activeAvatarTargetRef.current = {
@@ -256,7 +256,7 @@ export function useAvatarDialogState({ avatarId, seedData = null }: any) {
                 );
                 setLoadStatus('ready');
             })
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 if (!active) {
                     return;
                 }

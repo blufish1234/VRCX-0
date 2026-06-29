@@ -5,6 +5,7 @@ import { Button } from '@/ui/shadcn/button';
 import { Collapsible, CollapsibleTrigger } from '@/ui/shadcn/collapsible';
 
 import { StaticSidebarLocation } from './FriendsSidebarLocation';
+import type { SidebarVirtualRow } from './friendsSidebarVirtualRowBuilder';
 
 const FRIEND_ROW_SIZE = 49;
 const SECTION_HEADER_ROW_SIZE = 38;
@@ -14,7 +15,10 @@ const FAVORITE_GROUP_HEADER_ROW_SIZE = 26;
 const SIDEBAR_MESSAGE_ROW_SIZE = 64;
 const SIDEBAR_FOOTER_ROW_SIZE = 16;
 
-export function estimateFriendSidebarRowSize(row: any, index: any) {
+export function estimateFriendSidebarRowSize(
+    row: SidebarVirtualRow,
+    index: number
+) {
     switch (row?.type) {
         case 'section':
             return index === 0
@@ -41,7 +45,14 @@ export function FriendSectionHeader({
     open,
     isFirst = false,
     onToggle
-}: any) {
+}: {
+    id?: string;
+    title?: string;
+    count?: number;
+    open?: boolean;
+    isFirst?: boolean;
+    onToggle: (id: string) => void;
+}) {
     const isOpen = Boolean(open);
 
     return (
@@ -49,7 +60,7 @@ export function FriendSectionHeader({
             open={isOpen}
             onOpenChange={(nextOpen) => {
                 if (nextOpen !== isOpen) {
-                    onToggle(id);
+                    onToggle(id || '');
                 }
             }}
             className={isFirst ? undefined : 'pt-2'}
@@ -86,7 +97,13 @@ export function InstanceHeaderRow({
     metadata = null,
     showInstanceIdInLocation = false,
     ageGatedInstancesVisible = false
-}: any) {
+}: {
+    location?: unknown;
+    count?: number;
+    metadata?: Record<string, unknown> | null;
+    showInstanceIdInLocation?: boolean;
+    ageGatedInstancesVisible?: boolean;
+}) {
     return (
         <div className="mb-1 flex min-w-0 items-center px-1.5 text-xs">
             <StaticSidebarLocation

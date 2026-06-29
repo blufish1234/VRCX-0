@@ -1,18 +1,118 @@
 import { getFriendsSortFunction, sortStatus } from '@/shared/utils/friend';
+import type { FriendSortMethod } from '@/shared/utils/friend';
 
 import {
+    type FriendLocationFriend,
+    type SameInstanceGroup,
     normalizeFriendsLocationId as normalizeId,
     resolveLocationSummary,
     resolveLocationTarget
 } from './friendsLocationsRows';
 
-function interpolateFallback(value: any, values: any = {}) {
-    return String(value ?? '').replace(/\{(\w+)\}/g, (match: any, key: any) =>
+type TranslationFn = (
+    key: string,
+    options?: Record<string, unknown>
+) => unknown;
+
+type FriendSectionRecord = Record<string, unknown> & {
+    displayName?: unknown;
+    id?: unknown;
+    name?: unknown;
+    ref?: FriendSectionRecord | null;
+    status?: unknown;
+    username?: unknown;
+};
+
+type FavoriteGroupOption = {
+    key?: unknown;
+    displayName?: unknown;
+    name?: unknown;
+};
+
+type FavoriteGroupLabelsByFriendId = Map<string, string[]>;
+
+type FavoriteGroupLabelsInput = {
+    favoriteFriendGroups?: FavoriteGroupOption[] | null;
+    groupedFavoriteFriendIdsByGroupKey?: Record<string, unknown>;
+    localFriendFavorites?: Record<string, unknown>;
+    t?: TranslationFn | null;
+};
+
+type FavoriteGroupSortValue = {
+    key: string;
+    label?: string;
+};
+
+type FriendsLocationSectionDescriptor = {
+    key: string;
+    title: string;
+    description: string;
+    worldId: string;
+    groupId: string;
+    rawLocation?: string;
+};
+
+type FriendsLocationSection<
+    TFriend extends FriendLocationFriend = FriendLocationFriend
+> = FriendsLocationSectionDescriptor & {
+    displayInstanceInfo?: boolean;
+    friends: TFriend[];
+};
+
+type BuildSameInstanceSectionsInput<
+    TFriend extends FriendLocationFriend = FriendLocationFriend
+> = {
+    sameInstanceGroups: SameInstanceGroup<TFriend>[];
+    displayInstanceInfo?: boolean;
+    favoriteIds?: Set<string>;
+    favoriteGroupLabelsByFriendId?: FavoriteGroupLabelsByFriendId;
+    t?: TranslationFn | null;
+};
+
+type BuildFriendSectionsInput<
+    TFriend extends FriendLocationFriend = FriendLocationFriend
+> = {
+    friends: TFriend[];
+    groupingMode: string;
+    favoriteIds: Set<string>;
+    favoriteGroupLabelsByFriendId: FavoriteGroupLabelsByFriendId;
+    t?: TranslationFn | null;
+};
+
+function isRecord(value: unknown): value is FriendSectionRecord {
+    return typeof value === 'object' && value !== null;
+}
+
+const FRIEND_SORT_METHODS = new Set<string>([
+    'Sort Alphabetically',
+    'Sort Private to Bottom',
+    'Sort by Status',
+    'Sort by Last Active',
+    'Sort by Last Seen',
+    'Sort by Time in Instance',
+    'Sort by Location',
+    'None'
+]);
+
+function isFriendSortMethod(value: unknown): value is FriendSortMethod {
+    return typeof value === 'string' && FRIEND_SORT_METHODS.has(value);
+}
+
+function interpolateFallback(
+    value: unknown,
+    values: Record<string, unknown> = {}
+) {
+    return String(value ?? '').replace(/\{(\w+)\}/g, (match, key: string) =>
         Object.hasOwn(values, key) ? String(values[key]) : match
     );
 }
 
-function localized(t: any, key: any, fallback: any, values: any = {}) {
+function localized(
+    t: TranslationFn | null | undefined,
+    key: string,
+    fallback: string,
+    values: Record<string, unknown> = {}
+) {
     if (typeof t !== 'function') {
         return interpolateFallback(fallback, values);
     }
@@ -23,7 +123,11 @@ function localized(t: any, key: any, fallback: any, values: any = {}) {
     );
 }
 
-function appendLabel(labelsByFriendId: any, friendId: any, label: any) {
+function appendLabel(
+    labelsByFriendId: FavoriteGroupLabelsByFriendId,
+    friendId: unknown,
+    label: unknown
+) {
     const normalizedFriendId = normalizeId(friendId);
     const normalizedLabel =
         typeof label === 'string' ? label.trim() : String(label ?? '').trim();
@@ -43,8 +147,8 @@ export function buildFavoriteGroupLabelsByFriendId({
     groupedFavoriteFriendIdsByGroupKey,
     localFriendFavorites,
     t
-}: any) {
-    const labelsByFriendId = new Map();
+}: FavoriteGroupLabelsInput) {
+    const labelsByFriendId: FavoriteGroupLabelsByFriendId = new Map();
 
     for (const group of favoriteFriendGroups ?? []) {
         const groupKey = normalizeId(group?.key);
@@ -53,9 +157,11 @@ export function buildFavoriteGroupLabelsByFriendId({
         }
 
         const label = group?.displayName || group?.name || groupKey;
-        for (const friendId of groupedFavoriteFriendIdsByGroupKey?.[groupKey] ??
-            []) {
-            appendLabel(labelsByFriendId, friendId, label);
+        const friendIds = groupedFavoriteFriendIdsByGroupKey?.[groupKey];
+        if (Array.isArray(friendIds)) {
+            for (const friendId of friendIds) {
+                appendLabel(labelsByFriendId, friendId, label);
+            }
         }
     }
 
@@ -85,9 +191,9 @@ export function buildFavoriteGroupLabelsByFriendId({
 }
 
 export function compareFavoriteGroups(
-    left: any,
-    right: any,
-    order: any[] = []
+    left: FavoriteGroupSortValue,
+    right: FavoriteGroupSortValue,
+    order: string[] = []
 ) {
     const leftIndex = order.indexOf(left.key);
     const rightIndex = order.indexOf(right.key);
@@ -107,14 +213,21 @@ export function compareFavoriteGroups(
     );
 }
 
-function readFriendRef(friend: any) {
-    return friend?.ref && typeof friend.ref === 'object' ? friend.ref : friend;
+function readFriendRef(
+    friend: FriendLocationFriend | null | undefined
+): FriendSectionRecord {
+    if (!isRecord(friend)) {
+        return {};
+    }
+    return isRecord(friend.ref) ? friend.ref : friend;
 }
 
-function readFriendStatusSource(friend: any) {
+function readFriendStatusSource(
+    friend: FriendLocationFriend | null | undefined
+) {
     const ref = readFriendRef(friend);
     if (!ref || ref === friend) {
-        return friend;
+        return isRecord(friend) ? friend : {};
     }
     return {
         ...friend,
@@ -122,7 +235,7 @@ function readFriendStatusSource(friend: any) {
     };
 }
 
-function normalizeStatusText(value: any) {
+function normalizeStatusText(value: unknown) {
     const status =
         typeof value === 'string'
             ? value.trim().toLowerCase()
@@ -138,7 +251,7 @@ function normalizeStatusText(value: any) {
     return status;
 }
 
-function activeStatusSortValue(friend: any) {
+function activeStatusSortValue(friend: FriendLocationFriend) {
     const source = readFriendStatusSource(friend);
     const status = normalizeStatusText(source?.status);
     if (status === 'join me' || status === 'ask me' || status === 'busy') {
@@ -147,55 +260,64 @@ function activeStatusSortValue(friend: any) {
     return 'active';
 }
 
-function compareByActiveStatus(left: any, right: any) {
+function compareByActiveStatus(
+    left: FriendLocationFriend,
+    right: FriendLocationFriend
+) {
     return sortStatus(
         activeStatusSortValue(left),
         activeStatusSortValue(right)
     );
 }
 
-function toLegacyFriendSortRow(friend: any) {
+function toLegacyFriendSortRow(friend: FriendLocationFriend) {
     const ref = readFriendRef(friend);
+    const source = isRecord(friend) ? friend : {};
     return {
-        ...friend,
+        ...source,
         name:
-            friend?.name ||
-            friend?.displayName ||
-            friend?.username ||
-            friend?.id ||
+            source.name ||
+            source.displayName ||
+            source.username ||
+            source.id ||
             '',
-        ref: ref && ref !== friend ? { ...friend, ...ref } : friend
+        ref: ref && ref !== friend ? { ...source, ...ref } : source
     };
 }
 
-export function sortFriendsBySidebarPrefs(friends: any, sortMethods: any) {
-    const methods = (sortMethods ?? []).filter(Boolean);
+export function sortFriendsBySidebarPrefs<TFriend extends FriendLocationFriend>(
+    friends: TFriend[],
+    sortMethods: readonly string[] | null | undefined
+) {
+    const methods = [...(sortMethods ?? [])].filter(isFriendSortMethod);
     if (!methods.length) {
         return friends;
     }
 
     const sort = getFriendsSortFunction(methods);
-    return [...friends].sort((left: any, right: any) =>
-        sort(toLegacyFriendSortRow(left), toLegacyFriendSortRow(right))
+    return [...friends].sort((left, right) =>
+        sort(
+            toLegacyFriendSortRow(left) as Parameters<typeof sort>[0],
+            toLegacyFriendSortRow(right) as Parameters<typeof sort>[1]
+        )
     );
 }
 
-export function sortActiveFriendsBySidebarPrefs(
-    friends: any,
-    sortMethods: any
-) {
+export function sortActiveFriendsBySidebarPrefs<
+    TFriend extends FriendLocationFriend
+>(friends: TFriend[], sortMethods: readonly string[] | null | undefined) {
     return [...sortFriendsBySidebarPrefs(friends, sortMethods)].sort(
         compareByActiveStatus
     );
 }
 
 function resolveFavoriteGroupLabels(
-    friend: any,
-    favoriteGroupLabelsByFriendId: any,
-    favoriteIds: any,
-    t: any
+    friend: FriendLocationFriend,
+    favoriteGroupLabelsByFriendId: FavoriteGroupLabelsByFriendId,
+    favoriteIds: Set<string>,
+    t?: TranslationFn | null
 ) {
-    const friendId = normalizeId(friend?.id);
+    const friendId = normalizeId(isRecord(friend) ? friend.id : '');
     if (!friendId) {
         return [];
     }
@@ -210,10 +332,13 @@ function resolveFavoriteGroupLabels(
         : [];
 }
 
-function resolveInstanceSectionDescriptor(friend: any, t: any) {
+function resolveInstanceSectionDescriptor(
+    friend: FriendLocationFriend,
+    t?: TranslationFn | null
+): FriendsLocationSectionDescriptor {
     const target = resolveLocationTarget(friend);
     const summary = resolveLocationSummary(friend, t);
-    const descriptor: any = {
+    const descriptor: FriendsLocationSectionDescriptor = {
         key: 'instance:unknown',
         title: '',
         description: '',
@@ -277,13 +402,15 @@ function resolveInstanceSectionDescriptor(friend: any, t: any) {
     };
 }
 
-export function buildSameInstanceSections({
+export function buildSameInstanceSections<
+    TFriend extends FriendLocationFriend
+>({
     sameInstanceGroups,
     displayInstanceInfo = true,
     t
-}: any) {
+}: BuildSameInstanceSectionsInput<TFriend>): FriendsLocationSection<TFriend>[] {
     return sameInstanceGroups
-        .map(({ location, friends }: any) => {
+        .map(({ location, friends }) => {
             const descriptor = resolveInstanceSectionDescriptor(
                 {
                     ...friends[0],
@@ -301,10 +428,14 @@ export function buildSameInstanceSections({
                 friends
             };
         })
-        .filter((section: any) => section.friends.length > 0);
+        .filter((section) => section.friends.length > 0);
 }
 
-function upsertSection(sectionMap: any, descriptor: any, friend: any) {
+function upsertSection<TFriend extends FriendLocationFriend>(
+    sectionMap: Map<string, FriendsLocationSection<TFriend>>,
+    descriptor: FriendsLocationSectionDescriptor,
+    friend: TFriend
+) {
     const existing = sectionMap.get(descriptor.key);
     if (existing) {
         existing.friends.push(friend);
@@ -317,13 +448,13 @@ function upsertSection(sectionMap: any, descriptor: any, friend: any) {
     });
 }
 
-export function buildFriendSections({
+export function buildFriendSections<TFriend extends FriendLocationFriend>({
     friends,
     groupingMode,
     favoriteIds,
     favoriteGroupLabelsByFriendId,
     t
-}: any) {
+}: BuildFriendSectionsInput<TFriend>): FriendsLocationSection<TFriend>[] {
     if (groupingMode === 'flat') {
         return [
             {
@@ -341,7 +472,7 @@ export function buildFriendSections({
         ];
     }
 
-    const sectionsByKey = new Map();
+    const sectionsByKey = new Map<string, FriendsLocationSection<TFriend>>();
 
     for (const friend of friends) {
         if (groupingMode === 'favoriteGroup') {
@@ -391,7 +522,7 @@ export function buildFriendSections({
         );
     }
 
-    return Array.from(sectionsByKey.values()).sort((left: any, right: any) => {
+    return Array.from(sectionsByKey.values()).sort((left, right) => {
         if (
             left.key.startsWith('instance:offline') &&
             !right.key.startsWith('instance:offline')

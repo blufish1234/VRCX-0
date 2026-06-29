@@ -308,7 +308,7 @@ export function useLoginAutoLogin({
                         break;
                 }
             })
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 if (!active) {
                     return;
                 }

@@ -1,3 +1,4 @@
+import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -19,6 +20,22 @@ import { Input } from '@/ui/shadcn/input';
 
 import { Field, FieldGroup } from '../SettingsField';
 
+type TableLimitsDraft = {
+    maxTableSize: string;
+    searchLimit: string;
+};
+
+type TableLimitsDialogProps = {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    draft: TableLimitsDraft;
+    onDraftChange: Dispatch<SetStateAction<TableLimitsDraft>>;
+    tableMaxSizeError?: ReactNode;
+    searchLimitError?: ReactNode;
+    saveDisabled?: boolean;
+    onSave: () => void;
+};
+
 export function TableLimitsDialog({
     open: tableLimitsDialogOpen,
     onOpenChange: setTableLimitsDialogOpen,
@@ -28,7 +45,7 @@ export function TableLimitsDialog({
     searchLimitError,
     saveDisabled: tableLimitsSaveDisabled,
     onSave: saveTableLimitsDialog
-}: any) {
+}: TableLimitsDialogProps) {
     const { t } = useTranslation();
 
     return (
@@ -74,7 +91,7 @@ export function TableLimitsDialog({
                             max={TABLE_MAX_SIZE_MAX}
                             value={tableLimitsDraft.maxTableSize}
                             onChange={(event) =>
-                                setTableLimitsDraft((current: any) => ({
+                                setTableLimitsDraft((current) => ({
                                     ...current,
                                     maxTableSize: event.target.value
                                 }))
@@ -122,7 +139,7 @@ export function TableLimitsDialog({
                             max={SEARCH_LIMIT_MAX}
                             value={tableLimitsDraft.searchLimit}
                             onChange={(event) =>
-                                setTableLimitsDraft((current: any) => ({
+                                setTableLimitsDraft((current) => ({
                                     ...current,
                                     searchLimit: event.target.value
                                 }))

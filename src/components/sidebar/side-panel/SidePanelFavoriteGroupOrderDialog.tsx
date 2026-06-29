@@ -10,6 +10,17 @@ import {
     DialogTitle
 } from '@/ui/shadcn/dialog';
 
+import type { FavoriteGroupItem } from './sidebarTabLayout';
+
+type SidePanelFavoriteGroupOrderDialogProps = {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    favoriteGroupOrderDraft: FavoriteGroupItem[];
+    onMove: (index: number, delta: number) => void;
+    onReset: () => void;
+    onConfirm: () => void;
+};
+
 export function SidePanelFavoriteGroupOrderDialog({
     open,
     onOpenChange,
@@ -17,7 +28,7 @@ export function SidePanelFavoriteGroupOrderDialog({
     onMove,
     onReset,
     onConfirm
-}: any) {
+}: SidePanelFavoriteGroupOrderDialogProps) {
     const { t } = useTranslation();
 
     return (
@@ -29,7 +40,7 @@ export function SidePanelFavoriteGroupOrderDialog({
                     </DialogTitle>
                 </DialogHeader>
                 <div className="flex max-h-[50vh] flex-col gap-1 overflow-auto py-2">
-                    {favoriteGroupOrderDraft.map((group: any, index: any) => (
+                    {favoriteGroupOrderDraft.map((group, index) => (
                         <div
                             key={group.key}
                             className="flex items-center gap-2 rounded-md border px-2 py-1.5 text-sm"

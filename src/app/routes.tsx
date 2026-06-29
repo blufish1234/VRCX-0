@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, type ComponentType, type ReactElement } from 'react';
 import { Navigate } from 'react-router-dom';
 
 import { Spinner } from '@/ui/shadcn/spinner';
@@ -11,10 +11,23 @@ export function RouteLoadingFallback() {
     );
 }
 
-function lazyRouteElement(importPage: any, exportName: any) {
+type LazyRouteImporter<TModule extends Record<string, unknown>> =
+    () => Promise<TModule>;
+
+export type AppRouteDefinition = {
+    path: string;
+    element: ReactElement<{ to?: string } & Record<string, unknown>>;
+    titleKey?: string;
+    descriptionKey?: string;
+};
+
+function lazyRouteElement<TModule extends Record<string, unknown>>(
+    importPage: LazyRouteImporter<TModule>,
+    exportName: keyof TModule
+) {
     const RouteComponent = lazy(() =>
-        importPage().then((module: any) => ({
-            default: module[exportName]
+        importPage().then((module) => ({
+            default: module[exportName] as ComponentType
         }))
     );
 
@@ -25,7 +38,7 @@ function lazyRouteElement(importPage: any, exportName: any) {
     );
 }
 
-export const publicRoutes = [
+export const publicRoutes: AppRouteDefinition[] = [
     {
         path: '/login',
         element: lazyRouteElement(
@@ -35,7 +48,7 @@ export const publicRoutes = [
     }
 ];
 
-export const protectedRoutes = [
+export const protectedRoutes: AppRouteDefinition[] = [
     {
         path: '/feed',
         titleKey: 'app.routes.feed',

@@ -3,6 +3,9 @@ import { useEffect, useState } from 'react';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import playerListPersistenceRepository from '@/repositories/playerListPersistenceRepository';
 import { recordGameRuntimePresence } from '@/services/domainIngestionService';
+import { normalizeString } from '@/shared/utils/string';
+
+import type { PlayerListProfileRecord } from './playerListTypes';
 
 type CurrentInstanceSnapshotResult = Awaited<
     ReturnType<
@@ -16,15 +19,19 @@ function createRuntimeContext({
     playerListLocation,
     playerListWorldId,
     source = 'runtime'
-}: any) {
+}: {
+    playerListLocation?: unknown;
+    playerListWorldId?: unknown;
+    source?: CurrentPlayerContext['source'];
+}): CurrentPlayerContext {
     return {
         createdAt: '',
         groupName: '',
-        location: playerListLocation || '',
+        location: normalizeString(playerListLocation),
         playerCount: 0,
         source,
         time: 0,
-        worldId: playerListWorldId || '',
+        worldId: normalizeString(playerListWorldId),
         worldName: ''
     };
 }
@@ -41,7 +48,23 @@ export function useCurrentPlayerRows({
     playerListLocation,
     playerListStartedAt,
     playerListWorldId
-}: any) {
+}: {
+    addGameLogEventCount?: unknown;
+    currentUserEndpoint?: string;
+    currentUserId?: unknown;
+    currentUserSnapshot?: PlayerListProfileRecord | null;
+    gameLogDisabled: boolean;
+    gameLogTailSyncedAt?: unknown;
+    isGameRunning: boolean;
+    logLocationSnapshot?: {
+        createdAt?: unknown;
+        location?: unknown;
+        worldName?: unknown;
+    } | null;
+    playerListLocation?: unknown;
+    playerListStartedAt?: unknown;
+    playerListWorldId?: unknown;
+}) {
     const [loadStatus, setLoadStatus] = useState('idle');
     const [detail, setDetail] = useState('');
     const [context, setContext] = useState<CurrentPlayerContext>({
@@ -132,16 +155,18 @@ export function useCurrentPlayerRows({
                 currentLocationStartedAt: playerListStartedAt,
                 currentUserId
             })
-            .then(async (result: any) => {
+            .then(async (result) => {
                 if (!active) {
                     return;
                 }
 
-                const players = Array.isArray(result.players)
+                const players: CurrentPlayerRow[] = Array.isArray(
+                    result.players
+                )
                     ? result.players
                     : [];
 
-                const nextContext: any = {
+                const nextContext: CurrentPlayerContext = {
                     ...result.context,
                     playerCount: players.length || result.context.playerCount
                 };
@@ -150,15 +175,20 @@ export function useCurrentPlayerRows({
                     logLocationSnapshot.location === nextContext.location
                 ) {
                     nextContext.createdAt =
-                        nextContext.createdAt || logLocationSnapshot.createdAt;
+                        nextContext.createdAt ||
+                        normalizeString(logLocationSnapshot.createdAt);
                     nextContext.worldName =
-                        nextContext.worldName || logLocationSnapshot.worldName;
+                        nextContext.worldName ||
+                        normalizeString(logLocationSnapshot.worldName);
                 }
                 recordGameRuntimePresence({
-                    currentLocation: nextContext.location || playerListLocation,
+                    currentLocation:
+                        nextContext.location ||
+                        normalizeString(playerListLocation),
                     currentLocationPlayers: players,
                     currentLocationStartedAt:
-                        nextContext.createdAt || playerListStartedAt,
+                        nextContext.createdAt ||
+                        normalizeString(playerListStartedAt),
                     currentUserId,
                     currentUserSnapshot,
                     currentWorldName: nextContext.worldName,
@@ -173,7 +203,7 @@ export function useCurrentPlayerRows({
                         : 'Using the current runtime location while waiting for local game-log player events.'
                 );
             })
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 if (!active) {
                     return;
                 }

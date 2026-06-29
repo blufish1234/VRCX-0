@@ -2,7 +2,10 @@ import { CameraIcon, ImageIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { useLocationMetadataBatch } from '@/components/location/useLocationMetadata';
+import {
+    useLocationMetadataBatch,
+    type LocationMetadataEntry
+} from '@/components/location/useLocationMetadata';
 import { convertFileSrc } from '@/platform/tauri/assets';
 import { parseLocation } from '@/shared/utils/location';
 import { normalizeString } from '@/shared/utils/string';
@@ -18,10 +21,34 @@ function firstText(...values: unknown[]) {
     return values.map((value) => String(value || '').trim()).find(Boolean);
 }
 
+type ScreenshotThumbnailItem = Record<string, unknown> & {
+    capturedAt?: unknown;
+    fileName: string;
+    metadata?: {
+        world?: Record<string, unknown>;
+    };
+    modifiedAt?: unknown;
+    path: string;
+    sizeBytes?: unknown;
+    worldId?: unknown;
+    worldName?: unknown;
+};
+
+function isScreenshotThumbnailItem(
+    value: unknown
+): value is ScreenshotThumbnailItem {
+    return Boolean(
+        value &&
+        typeof value === 'object' &&
+        typeof (value as { path?: unknown }).path === 'string' &&
+        typeof (value as { fileName?: unknown }).fileName === 'string'
+    );
+}
+
 const WORLD_REFERENCE_PATTERN =
     /(?:^|\b)wrld_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?::|$|\s)/i;
 
-function normalizeThumbnailWorldName(value: any) {
+function normalizeThumbnailWorldName(value: unknown) {
     const normalizedValue = normalizeString(value);
     if (!normalizedValue || WORLD_REFERENCE_PATTERN.test(normalizedValue)) {
         return '';
@@ -29,7 +56,7 @@ function normalizeThumbnailWorldName(value: any) {
     return normalizedValue;
 }
 
-function resolveThumbnailLocation(item: any) {
+function resolveThumbnailLocation(item: ScreenshotThumbnailItem) {
     const metadataWorld = item.metadata?.world || {};
     return (
         firstText(metadataWorld.instanceId, metadataWorld.id, item.worldId) ||
@@ -37,7 +64,10 @@ function resolveThumbnailLocation(item: any) {
     );
 }
 
-function resolveDirectThumbnailTitle(item: any, worldNameHint: any = '') {
+function resolveDirectThumbnailTitle(
+    item: ScreenshotThumbnailItem,
+    worldNameHint: unknown = ''
+) {
     const metadataWorld = item.metadata?.world || {};
     return firstText(
         normalizeThumbnailWorldName(worldNameHint),
@@ -46,7 +76,9 @@ function resolveDirectThumbnailTitle(item: any, worldNameHint: any = '') {
     );
 }
 
-function buildThumbnailLocationEntry(item: any) {
+function buildThumbnailLocationEntry(
+    item: ScreenshotThumbnailItem
+): LocationMetadataEntry | null {
     const directTitle = resolveDirectThumbnailTitle(item);
     if (directTitle) {
         return null;
@@ -72,14 +104,16 @@ function buildThumbnailLocationEntry(item: any) {
 }
 
 export function useScreenshotThumbnailTitleMap(
-    items: any,
-    { worldNameHint = '' }: any = {}
+    items: unknown,
+    { worldNameHint = '' }: { worldNameHint?: unknown } = {}
 ) {
-    const safeItems = Array.isArray(items) ? items : [];
+    const safeItems = Array.isArray(items)
+        ? items.filter(isScreenshotThumbnailItem)
+        : [];
     const entries = useMemo(
         () =>
             safeItems
-                .map((item: any) =>
+                .map((item) =>
                     resolveDirectThumbnailTitle(item, worldNameHint)
                         ? null
                         : buildThumbnailLocationEntry(item)
@@ -90,7 +124,7 @@ export function useScreenshotThumbnailTitleMap(
     const metadataByKey = useLocationMetadataBatch(entries);
 
     return useMemo(() => {
-        const titleMap = new Map();
+        const titleMap = new Map<string, string>();
         for (const item of safeItems) {
             const metadata = metadataByKey.get(item.path);
             titleMap.set(
@@ -113,7 +147,13 @@ export function ScreenshotThumbnailCard({
     onOpen,
     title = '',
     worldNameHint = ''
-}: any) {
+}: {
+    compact?: boolean;
+    item: ScreenshotThumbnailItem;
+    onOpen: (path: string) => void;
+    title?: string;
+    worldNameHint?: unknown;
+}) {
     const { i18n, t } = useTranslation();
     const [thumbnailUrl, setThumbnailUrl] = useState('');
     const [loadState, setLoadState] = useState('idle');
@@ -125,11 +165,13 @@ export function ScreenshotThumbnailCard({
 
         const request = requestScreenshotThumbnail(item.path);
         request.promise
-            .then((thumbnailPath: any) => {
+            .then((thumbnailPath) => {
                 if (!active) {
                     return;
                 }
-                setThumbnailUrl(convertFileSrc(thumbnailPath, 'vrcx-0-thumb'));
+                setThumbnailUrl(
+                    convertFileSrc(String(thumbnailPath || ''), 'vrcx-0-thumb')
+                );
                 setLoadState('ready');
             })
             .catch(() => {
@@ -215,9 +257,17 @@ export function ScreenshotThumbnailGrid({
     items,
     onOpen,
     worldNameHint = ''
-}: any) {
+}: {
+    compact?: boolean;
+    count?: number;
+    items: unknown;
+    onOpen: (path: string) => void;
+    worldNameHint?: unknown;
+}) {
     const { t } = useTranslation();
-    const safeItems = Array.isArray(items) ? items : [];
+    const safeItems = Array.isArray(items)
+        ? items.filter(isScreenshotThumbnailItem)
+        : [];
     const titleMap = useScreenshotThumbnailTitleMap(safeItems, {
         worldNameHint
     });
@@ -236,7 +286,7 @@ export function ScreenshotThumbnailGrid({
                         : 'grid grid-cols-[repeat(auto-fill,minmax(208px,1fr))] gap-3'
                 }
             >
-                {safeItems.map((item: any) => (
+                {safeItems.map((item) => (
                     <ScreenshotThumbnailCard
                         key={item.path}
                         compact={compact}

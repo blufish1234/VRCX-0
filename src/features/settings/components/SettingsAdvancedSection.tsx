@@ -1,9 +1,16 @@
 import { useTranslation } from 'react-i18next';
 
+import type { SettingsPageStateSections } from '../settingsPageStateSections';
 import { normalizeCheckedState } from '../settingsValues';
 import { SettingsAdvancedTab } from './settings-tabs/SettingsAdvancedTab';
 
-export function SettingsAdvancedSection({ advanced }: any) {
+type SettingsAdvancedSectionProps = {
+    advanced: SettingsPageStateSections['advanced'];
+};
+
+export function SettingsAdvancedSection({
+    advanced
+}: SettingsAdvancedSectionProps) {
     const { t } = useTranslation();
     const {
         prefs,
@@ -48,7 +55,7 @@ export function SettingsAdvancedSection({ advanced }: any) {
         gameLogDisabledLabel: t(
             'view.settings.advanced.advanced.cache_debug.disable_gamelog'
         ),
-        onRelaunchVRChatAfterCrashChange: (checked: any) => {
+        onRelaunchVRChatAfterCrashChange: (checked: unknown) => {
             const enabled = normalizeCheckedState(checked);
             saveBoolPreference(
                 'relaunchVRChatAfterCrash',
@@ -56,14 +63,14 @@ export function SettingsAdvancedSection({ advanced }: any) {
                 enabled
             );
         },
-        onVrcQuitFixChange: (checked: any) => {
+        onVrcQuitFixChange: (checked: unknown) => {
             saveBoolPreference(
                 'vrcQuitFix',
                 'vrcQuitFix',
                 normalizeCheckedState(checked)
             );
         },
-        onAutoSweepVRChatCacheChange: (checked: any) => {
+        onAutoSweepVRChatCacheChange: (checked: unknown) => {
             const enabled = normalizeCheckedState(checked);
             saveBoolPreference(
                 'autoSweepVRChatCache',
@@ -71,7 +78,7 @@ export function SettingsAdvancedSection({ advanced }: any) {
                 enabled
             );
         },
-        onUdonExceptionLoggingChange: (checked: any) => {
+        onUdonExceptionLoggingChange: (checked: unknown) => {
             const enabled = normalizeCheckedState(checked);
             saveBoolPreference(
                 'udonExceptionLogging',
@@ -79,14 +86,14 @@ export function SettingsAdvancedSection({ advanced }: any) {
                 enabled
             );
         },
-        onLogResourceLoadChange: (checked: any) => {
+        onLogResourceLoadChange: (checked: unknown) => {
             saveBoolPreference(
                 'logResourceLoad',
                 'logResourceLoad',
                 normalizeCheckedState(checked)
             );
         },
-        onAnonymousUsageTelemetryChange: (checked: any) => {
+        onAnonymousUsageTelemetryChange: (checked: unknown) => {
             const enabled = normalizeCheckedState(checked);
             saveBoolPreference(
                 'anonymousUsageTelemetry',
@@ -94,14 +101,14 @@ export function SettingsAdvancedSection({ advanced }: any) {
                 enabled
             );
         },
-        onDefaultLaunchModeChange: (value: any) => {
+        onDefaultLaunchModeChange: (value: string) => {
             saveStringPreference(
                 'defaultLaunchMode',
                 'defaultLaunchMode',
                 value
             );
         },
-        onShowConfirmationOnSwitchAvatarChange: (checked: any) => {
+        onShowConfirmationOnSwitchAvatarChange: (checked: unknown) => {
             const enabled = normalizeCheckedState(checked);
             saveBoolPreference(
                 'showConfirmationOnSwitchAvatar',
@@ -118,10 +125,10 @@ export function SettingsAdvancedSection({ advanced }: any) {
         onRefreshCacheSize: () => {
             refreshCacheSize();
         },
-        onGameLogDisabledChange: (checked: any) => {
+        onGameLogDisabledChange: (checked: unknown) => {
             handleGameLogDisabledChange(normalizeCheckedState(checked));
         },
-        onAvatarAutoCleanupChange: (value: any) => {
+        onAvatarAutoCleanupChange: (value: string) => {
             saveStringPreference(
                 'avatarAutoCleanup',
                 'avatarAutoCleanup',

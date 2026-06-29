@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Badge } from '@/ui/shadcn/badge';
@@ -6,6 +7,27 @@ import { Switch } from '@/ui/shadcn/switch';
 
 import { Field, SettingsGroup } from '../SettingsField';
 import { SettingsTabContent } from '../SettingsViewParts';
+
+type SettingsSystemTabProps = {
+    autoBackgroundDownloadUpdates?: boolean;
+    autoInstallUpdatesOnStartup?: boolean;
+    autoLoginDelayEnabled?: boolean;
+    autoLoginDelaySeconds?: ReactNode;
+    backgroundModeEnabled?: boolean;
+    hostPlatform?: string;
+    isCloseToTray?: boolean;
+    isStartAsMinimizedState?: boolean;
+    isStartAtWindowsStartup?: boolean;
+    onAutoBackgroundDownloadUpdatesChange: (checked: boolean) => unknown;
+    onAutoInstallUpdatesOnStartupChange: (checked: boolean) => unknown;
+    onAutoLoginDelayEnabledChange: (checked: boolean) => unknown;
+    onBackgroundModeEnabledChange: (checked: boolean) => unknown;
+    onCloseToTrayChange: (checked: boolean) => unknown;
+    onPromptAutoLoginDelaySeconds: () => unknown;
+    onProxySettings: () => unknown;
+    onStartAsMinimizedChange: (checked: boolean) => unknown;
+    onStartAtWindowsStartupChange: (checked: boolean) => unknown;
+};
 
 export function SettingsSystemTab({
     hostPlatform = 'unknown',
@@ -26,7 +48,7 @@ export function SettingsSystemTab({
     onAutoInstallUpdatesOnStartupChange,
     onAutoBackgroundDownloadUpdatesChange,
     onProxySettings
-}: any) {
+}: SettingsSystemTabProps) {
     const { t } = useTranslation();
     const startupLabel =
         hostPlatform === 'linux'

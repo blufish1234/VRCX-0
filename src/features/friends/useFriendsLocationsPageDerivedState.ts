@@ -68,7 +68,7 @@ type FriendsLocationsGameState = InviteLocationGameState & {
 type FriendsLocationsCurrentUserSnapshot = InviteLocationCurrentUserSnapshot &
     Record<string, unknown>;
 
-type FriendsLocationsSection = {
+export type FriendsLocationsSection = {
     key: string;
     type?: 'favoriteGroup' | string;
     groupKey?: string;
@@ -93,7 +93,7 @@ type FriendsLocationsFavoriteGroupDescriptor = {
     label: string;
 };
 
-type FriendsLocationsVirtualRow =
+export type FriendsLocationsVirtualRow =
     | {
           type: 'group-header' | 'header';
           key: string;

@@ -1,3 +1,4 @@
+import type { Table as ReactTable } from '@tanstack/react-table';
 import { RefreshCwIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -11,7 +12,10 @@ import {
     normalizeModerationSelectedTypes,
     resolveModerationTypeLabel
 } from '../moderationPageState';
-import type { ModerationLoadStatus } from '../moderationPageTypes';
+import type {
+    ModerationLoadStatus,
+    ModerationRow
+} from '../moderationPageTypes';
 import { ModerationTypeFilterDropdown } from './ModerationViewParts';
 
 type ModerationPageToolbarProps = {
@@ -23,7 +27,7 @@ type ModerationPageToolbarProps = {
     currentUserId: string | null;
     loadStatus: ModerationLoadStatus;
     onRefresh: () => void;
-    table: any;
+    table: ReactTable<ModerationRow>;
 };
 
 export function ModerationPageToolbar({
@@ -38,7 +42,7 @@ export function ModerationPageToolbar({
     table
 }: ModerationPageToolbarProps) {
     const { t } = useTranslation();
-    const getModerationTypeLabel = (type: any) =>
+    const getModerationTypeLabel = (type: unknown) =>
         resolveModerationTypeLabel(type, t);
 
     return (

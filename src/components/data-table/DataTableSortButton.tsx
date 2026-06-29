@@ -1,13 +1,20 @@
+import type { Column, RowData } from '@tanstack/react-table';
 import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/ui/shadcn/button';
 
-function normalizeDirection(value: any) {
+type SortDirection = 'asc' | 'desc' | false;
+
+function normalizeDirection(value: unknown): SortDirection {
     return value === 'asc' || value === 'desc' ? value : false;
 }
 
-function nextSortDirection(direction: any, descFirst: any) {
+function nextSortDirection(
+    direction: SortDirection,
+    descFirst: boolean
+): SortDirection {
     if (!direction) {
         return descFirst ? 'desc' : 'asc';
     }
@@ -17,7 +24,7 @@ function nextSortDirection(direction: any, descFirst: any) {
     return descFirst ? 'asc' : false;
 }
 
-export function DataTableSortButton({
+export function DataTableSortButton<TData extends RowData>({
     active = undefined,
     className = '',
     column = null,
@@ -25,8 +32,20 @@ export function DataTableSortButton({
     direction = undefined,
     label,
     labelClassName = '',
-    onSort = null
-}: any) {
+    onSort = undefined
+}: {
+    active?: boolean;
+    className?: string;
+    column?: Column<TData, unknown> | null;
+    descFirst?: boolean;
+    direction?: unknown;
+    label: ReactNode;
+    labelClassName?: string;
+    onSort?: (
+        nextDirection: SortDirection,
+        currentDirection: SortDirection
+    ) => void;
+}) {
     const columnDirection = normalizeDirection(column?.getIsSorted?.());
     const controlledDirection =
         active === false ? false : normalizeDirection(direction);

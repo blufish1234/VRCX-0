@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -42,6 +43,9 @@ import {
     contextPresetOptions,
     createContextRule,
     normalizeContextRule,
+    type ContextAutomationRule,
+    type PresenceOption,
+    type PresenceRuleActions,
     priorityLabelKeyFromNumber,
     priorityNumberFromValue,
     priorityOptions,
@@ -52,11 +56,55 @@ import { PresenceRuleActionFields } from './PresenceRuleActionFields';
 
 const I18N_ROOT = 'view.tools.social_automation';
 
-function hasAction(rule: any, key: any) {
+export type PresenceAutomationConfigValueType = 'array' | 'bool' | 'string';
+
+export type ContextRulesTabValues = {
+    autoStateChangeAloneDesc: string;
+    autoStateChangeAloneDescEnabled: boolean;
+    autoStateChangeAloneStatus: string;
+    autoStateChangeCompanyDesc: string;
+    autoStateChangeCompanyDescEnabled: boolean;
+    autoStateChangeCompanyStatus: string;
+    autoStateChangeEnabled: boolean;
+    autoStateChangeGroups: string[];
+    autoStateChangeInstanceTypes: string[];
+    autoStateChangeNoFriends: boolean;
+};
+
+type LegacyStatusEditorProps = {
+    desc: string;
+    descEnabled: boolean;
+    disabled: boolean;
+    id: string;
+    label: string;
+    onDescChange: (value: string) => unknown;
+    onDescEnabledChange: (value: boolean) => unknown;
+    onStatusChange: (value: string) => unknown;
+    status: string;
+};
+
+type ContextRulesTabProps = {
+    contextRules: ContextAutomationRule[];
+    groupOptions: PresenceOption[];
+    instanceOptions: PresenceOption[];
+    loading: boolean;
+    onRulesChange: (rules: ContextAutomationRule[]) => unknown;
+    onSaveValue: (
+        key: keyof ContextRulesTabValues,
+        value: unknown,
+        type?: PresenceAutomationConfigValueType
+    ) => unknown;
+    values: ContextRulesTabValues;
+};
+
+function hasAction(rule: ContextAutomationRule, key: string) {
     return Object.prototype.hasOwnProperty.call(rule.actions || {}, key);
 }
 
-function updateAction(rule: any, patch: any) {
+function updateAction(
+    rule: ContextAutomationRule,
+    patch: Partial<PresenceRuleActions>
+): ContextAutomationRule {
     return {
         ...rule,
         actions: {
@@ -66,8 +114,8 @@ function updateAction(rule: any, patch: any) {
     };
 }
 
-function removeAction(rule: any, key: any) {
-    const actions: any = { ...(rule.actions || {}) };
+function removeAction(rule: ContextAutomationRule, key: string) {
+    const actions: PresenceRuleActions = { ...(rule.actions || {}) };
     delete actions[key];
     return {
         ...rule,
@@ -75,18 +123,18 @@ function removeAction(rule: any, key: any) {
     };
 }
 
-function parseUserIds(value: any) {
+function parseUserIds(value: unknown) {
     return String(value || '')
         .split(',')
-        .map((entry: any) => entry.trim())
+        .map((entry) => entry.trim())
         .filter(Boolean);
 }
 
-function ruleTitle(rule: any, t: any) {
+function ruleTitle(rule: ContextAutomationRule, t: TFunction) {
     return rule?.label || t(`${I18N_ROOT}.room_rule_default`);
 }
 
-function actionSummary(rule: any, t: any) {
+function actionSummary(rule: ContextAutomationRule, t: TFunction) {
     const parts = [];
     if (rule.actions?.status) {
         parts.push(userStatusLabel(rule.actions.status, t));
@@ -107,7 +155,7 @@ function LegacyStatusEditor({
     onStatusChange,
     onDescEnabledChange,
     onDescChange
-}: any) {
+}: LegacyStatusEditorProps) {
     const { t } = useTranslation();
     const descEnabledId = `${id}-description-enabled`;
 
@@ -130,7 +178,7 @@ function LegacyStatusEditor({
                         </SelectTrigger>
                         <SelectContent>
                             <SelectGroup>
-                                {statusOptions.map((statusOption: any) => (
+                                {statusOptions.map((statusOption) => (
                                     <SelectItem
                                         key={statusOption}
                                         value={statusOption}
@@ -181,30 +229,33 @@ export function ContextRulesTab({
     contextRules,
     onSaveValue,
     onRulesChange
-}: any) {
+}: ContextRulesTabProps) {
     const { t } = useTranslation();
     const legacyDisabled = loading || !values.autoStateChangeEnabled;
     const rules = Array.isArray(contextRules) ? contextRules : [];
-    const [selectedRuleId, setSelectedRuleId] = useState(null);
+    const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
 
     useEffect(() => {
         if (!rules.length) {
             setSelectedRuleId(null);
             return;
         }
-        if (!rules.some((rule: any) => rule.id === selectedRuleId)) {
+        if (!rules.some((rule) => rule.id === selectedRuleId)) {
             setSelectedRuleId(rules[0].id);
         }
     }, [rules, selectedRuleId]);
 
     const selectedRule = useMemo(
-        () => rules.find((rule: any) => rule.id === selectedRuleId) || null,
+        () => rules.find((rule) => rule.id === selectedRuleId) || null,
         [rules, selectedRuleId]
     );
 
-    function update(ruleId: any, updater: any) {
+    function update(
+        ruleId: string,
+        updater: (rule: ContextAutomationRule) => ContextAutomationRule
+    ) {
         onRulesChange(
-            updateRule(rules, ruleId, (rule: any) =>
+            updateRule(rules, ruleId, (rule) =>
                 normalizeContextRule(updater(rule))
             )
         );
@@ -216,9 +267,9 @@ export function ContextRulesTab({
         onRulesChange([...rules, nextRule]);
     }
 
-    function removeRule(ruleId: any) {
-        const ruleIndex = rules.findIndex((rule: any) => rule.id === ruleId);
-        const nextRules = rules.filter((rule: any) => rule.id !== ruleId);
+    function removeRule(ruleId: string) {
+        const ruleIndex = rules.findIndex((rule) => rule.id === ruleId);
+        const nextRules = rules.filter((rule) => rule.id !== ruleId);
         if (selectedRuleId === ruleId) {
             setSelectedRuleId(
                 nextRules[Math.min(ruleIndex, nextRules.length - 1)]?.id ?? null
@@ -238,7 +289,7 @@ export function ContextRulesTab({
             emptyDescription={t(`${I18N_ROOT}.room_social_rules_description`)}
             onAdd={addRule}
         >
-            {rules.map((rule: any) => (
+            {rules.map((rule) => (
                 <RuleListItem
                     key={rule.id}
                     selected={rule.id === selectedRuleId}
@@ -259,7 +310,7 @@ export function ContextRulesTab({
                     }
                     onSelect={() => setSelectedRuleId(rule.id)}
                     onEnabledChange={(checked) =>
-                        update(rule.id, (current: any) => ({
+                        update(rule.id, (current) => ({
                             ...current,
                             enabled: checked
                         }))
@@ -294,7 +345,7 @@ export function ContextRulesTab({
                                 value={selectedRule.label || ''}
                                 disabled={loading}
                                 onChange={(event) =>
-                                    update(selectedRule.id, (current: any) => ({
+                                    update(selectedRule.id, (current) => ({
                                         ...current,
                                         label: event.target.value
                                     }))
@@ -311,7 +362,7 @@ export function ContextRulesTab({
                                 )}
                                 disabled={loading}
                                 onValueChange={(value) =>
-                                    update(selectedRule.id, (current: any) => ({
+                                    update(selectedRule.id, (current) => ({
                                         ...current,
                                         priority: priorityNumberFromValue(value)
                                     }))
@@ -322,7 +373,7 @@ export function ContextRulesTab({
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
-                                        {priorityOptions.map((option: any) => (
+                                        {priorityOptions.map((option) => (
                                             <SelectItem
                                                 key={option.value}
                                                 value={option.value}
@@ -348,13 +399,10 @@ export function ContextRulesTab({
                                     value={selectedRule.preset || 'alone'}
                                     disabled={loading}
                                     onValueChange={(value) =>
-                                        update(
-                                            selectedRule.id,
-                                            (current: any) => ({
-                                                ...current,
-                                                preset: value
-                                            })
-                                        )
+                                        update(selectedRule.id, (current) => ({
+                                            ...current,
+                                            preset: value
+                                        }))
                                     }
                                 >
                                     <SelectTrigger>
@@ -363,7 +411,7 @@ export function ContextRulesTab({
                                     <SelectContent>
                                         <SelectGroup>
                                             {contextPresetOptions.map(
-                                                (preset: any) => (
+                                                (preset) => (
                                                     <SelectItem
                                                         key={preset.value}
                                                         value={preset.value}
@@ -392,7 +440,7 @@ export function ContextRulesTab({
                                         onChange={(next) =>
                                             update(
                                                 selectedRule.id,
-                                                (current: any) => ({
+                                                (current) => ({
                                                     ...current,
                                                     selectedGroups: next
                                                 })
@@ -416,7 +464,7 @@ export function ContextRulesTab({
                                         onChange={(event) =>
                                             update(
                                                 selectedRule.id,
-                                                (current: any) => ({
+                                                (current) => ({
                                                     ...current,
                                                     friendCountValue:
                                                         Number.parseInt(
@@ -444,7 +492,7 @@ export function ContextRulesTab({
                                         onChange={(event) =>
                                             update(
                                                 selectedRule.id,
-                                                (current: any) => ({
+                                                (current) => ({
                                                     ...current,
                                                     playerCountValue:
                                                         Number.parseInt(
@@ -471,7 +519,7 @@ export function ContextRulesTab({
                                         onChange={(event) =>
                                             update(
                                                 selectedRule.id,
-                                                (current: any) => ({
+                                                (current) => ({
                                                     ...current,
                                                     specificFriendIds:
                                                         parseUserIds(
@@ -499,13 +547,10 @@ export function ContextRulesTab({
                                     disabled={loading}
                                     columns="two"
                                     onChange={(next) =>
-                                        update(
-                                            selectedRule.id,
-                                            (current: any) => ({
-                                                ...current,
-                                                selectedInstanceTypes: next
-                                            })
-                                        )
+                                        update(selectedRule.id, (current) => ({
+                                            ...current,
+                                            selectedInstanceTypes: next
+                                        }))
                                     }
                                 />
                             </Field>
@@ -523,14 +568,14 @@ export function ContextRulesTab({
                             selectedRule.actions?.statusDescription || ''
                         }
                         onStatusChange={(value) =>
-                            update(selectedRule.id, (current: any) =>
+                            update(selectedRule.id, (current) =>
                                 value === 'no-change'
                                     ? removeAction(current, 'status')
                                     : updateAction(current, { status: value })
                             )
                         }
                         onStatusDescriptionEnabledChange={(checked) =>
-                            update(selectedRule.id, (current: any) =>
+                            update(selectedRule.id, (current) =>
                                 checked
                                     ? updateAction(current, {
                                           statusDescription: ''
@@ -539,7 +584,7 @@ export function ContextRulesTab({
                             )
                         }
                         onStatusDescriptionChange={(value) =>
-                            update(selectedRule.id, (current: any) =>
+                            update(selectedRule.id, (current) =>
                                 updateAction(current, {
                                     statusDescription: value
                                 })
@@ -688,20 +733,20 @@ export function ContextRulesTab({
                             status={values.autoStateChangeAloneStatus}
                             descEnabled={values.autoStateChangeAloneDescEnabled}
                             desc={values.autoStateChangeAloneDesc}
-                            onStatusChange={(value: any) => {
+                            onStatusChange={(value) => {
                                 onSaveValue(
                                     'autoStateChangeAloneStatus',
                                     value
                                 );
                             }}
-                            onDescEnabledChange={(value: any) => {
+                            onDescEnabledChange={(value) => {
                                 onSaveValue(
                                     'autoStateChangeAloneDescEnabled',
                                     value,
                                     'bool'
                                 );
                             }}
-                            onDescChange={(value: any) => {
+                            onDescChange={(value) => {
                                 onSaveValue('autoStateChangeAloneDesc', value);
                             }}
                         />
@@ -714,20 +759,20 @@ export function ContextRulesTab({
                                 values.autoStateChangeCompanyDescEnabled
                             }
                             desc={values.autoStateChangeCompanyDesc}
-                            onStatusChange={(value: any) => {
+                            onStatusChange={(value) => {
                                 onSaveValue(
                                     'autoStateChangeCompanyStatus',
                                     value
                                 );
                             }}
-                            onDescEnabledChange={(value: any) => {
+                            onDescEnabledChange={(value) => {
                                 onSaveValue(
                                     'autoStateChangeCompanyDescEnabled',
                                     value,
                                     'bool'
                                 );
                             }}
-                            onDescChange={(value: any) => {
+                            onDescChange={(value) => {
                                 onSaveValue(
                                     'autoStateChangeCompanyDesc',
                                     value

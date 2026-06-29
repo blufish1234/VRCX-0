@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -29,7 +29,7 @@ export function useWorldImageUpload({
         world: any;
     } | null>(null);
     const imageUploadInputRef = useRef<HTMLInputElement | null>(null);
-    const imageUploadWorldRef = useRef<any>(null);
+    const imageUploadWorldRef = useRef<unknown>(null);
 
     useEffect(() => {
         imageUploadWorldRef.current = null;
@@ -44,7 +44,7 @@ export function useWorldImageUpload({
         imageUploadInputRef.current?.click();
     }
 
-    function onFileChangeWorldImage(event: any) {
+    function onFileChangeWorldImage(event: ChangeEvent<HTMLInputElement>) {
         const file = event.target.files?.[0] || null;
         event.target.value = '';
         if (!file) {
@@ -71,7 +71,7 @@ export function useWorldImageUpload({
         });
     }
 
-    async function confirmWorldImageUpload(blob: any) {
+    async function confirmWorldImageUpload(blob: Blob | null | undefined) {
         const request = imageCropRequest;
         const selectedWorld =
             request?.world || imageUploadWorldRef.current || world;

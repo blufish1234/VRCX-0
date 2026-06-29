@@ -16,6 +16,45 @@ import { Switch } from '@/ui/shadcn/switch';
 import { Field, SettingsGroup } from '../SettingsField';
 import { SettingsTabContent } from '../SettingsViewParts';
 
+type SettingsVrPrefs = Record<string, unknown> & {
+    imageNotifications?: boolean;
+    notificationOpacity?: number;
+    notificationTimeout?: number;
+    ovrtHudNotifications?: boolean;
+    ovrtWristNotifications?: boolean;
+    wristOverlayButton?: string;
+    wristOverlayDarkBackground?: boolean;
+    wristOverlayEnabled?: boolean;
+    wristOverlayHand?: string;
+    wristOverlayHidePrivateWorlds?: boolean;
+    wristOverlayShowBatteryPercent?: boolean;
+    wristOverlayShowDevices?: boolean;
+    wristOverlaySize?: string;
+    wristOverlayStartMode?: string;
+    xsNotifications?: boolean;
+};
+
+type SettingsVrTabProps = {
+    prefs: SettingsVrPrefs;
+    onImageNotificationsChange: (checked: boolean) => unknown;
+    onNotificationOpacityChange: (value: unknown) => unknown;
+    onNotificationTimeoutSecondsChange: (value: unknown) => unknown;
+    onOpenVrNotificationFiltersDialog: () => unknown;
+    onOpenWristFeedNotificationsDialog: () => unknown;
+    onOvrtHudNotificationsChange: (checked: boolean) => unknown;
+    onOvrtWristNotificationsChange: (checked: boolean) => unknown;
+    onWristOverlayButtonChange: (value: string) => unknown;
+    onWristOverlayDarkBackgroundChange: (checked: boolean) => unknown;
+    onWristOverlayEnabledChange: (checked: boolean) => unknown;
+    onWristOverlayHandChange: (value: string) => unknown;
+    onWristOverlayHidePrivateWorldsChange: (checked: boolean) => unknown;
+    onWristOverlayShowBatteryPercentChange: (checked: boolean) => unknown;
+    onWristOverlayShowDevicesChange: (checked: boolean) => unknown;
+    onWristOverlaySizeChange: (value: string) => unknown;
+    onWristOverlayStartModeChange: (value: string) => unknown;
+    onXsNotificationsChange: (checked: boolean) => unknown;
+};
+
 export function SettingsVrTab({
     prefs,
     onXsNotificationsChange,
@@ -35,7 +74,7 @@ export function SettingsVrTab({
     onWristOverlayShowDevicesChange,
     onWristOverlayShowBatteryPercentChange,
     onOpenWristFeedNotificationsDialog
-}: any) {
+}: SettingsVrTabProps) {
     const { t } = useTranslation();
     const wristOverlayEnabled = Boolean(prefs.wristOverlayEnabled);
     const vrDeviceStatusEnabled =

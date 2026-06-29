@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, type ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     HashRouter,
@@ -38,8 +38,8 @@ function RouteErrorFallback() {
 }
 
 const AppShellLayout = lazy(() =>
-    import('@/components/layout/AppShellLayout').then((module: any) => ({
-        default: module.AppShellLayout
+    import('@/components/layout/AppShellLayout').then((module) => ({
+        default: module.AppShellLayout as ComponentType
     }))
 );
 
@@ -119,7 +119,7 @@ function AppRouterContent() {
                 >
                     <Routes>
                         <Route element={<RedirectIfAuthenticated />}>
-                            {publicRoutes.map((route: any) => (
+                            {publicRoutes.map((route) => (
                                 <Route
                                     key={route.path}
                                     path={route.path}
@@ -134,7 +134,7 @@ function AppRouterContent() {
                                     index
                                     element={<Navigate to="/feed" replace />}
                                 />
-                                {protectedRoutes.map((route: any) => (
+                                {protectedRoutes.map((route) => (
                                     <Route
                                         key={route.path}
                                         path={route.path}

@@ -3,10 +3,17 @@ import { useTranslation } from 'react-i18next';
 import { POST_UPDATE_CHANGELOG_TOAST_CONFIG_KEY } from '@/services/changelogService';
 import { showDesktopNotification } from '@/services/shellIntegrationService';
 
+import type { SettingsPageStateSections } from '../settingsPageStateSections';
 import { normalizeCheckedState } from '../settingsValues';
 import { SettingsNotificationsTab } from './settings-tabs/SettingsNotificationsTab';
 
-export function SettingsNotificationsSection({ notifications }: any) {
+type SettingsNotificationsSectionProps = {
+    notifications: SettingsPageStateSections['notifications'];
+};
+
+export function SettingsNotificationsSection({
+    notifications
+}: SettingsNotificationsSectionProps) {
     const { t } = useTranslation();
     const {
         prefs,
@@ -39,31 +46,31 @@ export function SettingsNotificationsSection({ notifications }: any) {
             ttsVoices={ttsVoices}
             notificationTtsTestVisible={notificationTtsTestVisible}
             notificationTtsTest={notificationTtsTest}
-            onNotificationLayoutChange={(value: any) => {
+            onNotificationLayoutChange={(value: string) => {
                 commit(
                     async () => {
                         const nextLayout =
                             await setNotificationLayoutPreference(value);
-                        setPrefs((current: any) => ({
+                        setPrefs((current) => ({
                             ...current,
                             notificationLayout: nextLayout
                         }));
                     },
                     () => {
                         const previous = prefs.notificationLayout;
-                        setPrefs((current: any) => ({
+                        setPrefs((current) => ({
                             ...current,
                             notificationLayout: value
                         }));
                         return () =>
-                            setPrefs((current: any) => ({
+                            setPrefs((current) => ({
                                 ...current,
                                 notificationLayout: previous
                             }));
                     }
                 );
             }}
-            onNotificationIconDotChange={(checked: any) => {
+            onNotificationIconDotChange={(checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 saveBoolPreference(
                     'notificationIconDot',
@@ -71,7 +78,7 @@ export function SettingsNotificationsSection({ notifications }: any) {
                     enabled
                 );
             }}
-            onPostUpdateChangelogToastChange={(checked: any) => {
+            onPostUpdateChangelogToastChange={(checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 saveBoolPreference(
                     'showPostUpdateChangelogToast',
@@ -91,10 +98,10 @@ export function SettingsNotificationsSection({ notifications }: any) {
                     prefs.desktopNotificationSound
                 );
             }}
-            onDesktopToastChange={(value: any) => {
+            onDesktopToastChange={(value: string) => {
                 saveStringPreference('desktopToast', 'desktopToast', value);
             }}
-            onAfkDesktopToastChange={(checked: any) => {
+            onAfkDesktopToastChange={(checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 saveBoolPreference(
                     'afkDesktopToast',
@@ -102,7 +109,7 @@ export function SettingsNotificationsSection({ notifications }: any) {
                     enabled
                 );
             }}
-            onDesktopNotificationSoundChange={(checked: any) => {
+            onDesktopNotificationSoundChange={(checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 saveBoolPreference(
                     'desktopNotificationSound',
@@ -110,13 +117,13 @@ export function SettingsNotificationsSection({ notifications }: any) {
                     enabled
                 );
             }}
-            onNotificationTtsModeChange={(value: any) => {
+            onNotificationTtsModeChange={(value: string) => {
                 saveNotificationTtsMode(value);
             }}
-            onNotificationTtsVoiceChange={(value: any) => {
+            onNotificationTtsVoiceChange={(value: string) => {
                 saveNotificationTtsVoice(value);
             }}
-            onNotificationTtsNicknameChange={(checked: any) => {
+            onNotificationTtsNicknameChange={(checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 saveBoolPreference(
                     'notificationTTSNickName',
@@ -126,7 +133,7 @@ export function SettingsNotificationsSection({ notifications }: any) {
             }}
             onNotificationTtsTestVisibleChange={setNotificationTtsTestVisible}
             onNotificationTtsTestChange={setNotificationTtsTest}
-            onSpeakNotificationTts={(message: any) =>
+            onSpeakNotificationTts={(message: unknown) =>
                 speakNotificationTts(message)
             }
         />

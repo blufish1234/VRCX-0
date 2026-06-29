@@ -6,13 +6,22 @@ import {
     consumeSystemFontsUnavailableWarning,
     loadSystemFonts
 } from '@/services/systemFontsService';
-import type { PreferencesSnapshot } from '@/state/preferencesStore';
+import type { OverlayActivityTypeDefinition } from '@/shared/constants/overlayActivityFilters';
+import type {
+    PreferencesSnapshot,
+    PreferencesStoreState,
+    TrustColorKey
+} from '@/state/preferencesStore';
 
 import {
     composeCustomFontFamily,
     createCustomFontDraftFromPrefs,
     type CustomFontDraft
 } from './settingsValues';
+import type {
+    SettingsDiscordPrefs,
+    SettingsIntegrationPrefs
+} from './useSettingsIntegrations';
 
 type PreferenceKey = Extract<keyof PreferencesSnapshot, string>;
 type NormalizedConfigKey<Key extends string> = Key extends `VRCX_${infer Name}`
@@ -24,26 +33,168 @@ type StringPreferenceKey = NormalizedConfigKey<StringConfigPreferenceKey> &
     PreferenceKey;
 type PreferenceAction = () => unknown | Promise<unknown>;
 type PreferenceRollback = void | (() => void);
-type SettingsPrefs = PreferencesSnapshot & Record<string, unknown>;
-type SetSettingsPrefs = (
-    updater: (current: SettingsPrefs) => SettingsPrefs | Record<string, unknown>
-) => void;
-type SettingsPreferenceActionsDeps = Record<string, any> & {
+export type SettingsActionPrefs = Record<string, unknown> & {
+    appCjkFontPack: unknown;
+    appFontFamily: unknown;
+    autoLoginDelaySeconds: unknown;
+    customFontFamily: unknown;
+    customFontOverride: unknown;
+    customFontPrimary: unknown;
+    customFontSecondary: unknown;
+    notificationTTS: unknown;
+    notificationTTSVoice: string;
+    proxyServer: string;
+    userGeneratedContentPath: string;
+    wristOverlayEnabled: boolean;
+};
+type SettingsPrefs = SettingsActionPrefs;
+type StateSetter<Value> = {
+    bivarianceHack(
+        value: Value | ((current: Value) => Value | Record<string, unknown>)
+    ): void;
+}['bivarianceHack'];
+type SettingsPromptResult = {
+    ok: boolean;
+    value?: unknown;
+};
+type SettingsPreferenceActionsDeps = {
+    APP_FONT_DEFAULT_KEY: string;
+    DEFAULT_MAX_TABLE_SIZE: number;
+    DEFAULT_SEARCH_LIMIT: number;
+    applyAppFontPreferences: (preferences: {
+        fontFamily: unknown;
+        customFontFamily: unknown;
+        cjkFontPack: unknown;
+    }) => unknown;
+    auth: {
+        currentUserEndpoint?: string | null;
+        currentUserId?: unknown;
+    };
     commit: (
         action: PreferenceAction,
         optimistic?: () => PreferenceRollback
     ) => Promise<boolean>;
+    configRepository: {
+        setMany(entries: Array<[string, unknown]>): Promise<void>;
+    };
+    customFontDraft: CustomFontDraft;
+    databaseMaintenanceRepository: {
+        getTableSizes(userId: unknown): Promise<Record<string, unknown>>;
+    };
+    isValidFontFamilyList: (value: unknown) => boolean;
+    loadTrustColorPreference: () => Promise<PreferencesSnapshot['trustColor']>;
+    localFavoriteFriendsGroups: string[];
+    normalizeAppCjkFontPack: (value: unknown) => string;
+    normalizeAppFontFamily: (value: unknown) => string;
+    normalizePreferenceSnapshot: (snapshot?: unknown) => PreferencesSnapshot;
+    parseIntegerInput: (value: unknown, fallback: number) => number;
     prefs: SettingsPrefs;
+    prompt: (options: {
+        title: string;
+        description: string;
+        inputValue: string;
+        confirmText: string;
+        cancelText: string;
+    }) => Promise<SettingsPromptResult>;
+    resetTrustColorsPreference: () => Promise<
+        PreferencesSnapshot['trustColor']
+    >;
     setBoolConfigPreference: (
         key: BoolConfigPreferenceKey,
         value: boolean
     ) => Promise<unknown>;
-    setPrefs: SetSettingsPrefs;
+    setConfigTreeData: (value: Record<string, unknown>) => void;
+    setCustomFontDialogOpen: (value: boolean) => void;
+    setCustomFontDraft: (value: CustomFontDraft) => void;
+    setCustomFontOptions: (value: string[]) => void;
+    setCustomFontOptionsLoading: (value: boolean) => void;
+    setDiscordPrefs: StateSetter<SettingsDiscordPrefs>;
+    setIntegrationPrefs: StateSetter<SettingsIntegrationPrefs>;
+    setLocalFavoriteFriendsGroups: (value: string[]) => void;
+    setLocalFavoriteFriendsGroupsPreference: (
+        value: unknown
+    ) => Promise<string[]>;
+    setOnlineVisitCount: (value: number) => void;
+    setOverlayActivityFiltersPreference: (
+        value: unknown,
+        definitions?: OverlayActivityTypeDefinition[]
+    ) => Promise<PreferencesSnapshot['overlayActivityFilters']>;
+    setPrefs: StateSetter<SettingsPrefs>;
+    setProxyServerPreference: (value: string) => Promise<string>;
+    setSharedFeedFilters: (
+        value: PreferencesSnapshot['sharedFeedFilters']
+    ) => void;
+    setSqliteTableSizes: (value: Record<string, unknown>) => void;
     setStringConfigPreference: (
         key: StringConfigPreferenceKey,
         value: string
     ) => Promise<unknown>;
+    setTableLimitsDialogOpen: (value: boolean) => void;
+    setTableLimitsDraft: (value: {
+        maxTableSize: string;
+        searchLimit: string;
+    }) => void;
+    setTableLimitsPreference: (value: {
+        maxTableSize: number;
+        searchLimit: number;
+    }) => Promise<PreferencesSnapshot['tableLimits']>;
+    setTablePageSizesDialogOpen: (value: boolean) => void;
+    setTrustColorPreference: (
+        key: TrustColorKey,
+        value: unknown
+    ) => Promise<PreferencesSnapshot['trustColor']>;
+    setVrNotificationActivityFiltersPreference: (
+        value: unknown
+    ) => Promise<PreferencesSnapshot['vrNotificationActivityFilters']>;
+    setDesktopNotificationActivityFiltersPreference: (
+        value: unknown
+    ) => Promise<PreferencesSnapshot['desktopNotificationActivityFilters']>;
+    setWebhookActivityFiltersPreference: (
+        value: unknown
+    ) => Promise<PreferencesSnapshot['webhookActivityFilters']>;
+    setWristOverlayEnabledPreference: (value: boolean) => Promise<boolean>;
+    t: (key: string) => string;
+    tableLimitsDraft: {
+        maxTableSize: string;
+        searchLimit: string;
+    };
+    tableLimitsSaveDisabled: boolean;
+    toast: {
+        error(message: string): unknown;
+        success(message: string): unknown;
+        warning(message: string): unknown;
+    };
+    usePreferencesStore: {
+        getState(): Pick<PreferencesStoreState, 'proxyServer' | 'tableLimits'>;
+    };
+    vrchatAuthRepository: {
+        getConfig(options: { endpoint: string }): Promise<{ json: unknown }>;
+        getOnlineVisits(options: {
+            endpoint: string;
+        }): Promise<{ json: unknown }>;
+    };
 };
+
+type FontPreferencesInput = Partial<{
+    cjkFontPack: unknown;
+    customFontFamily: unknown;
+    fontFamily: unknown;
+}>;
+
+type ActivityFilterSurfaceField =
+    | 'vrNotificationActivityFilters'
+    | 'desktopNotificationActivityFilters'
+    | 'webhookActivityFilters';
+
+type ActivityFilterSurfaceSetter<Field extends ActivityFilterSurfaceField> = (
+    value: unknown
+) => Promise<PreferencesSnapshot[Field]>;
+
+function readCustomFontDraft(value: unknown): Partial<CustomFontDraft> {
+    return value && typeof value === 'object'
+        ? (value as Partial<CustomFontDraft>)
+        : {};
+}
 
 export function useSettingsPreferenceActions({
     APP_FONT_DEFAULT_KEY,
@@ -98,20 +249,23 @@ export function useSettingsPreferenceActions({
     usePreferencesStore,
     vrchatAuthRepository
 }: SettingsPreferenceActionsDeps) {
-    function applyPreferenceSnapshotToLocalState(snapshot: any) {
+    function applyPreferenceSnapshotToLocalState(snapshot: unknown) {
         const normalizedSnapshot = normalizePreferenceSnapshot(snapshot);
-        setPrefs((current: any) => ({
+        setPrefs((current) => ({
             ...current,
             ...normalizedSnapshot
         }));
-        setIntegrationPrefs((current: any) => ({
+        setIntegrationPrefs((current) => ({
             ...current,
             youtubeAPI: normalizedSnapshot.youtubeAPI,
             translationAPI: normalizedSnapshot.translationAPI,
-            bioLanguage: normalizedSnapshot.bioLanguage,
+            bioLanguage:
+                normalizedSnapshot.bioLanguage as SettingsIntegrationPrefs['bioLanguage'],
             translationAPIType: normalizedSnapshot.translationAPIType,
-            translationAPIEndpoint: normalizedSnapshot.translationAPIEndpoint,
-            translationAPIModel: normalizedSnapshot.translationAPIModel,
+            translationAPIEndpoint:
+                normalizedSnapshot.translationAPIEndpoint as SettingsIntegrationPrefs['translationAPIEndpoint'],
+            translationAPIModel:
+                normalizedSnapshot.translationAPIModel as SettingsIntegrationPrefs['translationAPIModel'],
             translationAPIPrompt: normalizedSnapshot.translationAPIPrompt
         }));
         setDiscordPrefs({
@@ -136,13 +290,13 @@ export function useSettingsPreferenceActions({
         action: PreferenceAction
     ) {
         await commit(action, () => {
-            const previous = prefs[key];
-            setPrefs((current: any) => ({
+            const previous = prefs[key] as unknown as PreferencesSnapshot[K];
+            setPrefs((current) => ({
                 ...current,
                 [key]: value
             }));
             return () =>
-                setPrefs((current: any) => ({
+                setPrefs((current) => ({
                     ...current,
                     [key]: previous
                 }));
@@ -175,14 +329,14 @@ export function useSettingsPreferenceActions({
         fontFamily = prefs.appFontFamily,
         cjkFontPack = prefs.appCjkFontPack,
         customFontFamily = prefs.customFontFamily
-    }: any = {}) {
+    }: FontPreferencesInput = {}) {
         const nextFontFamily = normalizeAppFontFamily(fontFamily);
         const nextCjkFontPack = normalizeAppCjkFontPack(cjkFontPack);
         await configRepository.setMany([
             ['VRCX_fontFamily', nextFontFamily],
             ['VRCX_cjkFontPack', nextCjkFontPack]
         ]);
-        setPrefs((current: any) => ({
+        setPrefs((current) => ({
             ...current,
             appFontFamily: nextFontFamily,
             appCjkFontPack: nextCjkFontPack
@@ -194,15 +348,15 @@ export function useSettingsPreferenceActions({
         });
     }
     async function saveFontFamilyPreference(
-        fontFamily: any,
-        customFontFamily: any = prefs.customFontFamily
+        fontFamily: unknown,
+        customFontFamily: unknown = prefs.customFontFamily
     ) {
         await saveFontPreferences({
             fontFamily,
             customFontFamily
         });
     }
-    async function selectCjkFontPack(cjkFontPack: any) {
+    async function selectCjkFontPack(cjkFontPack: unknown) {
         await saveFontPreferences({
             fontFamily:
                 prefs.appFontFamily === 'custom'
@@ -230,11 +384,12 @@ export function useSettingsPreferenceActions({
                 setCustomFontOptionsLoading(false);
             });
     }
-    async function saveCustomFontFamily(value: any = customFontDraft) {
+    async function saveCustomFontFamily(value: unknown = customFontDraft) {
+        const draft = readCustomFontDraft(value);
         const nextDraft: CustomFontDraft = {
-            primary: String(value?.primary ?? '').trim(),
-            secondary: String(value?.secondary ?? '').trim(),
-            override: String(value?.override ?? '').trim()
+            primary: String(draft.primary ?? '').trim(),
+            secondary: String(draft.secondary ?? '').trim(),
+            override: String(draft.override ?? '').trim()
         };
         const nextValue = composeCustomFontFamily(nextDraft);
         if (!isValidFontFamilyList(nextValue)) {
@@ -260,7 +415,7 @@ export function useSettingsPreferenceActions({
                     ['VRCX_fontFamily', 'custom']
                 ]),
             () => {
-                setPrefs((current: any) => ({
+                setPrefs((current) => ({
                     ...current,
                     appFontFamily: 'custom',
                     customFontFamily: nextValue,
@@ -274,7 +429,7 @@ export function useSettingsPreferenceActions({
                     cjkFontPack: prefs.appCjkFontPack
                 });
                 return () => {
-                    setPrefs((current: any) => ({
+                    setPrefs((current) => ({
                         ...current,
                         appFontFamily: previousFontFamily,
                         customFontFamily: previousCustomFontFamily,
@@ -298,15 +453,15 @@ export function useSettingsPreferenceActions({
     }
     async function restorePersistedTrustColors() {
         const persisted = await loadTrustColorPreference();
-        setPrefs((current: any) => ({
+        setPrefs((current) => ({
             ...current,
             trustColor: persisted
         }));
     }
-    async function saveTrustColor(key: any, value: any) {
+    async function saveTrustColor(key: TrustColorKey, value: unknown) {
         try {
             const nextTrustColor = await setTrustColorPreference(key, value);
-            setPrefs((current: any) => ({
+            setPrefs((current) => ({
                 ...current,
                 trustColor: nextTrustColor
             }));
@@ -322,7 +477,7 @@ export function useSettingsPreferenceActions({
     async function resetTrustColors() {
         try {
             const nextTrustColor = await resetTrustColorsPreference();
-            setPrefs((current: any) => ({
+            setPrefs((current) => ({
                 ...current,
                 trustColor: nextTrustColor
             }));
@@ -372,7 +527,7 @@ export function useSettingsPreferenceActions({
             });
             setConfigTreeData(
                 response.json && typeof response.json === 'object'
-                    ? response.json
+                    ? (response.json as Record<string, unknown>)
                     : {}
             );
         } catch (error) {
@@ -425,7 +580,7 @@ export function useSettingsPreferenceActions({
         const nextProxyServer = String(result.value ?? '').trim();
         try {
             const proxyServer = await setProxyServerPreference(nextProxyServer);
-            setPrefs((current: any) => ({
+            setPrefs((current) => ({
                 ...current,
                 proxyServer
             }));
@@ -477,7 +632,7 @@ export function useSettingsPreferenceActions({
         if (!saved) {
             return;
         }
-        setPrefs((current: any) => ({
+        setPrefs((current) => ({
             ...current,
             tableLimits: savedLimits
         }));
@@ -485,15 +640,13 @@ export function useSettingsPreferenceActions({
         toast.success(t('common.settings_saved'));
     }
     async function toggleLocalFavoriteFriendsGroup(
-        groupKey: any,
-        checked: any
+        groupKey: string,
+        checked: boolean
     ) {
         const previousGroups = localFavoriteFriendsGroups;
         const nextGroups = checked
             ? Array.from(new Set([...localFavoriteFriendsGroups, groupKey]))
-            : localFavoriteFriendsGroups.filter(
-                  (value: any) => value !== groupKey
-              );
+            : localFavoriteFriendsGroups.filter((value) => value !== groupKey);
         await commit(
             () => setLocalFavoriteFriendsGroupsPreference(nextGroups),
             () => {
@@ -504,7 +657,10 @@ export function useSettingsPreferenceActions({
             }
         );
     }
-    async function saveOverlayActivityFilters(value: any, definitions?: any) {
+    async function saveOverlayActivityFilters(
+        value: unknown,
+        definitions?: OverlayActivityTypeDefinition[]
+    ) {
         let savedFilters:
             | Awaited<ReturnType<typeof setOverlayActivityFiltersPreference>>
             | undefined;
@@ -517,12 +673,13 @@ export function useSettingsPreferenceActions({
                 );
             },
             () => {
-                setPrefs((current: any) => ({
+                setPrefs((current) => ({
                     ...current,
-                    overlayActivityFilters: value
+                    overlayActivityFilters:
+                        value as PreferencesSnapshot['overlayActivityFilters']
                 }));
                 return () =>
-                    setPrefs((current: any) => ({
+                    setPrefs((current) => ({
                         ...current,
                         overlayActivityFilters: previousFilters
                     }));
@@ -531,34 +688,31 @@ export function useSettingsPreferenceActions({
         if (!saved) {
             return null;
         }
-        setPrefs((current: any) => ({
+        setPrefs((current) => ({
             ...current,
-            overlayActivityFilters: savedFilters
+            overlayActivityFilters:
+                savedFilters as PreferencesSnapshot['overlayActivityFilters']
         }));
         toast.success(t('common.settings_saved'));
         return savedFilters;
     }
-    function makeSaveActivityFilterSurface(
-        field:
-            | 'vrNotificationActivityFilters'
-            | 'desktopNotificationActivityFilters'
-            | 'webhookActivityFilters',
-        setPreference: (value: any) => Promise<any>
-    ) {
-        return async function saveActivityFilterSurface(value: any) {
-            let savedFilters: Awaited<ReturnType<typeof setPreference>>;
+    function makeSaveActivityFilterSurface<
+        Field extends ActivityFilterSurfaceField
+    >(field: Field, setPreference: ActivityFilterSurfaceSetter<Field>) {
+        return async function saveActivityFilterSurface(value: unknown) {
+            let savedFilters: PreferencesSnapshot[Field] | undefined;
             const previousFilters = prefs[field];
             const saved = await commit(
                 async () => {
                     savedFilters = await setPreference(value);
                 },
                 () => {
-                    setPrefs((current: any) => ({
+                    setPrefs((current) => ({
                         ...current,
-                        [field]: value
+                        [field]: value as PreferencesSnapshot[Field]
                     }));
                     return () =>
-                        setPrefs((current: any) => ({
+                        setPrefs((current) => ({
                             ...current,
                             [field]: previousFilters
                         }));
@@ -567,7 +721,10 @@ export function useSettingsPreferenceActions({
             if (!saved) {
                 return null;
             }
-            setPrefs((current: any) => ({ ...current, [field]: savedFilters }));
+            setPrefs((current) => ({
+                ...current,
+                [field]: savedFilters as PreferencesSnapshot[Field]
+            }));
             toast.success(t('common.settings_saved'));
             return savedFilters;
         };
@@ -593,12 +750,12 @@ export function useSettingsPreferenceActions({
                 savedValue = await setWristOverlayEnabledPreference(savedValue);
             },
             () => {
-                setPrefs((current: any) => ({
+                setPrefs((current) => ({
                     ...current,
                     wristOverlayEnabled: savedValue
                 }));
                 return () =>
-                    setPrefs((current: any) => ({
+                    setPrefs((current) => ({
                         ...current,
                         wristOverlayEnabled: previousValue
                     }));
@@ -607,15 +764,16 @@ export function useSettingsPreferenceActions({
         if (!saved) {
             return null;
         }
-        setPrefs((current: any) => ({
+        setPrefs((current) => ({
             ...current,
             wristOverlayEnabled: savedValue
         }));
         return savedValue;
     }
     function speakNotificationTts(
-        text: any,
-        voiceIndex: any = Number.parseInt(prefs.notificationTTSVoice, 10) || 0
+        text: string,
+        voiceIndex: number = Number.parseInt(prefs.notificationTTSVoice, 10) ||
+            0
     ) {
         if (
             typeof window === 'undefined' ||

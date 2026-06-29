@@ -19,16 +19,22 @@ import {
     normalizeAutoAcceptValue,
     parseJsonArray
 } from '../toolsDialogUtils';
-import { ContextRulesTab } from './ContextRulesTab';
-import { InviteRulesTab } from './InviteRulesTab';
+import {
+    ContextRulesTab,
+    type ContextRulesTabValues,
+    type PresenceAutomationConfigValueType
+} from './ContextRulesTab';
+import { InviteRulesTab, type InviteRulesTabValues } from './InviteRulesTab';
 import {
     createGroupOptions,
     createInstanceOptions,
-    normalizeContextRule
+    normalizeContextRule,
+    type ContextAutomationRule,
+    type TimeAutomationRule
 } from './presenceAutomationDialogUtils';
 import { TimeRulesTab } from './TimeRulesTab';
 
-const DEFAULT_CONTEXT_VALUES: any = {
+const DEFAULT_CONTEXT_VALUES: ContextRulesTabValues = {
     autoStateChangeEnabled: false,
     autoStateChangeNoFriends: false,
     autoStateChangeGroups: [],
@@ -41,16 +47,29 @@ const DEFAULT_CONTEXT_VALUES: any = {
     autoStateChangeCompanyDesc: ''
 };
 
-const DEFAULT_INVITE_VALUES: any = {
+const DEFAULT_INVITE_VALUES: InviteRulesTabValues = {
     autoAcceptInviteRequests: 'Off',
     autoAcceptInviteGroups: []
 };
 
 const I18N_ROOT = 'view.tools.social_automation';
 
-async function saveConfigValue(key: any, value: any, type: any = 'string') {
+type ConfigValueType = 'array' | 'bool' | 'string';
+type DialogOpenProps = {
+    onOpenChange: (open: boolean) => void;
+    open: boolean;
+};
+type ConfigWriteQueueRef = {
+    current: Map<string, Promise<unknown>>;
+};
+
+async function saveConfigValue(
+    key: string,
+    value: unknown,
+    type: ConfigValueType = 'string'
+) {
     if (type === 'bool') {
-        await configRepository.setBool(key, value);
+        await configRepository.setBool(key, value as boolean);
     } else if (type === 'array') {
         await configRepository.setString(key, JSON.stringify(value));
     } else {
@@ -58,7 +77,12 @@ async function saveConfigValue(key: any, value: any, type: any = 'string') {
     }
 }
 
-function enqueueConfigWrite(queueRef: any, key: any, write: any, onError: any) {
+function enqueueConfigWrite(
+    queueRef: ConfigWriteQueueRef,
+    key: string,
+    write: () => Promise<unknown>,
+    onError: (error: unknown) => void
+) {
     const queues = queueRef.current;
     const previousWrite = queues.get(key) || Promise.resolve();
     const nextWrite = previousWrite
@@ -99,10 +123,13 @@ function usePresenceOptions() {
     return { groupOptions, instanceOptions };
 }
 
-export function PresenceScheduleDialog({ open, onOpenChange }: any) {
+export function PresenceScheduleDialog({
+    open,
+    onOpenChange
+}: DialogOpenProps) {
     const { t } = useTranslation();
-    const writeQueuesRef = useRef(new Map());
-    const [timeRules, setTimeRules] = useState<Record<string, unknown>[]>([]);
+    const writeQueuesRef = useRef(new Map<string, Promise<unknown>>());
+    const [timeRules, setTimeRules] = useState<TimeAutomationRule[]>([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -114,13 +141,13 @@ export function PresenceScheduleDialog({ open, onOpenChange }: any) {
         setLoading(true);
         configRepository
             .getString('presenceAutomationTimeRules', '[]')
-            .then((result: any) => {
+            .then((result) => {
                 if (!active) {
                     return;
                 }
-                setTimeRules(parseJsonArray(result));
+                setTimeRules(parseJsonArray(result) as TimeAutomationRule[]);
             })
-            .catch((error: any) =>
+            .catch((error: unknown) =>
                 toast.error(
                     userFacingErrorMessage(
                         error,
@@ -139,7 +166,7 @@ export function PresenceScheduleDialog({ open, onOpenChange }: any) {
         };
     }, [open]);
 
-    async function saveTimeRules(nextRules: any) {
+    async function saveTimeRules(nextRules: TimeAutomationRule[]) {
         setTimeRules(nextRules);
         await enqueueConfigWrite(
             writeQueuesRef,
@@ -149,7 +176,7 @@ export function PresenceScheduleDialog({ open, onOpenChange }: any) {
                     'presenceAutomationTimeRules',
                     JSON.stringify(nextRules)
                 ),
-            (error: any) =>
+            (error) =>
                 toast.error(
                     userFacingErrorMessage(
                         error,
@@ -175,7 +202,7 @@ export function PresenceScheduleDialog({ open, onOpenChange }: any) {
                         <TimeRulesTab
                             rules={timeRules}
                             disabled={loading}
-                            onRulesChange={(nextRules: any) => {
+                            onRulesChange={(nextRules) => {
                                 saveTimeRules(nextRules);
                             }}
                         />
@@ -186,12 +213,17 @@ export function PresenceScheduleDialog({ open, onOpenChange }: any) {
     );
 }
 
-export function PresenceRoomRulesDialog({ open, onOpenChange }: any) {
+export function PresenceRoomRulesDialog({
+    open,
+    onOpenChange
+}: DialogOpenProps) {
     const { t } = useTranslation();
     const writeQueuesRef = useRef(new Map());
     const { groupOptions, instanceOptions } = usePresenceOptions();
-    const [values, setValues] = useState(DEFAULT_CONTEXT_VALUES);
-    const [contextRules, setContextRules] = useState<Record<string, unknown>[]>(
+    const [values, setValues] = useState<ContextRulesTabValues>(
+        DEFAULT_CONTEXT_VALUES
+    );
+    const [contextRules, setContextRules] = useState<ContextAutomationRule[]>(
         []
     );
     const [loading, setLoading] = useState(false);
@@ -219,7 +251,7 @@ export function PresenceRoomRulesDialog({ open, onOpenChange }: any) {
             configRepository.getString('autoStateChangeCompanyDesc', ''),
             configRepository.getString('presenceAutomationContextRules', '[]')
         ])
-            .then((result: any) => {
+            .then((result) => {
                 if (!active) {
                     return;
                 }
@@ -241,7 +273,7 @@ export function PresenceRoomRulesDialog({ open, onOpenChange }: any) {
                     parseJsonArray(result[10]).map(normalizeContextRule)
                 );
             })
-            .catch((error: any) =>
+            .catch((error: unknown) =>
                 toast.error(
                     userFacingErrorMessage(
                         error,
@@ -260,13 +292,23 @@ export function PresenceRoomRulesDialog({ open, onOpenChange }: any) {
         };
     }, [open]);
 
-    async function saveValue(key: any, value: any, type: any = 'string') {
-        setValues((current: any) => ({ ...current, [key]: value }));
+    async function saveValue(
+        key: keyof ContextRulesTabValues,
+        value: unknown,
+        type: PresenceAutomationConfigValueType = 'string'
+    ) {
+        setValues(
+            (current) =>
+                ({
+                    ...current,
+                    [key]: value
+                }) as ContextRulesTabValues
+        );
         await enqueueConfigWrite(
             writeQueuesRef,
             key,
             () => saveConfigValue(key, value, type),
-            (error: any) =>
+            (error) =>
                 toast.error(
                     userFacingErrorMessage(
                         error,
@@ -276,7 +318,7 @@ export function PresenceRoomRulesDialog({ open, onOpenChange }: any) {
         );
     }
 
-    async function saveContextRules(nextRules: any) {
+    async function saveContextRules(nextRules: ContextAutomationRule[]) {
         const normalizedRules = nextRules.map(normalizeContextRule);
         setContextRules(normalizedRules);
         await enqueueConfigWrite(
@@ -287,7 +329,7 @@ export function PresenceRoomRulesDialog({ open, onOpenChange }: any) {
                     'presenceAutomationContextRules',
                     JSON.stringify(normalizedRules)
                 ),
-            (error: any) =>
+            (error) =>
                 toast.error(
                     userFacingErrorMessage(
                         error,
@@ -317,7 +359,7 @@ export function PresenceRoomRulesDialog({ open, onOpenChange }: any) {
                             instanceOptions={instanceOptions}
                             contextRules={contextRules}
                             onSaveValue={saveValue}
-                            onRulesChange={(nextRules: any) => {
+                            onRulesChange={(nextRules) => {
                                 saveContextRules(nextRules);
                             }}
                         />
@@ -328,11 +370,16 @@ export function PresenceRoomRulesDialog({ open, onOpenChange }: any) {
     );
 }
 
-export function PresenceInviteRequestsDialog({ open, onOpenChange }: any) {
+export function PresenceInviteRequestsDialog({
+    open,
+    onOpenChange
+}: DialogOpenProps) {
     const { t } = useTranslation();
     const writeQueuesRef = useRef(new Map());
     const { groupOptions } = usePresenceOptions();
-    const [values, setValues] = useState(DEFAULT_INVITE_VALUES);
+    const [values, setValues] = useState<InviteRulesTabValues>(
+        DEFAULT_INVITE_VALUES
+    );
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -346,7 +393,7 @@ export function PresenceInviteRequestsDialog({ open, onOpenChange }: any) {
             configRepository.getString('autoAcceptInviteRequests', 'Off'),
             configRepository.getString('autoAcceptInviteGroups', '[]')
         ])
-            .then((result: any) => {
+            .then((result) => {
                 if (!active) {
                     return;
                 }
@@ -357,7 +404,7 @@ export function PresenceInviteRequestsDialog({ open, onOpenChange }: any) {
                     autoAcceptInviteGroups: parseJsonArray(result[1])
                 });
             })
-            .catch((error: any) =>
+            .catch((error: unknown) =>
                 toast.error(
                     userFacingErrorMessage(
                         error,
@@ -376,13 +423,23 @@ export function PresenceInviteRequestsDialog({ open, onOpenChange }: any) {
         };
     }, [open]);
 
-    async function saveValue(key: any, value: any, type: any = 'string') {
-        setValues((current: any) => ({ ...current, [key]: value }));
+    async function saveValue(
+        key: keyof InviteRulesTabValues,
+        value: unknown,
+        type: PresenceAutomationConfigValueType = 'string'
+    ) {
+        setValues(
+            (current) =>
+                ({
+                    ...current,
+                    [key]: value
+                }) as InviteRulesTabValues
+        );
         await enqueueConfigWrite(
             writeQueuesRef,
             key,
             () => saveConfigValue(key, value, type),
-            (error: any) =>
+            (error) =>
                 toast.error(
                     userFacingErrorMessage(
                         error,

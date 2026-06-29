@@ -225,7 +225,7 @@ export function VRChatConfigDialog({ open, onOpenChange }: any) {
     async function openFolderBrowser(key: any) {
         const selected = await openFolderSelectorDialog(
             config[key] || ''
-        ).catch((error: any) => {
+        ).catch((error: unknown) => {
             toast.error(
                 userFacingErrorMessage(
                     error,

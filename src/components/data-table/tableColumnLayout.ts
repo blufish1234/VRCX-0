@@ -1,4 +1,10 @@
-export function resolveColumnLabel(column: any) {
+import type { Column, RowData, Table } from '@tanstack/react-table';
+
+type DataTableColumn<TData extends RowData> = Column<TData, unknown>;
+
+export function resolveColumnLabel<TData extends RowData>(
+    column: DataTableColumn<TData> | null | undefined
+) {
     const metaLabel = column?.columnDef?.meta?.label;
     if (typeof metaLabel === 'function') {
         const resolved = metaLabel();
@@ -13,7 +19,9 @@ export function resolveColumnLabel(column: any) {
     return column?.id || '';
 }
 
-function hasExplicitColumnLayoutLabel(column: any) {
+function hasExplicitColumnLayoutLabel<TData extends RowData>(
+    column: DataTableColumn<TData> | null | undefined
+) {
     const metaLabel = column?.columnDef?.meta?.label;
     if (typeof metaLabel === 'function') {
         const resolved = metaLabel();
@@ -22,7 +30,9 @@ function hasExplicitColumnLayoutLabel(column: any) {
     return typeof metaLabel === 'string' && Boolean(metaLabel.trim());
 }
 
-export function isSpacerColumn(column: any) {
+export function isSpacerColumn<TData extends RowData>(
+    column: DataTableColumn<TData> | null | undefined
+) {
     if (!column) {
         return false;
     }
@@ -32,14 +42,14 @@ export function isSpacerColumn(column: any) {
     return Boolean(column.columnDef?.meta?.spacer);
 }
 
-export function getColumnOrder(
-    table: any,
-    leafColumns: any = table?.getAllLeafColumns?.() ?? []
+export function getColumnOrder<TData extends RowData>(
+    table: Table<TData>,
+    leafColumns: DataTableColumn<TData>[] = table.getAllLeafColumns()
 ) {
-    const leafColumnIds = leafColumns.map((column: any) => column.id);
+    const leafColumnIds = leafColumns.map((column) => column.id);
     const leafColumnIdSet = new Set(leafColumnIds);
-    const currentOrder = table?.getState?.().columnOrder || [];
-    const ordered = currentOrder.filter((columnId: any) =>
+    const currentOrder = table.getState().columnOrder || [];
+    const ordered = currentOrder.filter((columnId) =>
         leafColumnIdSet.has(columnId)
     );
     const orderedIds = new Set(ordered);
@@ -54,8 +64,10 @@ export function getColumnOrder(
     return ordered;
 }
 
-export function getToggleableColumns(columns: any[] = []) {
-    return columns.filter((column: any) => {
+export function getToggleableColumns<TData extends RowData>(
+    columns: DataTableColumn<TData>[] = []
+) {
+    return columns.filter((column) => {
         if (!column?.getCanHide?.()) {
             return false;
         }
@@ -69,8 +81,10 @@ export function getToggleableColumns(columns: any[] = []) {
     });
 }
 
-export function getColumnOrderLocked(table: any) {
-    const value = table?.options?.meta?.columnOrderLocked;
+export function getColumnOrderLocked<TData extends RowData>(
+    table: Table<TData>
+) {
+    const value = table.options.meta?.columnOrderLocked;
     if (value == null) {
         return false;
     }
@@ -80,8 +94,8 @@ export function getColumnOrderLocked(table: any) {
     return value === true;
 }
 
-export function hasColumnOrderLock(table: any) {
-    const meta = table?.options?.meta;
+export function hasColumnOrderLock<TData extends RowData>(table: Table<TData>) {
+    const meta = table.options.meta;
     return Boolean(
         meta &&
         (meta.columnOrderLocked != null ||
@@ -90,8 +104,11 @@ export function hasColumnOrderLock(table: any) {
     );
 }
 
-export function setColumnOrderLocked(table: any, locked: any) {
-    const meta = table?.options?.meta;
+export function setColumnOrderLocked<TData extends RowData>(
+    table: Table<TData>,
+    locked: boolean
+) {
+    const meta = table.options.meta;
     if (typeof meta?.setColumnOrderLocked === 'function') {
         meta.setColumnOrderLocked(locked);
         return;
@@ -109,7 +126,9 @@ export function setColumnOrderLocked(table: any, locked: any) {
     }
 }
 
-export function isColumnReorderable(column: any) {
+export function isColumnReorderable<TData extends RowData>(
+    column: DataTableColumn<TData> | null | undefined
+) {
     if (!column) {
         return false;
     }
@@ -132,13 +151,19 @@ export function isColumnReorderable(column: any) {
     return true;
 }
 
-export function getReorderableColumnIds(table: any) {
-    return (table?.getVisibleLeafColumns?.() ?? [])
-        .filter((column: any) => isColumnReorderable(column))
-        .map((column: any) => column.id);
+export function getReorderableColumnIds<TData extends RowData>(
+    table: Table<TData>
+) {
+    return table
+        .getVisibleLeafColumns()
+        .filter((column) => isColumnReorderable(column))
+        .map((column) => column.id);
 }
 
-export function resetTableLayout(table: any, onResetLayout: any) {
+export function resetTableLayout<TData extends RowData>(
+    table: Table<TData>,
+    onResetLayout?: ((table: Table<TData>) => void) | null
+) {
     if (typeof onResetLayout === 'function') {
         onResetLayout(table);
         return;

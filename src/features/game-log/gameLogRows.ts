@@ -1,5 +1,12 @@
 import { parseLocation } from '@/shared/utils/location';
 
+import type {
+    GameLogRow,
+    GameLogSession,
+    GameLogSessionEvent,
+    GameLogSessionMember
+} from './gameLogTypes';
+
 export const GAME_LOG_TYPE_LABELS: Record<string, string> = {
     Location: 'Location',
     OnPlayerJoined: 'Player Joined',
@@ -25,14 +32,16 @@ const GAME_LOG_UNACTIONABLE_TYPES = new Set([
     'PortalSpawn'
 ]);
 
-export function normalizeGameLogId(value: any) {
+export function normalizeGameLogId(value: unknown) {
     return typeof value === 'string'
         ? value.trim()
         : String(value ?? '').trim();
 }
 
-export function buildGameLogFavoriteIdSet(localFriendFavorites: any) {
-    const ids = new Set();
+export function buildGameLogFavoriteIdSet(
+    localFriendFavorites: Record<string, unknown> | null | undefined
+) {
+    const ids = new Set<string>();
     for (const groupIds of Object.values(localFriendFavorites ?? {})) {
         if (!Array.isArray(groupIds)) {
             continue;
@@ -47,16 +56,16 @@ export function buildGameLogFavoriteIdSet(localFriendFavorites: any) {
     return ids;
 }
 
-export function describeGameLogDetail(row: any) {
-    switch (row?.type) {
+export function describeGameLogDetail(row: GameLogRow | null | undefined) {
+    switch (normalizeGameLogId(row?.type)) {
         case 'Location':
             return {
-                primary: row?.worldName || row?.location || '',
+                primary: normalizeGameLogId(row?.worldName || row?.location),
                 secondary: ''
             };
         case 'PortalSpawn':
             return {
-                primary: row?.worldName || row?.instanceId || '',
+                primary: normalizeGameLogId(row?.worldName || row?.instanceId),
                 secondary: ''
             };
         case 'OnPlayerJoined':
@@ -67,9 +76,11 @@ export function describeGameLogDetail(row: any) {
                 secondary: ''
             };
         case 'VideoPlay': {
-            const videoLabel = row?.videoName || row?.videoUrl || '';
+            const videoLabel = normalizeGameLogId(
+                row?.videoName || row?.videoUrl
+            );
             const leading = row?.videoId
-                ? `${row.videoId}: ${videoLabel}`
+                ? `${normalizeGameLogId(row.videoId)}: ${videoLabel}`
                 : videoLabel;
             return {
                 primary: leading,
@@ -78,29 +89,31 @@ export function describeGameLogDetail(row: any) {
         }
         case 'Event':
             return {
-                primary: row?.data || '',
+                primary: normalizeGameLogId(row?.data),
                 secondary: ''
             };
         case 'External':
             return {
-                primary: row?.message || '',
+                primary: normalizeGameLogId(row?.message),
                 secondary: ''
             };
         case 'StringLoad':
         case 'ImageLoad':
             return {
-                primary: row?.resourceUrl || '',
+                primary: normalizeGameLogId(row?.resourceUrl),
                 secondary: ''
             };
         default:
             return {
-                primary: row?.message || row?.data || row?.location || '',
+                primary: normalizeGameLogId(
+                    row?.message || row?.data || row?.location
+                ),
                 secondary: ''
             };
     }
 }
 
-export function resolveGameLogWorldTarget(row: any) {
+export function resolveGameLogWorldTarget(row: GameLogRow | null | undefined) {
     if (row?.type === 'PortalSpawn') {
         const portalLocation =
             normalizeGameLogId(row?.instanceId) ||
@@ -124,17 +137,20 @@ export function resolveGameLogWorldTarget(row: any) {
     return parseLocation(directInstance).worldId ? directInstance : '';
 }
 
-export function resolveGameLogWorldId(row: any) {
+export function resolveGameLogWorldId(row: GameLogRow | null | undefined) {
     const target = resolveGameLogWorldTarget(row);
     return parseLocation(target).worldId || normalizeGameLogId(row?.worldId);
 }
 
-export function shouldLinkGameLogPrimaryDetailToWorld(row: any) {
-    return row?.type === 'Location' || row?.type === 'PortalSpawn';
+export function shouldLinkGameLogPrimaryDetailToWorld(
+    row: GameLogRow | null | undefined
+) {
+    const type = normalizeGameLogId(row?.type);
+    return type === 'Location' || type === 'PortalSpawn';
 }
 
-export function getGameLogLocationTarget(row: any) {
-    if (row?.type === 'PortalSpawn') {
+export function getGameLogLocationTarget(row: GameLogRow | null | undefined) {
+    if (normalizeGameLogId(row?.type) === 'PortalSpawn') {
         return (
             normalizeGameLogId(row?.instanceId) ||
             normalizeGameLogId(row?.location)
@@ -145,46 +161,49 @@ export function getGameLogLocationTarget(row: any) {
     );
 }
 
-export function getGameLogExternalTarget(row: any) {
-    if (row?.type === 'VideoPlay') {
+export function getGameLogExternalTarget(row: GameLogRow | null | undefined) {
+    const type = normalizeGameLogId(row?.type);
+    if (type === 'VideoPlay') {
         if (row?.videoId === 'LSMedia' || row?.videoId === 'PopcornPalace') {
             return '';
         }
-        return row?.videoUrl || '';
+        return normalizeGameLogId(row?.videoUrl);
     }
 
-    if (row?.type === 'StringLoad' || row?.type === 'ImageLoad') {
-        return row?.resourceUrl || '';
+    if (type === 'StringLoad' || type === 'ImageLoad') {
+        return normalizeGameLogId(row?.resourceUrl);
     }
 
     return '';
 }
 
-export function getGameLogCopyTarget(row: any) {
-    if (GAME_LOG_DETAILLESS_TYPES.has(row?.type)) {
+export function getGameLogCopyTarget(row: GameLogRow | null | undefined) {
+    const type = normalizeGameLogId(row?.type);
+    if (GAME_LOG_DETAILLESS_TYPES.has(type)) {
         return '';
     }
 
-    if (row?.type === 'Event') {
-        return row?.data || '';
+    if (type === 'Event') {
+        return normalizeGameLogId(row?.data);
     }
 
-    if (row?.type === 'VideoPlay') {
-        return row?.videoUrl || row?.videoName || row?.data || '';
+    if (type === 'VideoPlay') {
+        return normalizeGameLogId(row?.videoUrl || row?.videoName || row?.data);
     }
 
-    if (row?.type === 'StringLoad' || row?.type === 'ImageLoad') {
-        return row?.resourceUrl || '';
+    if (type === 'StringLoad' || type === 'ImageLoad') {
+        return normalizeGameLogId(row?.resourceUrl);
     }
 
-    return row?.data || row?.message || '';
+    return normalizeGameLogId(row?.data || row?.message);
 }
 
-export function canDeleteGameLogRow(row: any) {
-    return Boolean(row?.type && !GAME_LOG_UNACTIONABLE_TYPES.has(row.type));
+export function canDeleteGameLogRow(row: GameLogRow | null | undefined) {
+    const type = normalizeGameLogId(row?.type);
+    return Boolean(type && !GAME_LOG_UNACTIONABLE_TYPES.has(type));
 }
 
-export function getGameLogRowKey(row: any) {
+export function getGameLogRowKey(row: GameLogRow | null | undefined) {
     return [
         row?.type,
         row?.created_at,
@@ -196,15 +215,15 @@ export function getGameLogRowKey(row: any) {
         row?.rowId,
         row?.id
     ]
-        .map((value: any) => normalizeGameLogId(value))
+        .map((value) => normalizeGameLogId(value))
         .filter(Boolean)
         .join(':');
 }
 
 export function annotateGameLogSessionMember(
-    member: any,
-    favoriteIdSet: any,
-    friendIdSet: any
+    member: GameLogSessionMember,
+    favoriteIdSet: ReadonlySet<string>,
+    friendIdSet: ReadonlySet<string>
 ) {
     const userId = normalizeGameLogId(member?.userId);
     return {
@@ -215,9 +234,9 @@ export function annotateGameLogSessionMember(
 }
 
 export function annotateGameLogSessionEvent(
-    event: any,
-    favoriteIdSet: any,
-    friendIdSet: any
+    event: GameLogSessionEvent,
+    favoriteIdSet: ReadonlySet<string>,
+    friendIdSet: ReadonlySet<string>
 ) {
     const userId = normalizeGameLogId(event?.userId);
     return {
@@ -227,7 +246,7 @@ export function annotateGameLogSessionEvent(
             : Boolean(event?.isFavorite),
         isFriend: userId ? friendIdSet.has(userId) : Boolean(event?.isFriend),
         members: Array.isArray(event?.members)
-            ? event.members.map((member: any) =>
+            ? event.members.map((member) =>
                   annotateGameLogSessionMember(
                       member,
                       favoriteIdSet,
@@ -238,8 +257,10 @@ export function annotateGameLogSessionEvent(
     };
 }
 
-export function collectGameLogSessionFriends(events: any[] = []) {
-    const seen = new Map<string, any>();
+export function collectGameLogSessionFriends(
+    events: readonly GameLogSessionEvent[] = []
+) {
+    const seen = new Map<string, GameLogSessionMember & { key: string }>();
     for (const event of events) {
         const candidates =
             Array.isArray(event?.members) && event.members.length > 0
@@ -271,26 +292,38 @@ export function collectGameLogSessionFriends(events: any[] = []) {
     return friends;
 }
 
-export function countGameLogSessionEvent(events: any, type: any) {
-    return events.reduce((count: any, event: any) => {
-        if (type === 'OnPlayerJoined' && event.type === 'JoinGroup') {
-            return count + (event.members?.length || event.count || 0);
+export function countGameLogSessionEvent(
+    events: readonly GameLogSessionEvent[],
+    type: string
+) {
+    return events.reduce((count, event) => {
+        const eventType = normalizeGameLogId(event.type);
+        if (type === 'OnPlayerJoined' && eventType === 'JoinGroup') {
+            return (
+                count + (event.members?.length || (event.count as number) || 0)
+            );
         }
-        if (type === 'OnPlayerLeft' && event.type === 'LeftGroup') {
-            return count + (event.members?.length || event.count || 0);
+        if (type === 'OnPlayerLeft' && eventType === 'LeftGroup') {
+            return (
+                count + (event.members?.length || (event.count as number) || 0)
+            );
         }
-        return count + (event.type === type ? 1 : 0);
+        return count + (eventType === type ? 1 : 0);
     }, 0);
 }
 
-export function resolveGameLogSessionDuration(session: any) {
+export function resolveGameLogSessionDuration(
+    session: GameLogSession | null | undefined
+) {
     const duration = Number(session?.duration ?? 0);
     return Number.isFinite(duration) && duration > 0 ? duration : 0;
 }
 
-export function getGameLogSessionKey(session: any) {
+export function getGameLogSessionKey(
+    session: GameLogSession | null | undefined
+) {
     return [session?.id, session?.created_at, session?.location]
-        .map((value: any) => normalizeGameLogId(value))
+        .map((value) => normalizeGameLogId(value))
         .filter(Boolean)
         .join(':');
 }

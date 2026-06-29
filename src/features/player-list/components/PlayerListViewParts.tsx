@@ -1,4 +1,6 @@
+import type { Table as ReactTable } from '@tanstack/react-table';
 import { HomeIcon, UsersIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { DataTableSortButton } from '@/components/data-table/DataTableSortButton';
@@ -21,6 +23,7 @@ import { defaultWorldCacheInfo } from '@/lib/worldAssetBundle';
 import { openUserDialog, openWorldDialog } from '@/services/dialogService';
 import { convertFileUrlToImageUrl } from '@/services/entityMediaService';
 import { parseLocation } from '@/shared/utils/location';
+import { normalizeString } from '@/shared/utils/string';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import { Table, TableBody, TableRow } from '@/ui/shadcn/table';
@@ -34,8 +37,35 @@ import {
 } from '../playerListDisplay';
 import { parseTimeMs } from '../playerListRows';
 import { PLAYER_LIST_COLUMN_IDS as COLUMN_IDS } from '../playerListState';
+import type {
+    PlayerListProfileRecord,
+    PlayerListRecord,
+    PlayerListRow
+} from '../playerListTypes';
 
 export { DataTableSortButton as SortButton };
+
+type PlayerListTable = ReactTable<PlayerListRow>;
+
+type PlayerListWorld = PlayerListRecord & {
+    id?: unknown;
+    name?: unknown;
+    authorName?: unknown;
+    authorId?: unknown;
+    imageUrl?: unknown;
+    thumbnailImageUrl?: unknown;
+    platforms?: unknown[];
+    tags?: unknown[];
+    isLabs?: unknown;
+    releaseStatus?: unknown;
+    description?: unknown;
+    recommendedCapacity?: unknown;
+    capacity?: unknown;
+    updatedAt?: unknown;
+    createdAt?: unknown;
+};
+
+type PlayerListFileAnalysis = Record<string, PlayerListRecord | undefined>;
 
 export function CurrentWorldHeader({
     cacheInfo = defaultWorldCacheInfo(),
@@ -54,11 +84,35 @@ export function CurrentWorldHeader({
     parsedLocation,
     startedAt,
     world
-}: any) {
+}: {
+    cacheInfo?: ReturnType<typeof defaultWorldCacheInfo>;
+    clockNow: number;
+    currentUserSnapshot?: PlayerListProfileRecord | null;
+    fileAnalysis?: PlayerListFileAnalysis;
+    friendCount: number;
+    instanceCreatedAt?: unknown;
+    instanceGroupName?: string;
+    instanceLocation?: string;
+    instanceWorldId?: string;
+    instanceWorldName?: string;
+    isGameRunning: boolean;
+    onPreviewImage?: (image: { url: string; title: string }) => void;
+    playerCount: number;
+    parsedLocation: ReturnType<typeof parseLocation>;
+    startedAt?: unknown;
+    world?: PlayerListWorld | null;
+}) {
     const { t } = useTranslation();
     const worldId =
-        world?.id || instanceWorldId || parsedLocation.worldId || '';
-    const worldName = world?.name || instanceWorldName || 'Current instance';
+        normalizeString(world?.id) ||
+        instanceWorldId ||
+        parsedLocation.worldId ||
+        '';
+    const worldName =
+        normalizeString(world?.name) || instanceWorldName || 'Current instance';
+    const authorName = normalizeString(world?.authorName);
+    const authorId = normalizeString(world?.authorId);
+    const description = normalizeString(world?.description);
     const homeWorldId = getHomeWorldId(
         currentUserSnapshot?.$homeLocation || currentUserSnapshot?.homeLocation
     );
@@ -95,7 +149,7 @@ export function CurrentWorldHeader({
                     imageUrl &&
                     onPreviewImage?.({
                         url: convertFileUrlToImageUrl(
-                            world?.imageUrl || imageUrl,
+                            normalizeString(world?.imageUrl) || imageUrl,
                             1024
                         ),
                         title: worldName
@@ -133,20 +187,20 @@ export function CurrentWorldHeader({
                         <span className="truncate">{worldName}</span>
                     </Button>
                 </div>
-                {world?.authorName ? (
+                {authorName ? (
                     <Button
                         type="button"
                         variant="ghost"
                         className="text-muted-foreground hover:text-primary h-auto justify-start p-0 font-mono text-xs"
                         onClick={() =>
-                            world?.authorId &&
+                            authorId &&
                             openUserDialog({
-                                userId: world.authorId,
-                                title: world.authorName || undefined
+                                userId: authorId,
+                                title: authorName || undefined
                             })
                         }
                     >
-                        {world.authorName}
+                        {authorName}
                     </Button>
                 ) : null}
                 <div className="flex flex-wrap gap-1.5">
@@ -163,16 +217,17 @@ export function CurrentWorldHeader({
                             {t('dialog.world.tags.private')}
                         </Badge>
                     ) : null}
-                    {platforms.map((platform: any) => {
+                    {platforms.map((platform) => {
                         const Icon = platform.icon;
+                        const platformKey = String(platform.key ?? '');
                         return (
                             <Badge
-                                key={platform.key}
+                                key={platformKey}
                                 variant="outline"
                                 className="gap-1"
                             >
                                 {Icon ? <Icon className="size-3.5" /> : null}
-                                {platform.label}
+                                {String(platform.label ?? '')}
                                 {fileAnalysisSizeForPlatform(
                                     fileAnalysis,
                                     platform.key
@@ -218,15 +273,15 @@ export function CurrentWorldHeader({
                 <div className="text-muted-foreground flex min-w-0 flex-wrap items-center gap-2 font-mono text-xs">
                     <LocationWorld
                         locationObject={currentInstanceLocationObject}
-                        currentUserId={currentUserSnapshot?.id || ''}
+                        currentUserId={normalizeString(currentUserSnapshot?.id)}
                         grouphint={instanceGroupName || ''}
                         hint={worldName}
                         className="font-sans"
                     />
                 </div>
-                {world?.description && world.description !== worldName ? (
+                {description && description !== worldName ? (
                     <div className="line-clamp-2 text-xs break-words">
-                        {world.description}
+                        {description}
                     </div>
                 ) : null}
             </div>
@@ -274,7 +329,15 @@ export function CurrentWorldHeader({
     );
 }
 
-export function PlayerListTableShell({ table, onResetLayout, children }: any) {
+export function PlayerListTableShell({
+    table,
+    onResetLayout,
+    children
+}: {
+    table: PlayerListTable;
+    onResetLayout: () => void;
+    children: ReactNode;
+}) {
     return (
         <DataTableSurface>
             <DataTableScrollArea>
@@ -302,7 +365,13 @@ export function PlayerListRows({
     onOpenPlayer,
     emptyTitle,
     emptyDescription
-}: any) {
+}: {
+    table: PlayerListTable;
+    hasRows: boolean;
+    onOpenPlayer: (row: PlayerListRow) => void;
+    emptyTitle?: string;
+    emptyDescription?: string;
+}) {
     if (!hasRows) {
         return (
             <PlayerListEmptyRow
@@ -313,7 +382,7 @@ export function PlayerListRows({
         );
     }
 
-    return table.getRowModel().rows.map((row: any) => (
+    return table.getRowModel().rows.map((row) => (
         <TableRow
             key={row.id}
             className={cn(
@@ -337,7 +406,7 @@ export function PlayerListRows({
             }}
         >
             <DataTableColumnSortableContext table={table}>
-                {row.getVisibleCells().map((cell: any) => (
+                {row.getVisibleCells().map((cell) => (
                     <ResizableTableCell key={cell.id} cell={cell} />
                 ))}
             </DataTableColumnSortableContext>
@@ -345,7 +414,15 @@ export function PlayerListRows({
     ));
 }
 
-export function PlayerListEmptyRow({ table, title, description }: any) {
+export function PlayerListEmptyRow({
+    table,
+    title,
+    description
+}: {
+    table: PlayerListTable;
+    title?: string;
+    description?: string;
+}) {
     const visibleColumnCount =
         table.getVisibleLeafColumns?.().length ||
         table.getAllLeafColumns?.().length ||
@@ -369,7 +446,11 @@ export function PlayerListEmptyState({
     title,
     description,
     className = ''
-}: any) {
+}: {
+    title?: string;
+    description?: string;
+    className?: string;
+}) {
     return (
         <EmptyState
             title={title}

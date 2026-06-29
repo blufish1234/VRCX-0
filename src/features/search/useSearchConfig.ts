@@ -52,7 +52,7 @@ export function useSearchConfig() {
                     )
                 );
             })
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 toast.error(
                     error instanceof Error
                         ? error.message
@@ -77,7 +77,7 @@ export function useSearchConfig() {
                             applyAvatarProviderConfig(config);
                         }
                     })
-                    .catch((error: any) => {
+                    .catch((error: unknown) => {
                         console.warn(
                             'Failed to refresh avatar providers:',
                             error
@@ -95,7 +95,7 @@ export function useSearchConfig() {
 
                 applyAvatarProviderConfig(config);
             })
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 toast.error(
                     error instanceof Error
                         ? error.message
@@ -113,7 +113,7 @@ export function useSearchConfig() {
         setSelectedAvatarProvider(provider);
         avatarSearchProviderRepository
             .saveSelectedProvider(provider)
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 toast.error(
                     error instanceof Error
                         ? error.message

@@ -104,7 +104,7 @@ function useAppNavModel({
             applyModel(model);
         }
 
-        loadModel().catch((error: any) => {
+        loadModel().catch((error: unknown) => {
             console.warn('Failed to load navigation layout:', error);
             if (active) {
                 setMenuItems([]);
@@ -112,7 +112,7 @@ function useAppNavModel({
         });
 
         const handleNavLayoutUpdated = () => {
-            loadModel().catch((error: any) => {
+            loadModel().catch((error: unknown) => {
                 console.warn('Failed to reload navigation layout:', error);
             });
         };

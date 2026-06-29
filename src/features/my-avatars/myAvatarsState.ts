@@ -1,9 +1,17 @@
+import type {
+    ColumnSizingState,
+    SortingState,
+    VisibilityState
+} from '@tanstack/react-table';
+
 import {
     getDataTableStorageKey,
     readPersistedTableState,
     sanitizeTableColumnSizing,
     writePersistedTableState
 } from '@/components/data-table/dataTablePersistence';
+
+import type { MyAvatarsGridDensity } from './myAvatarsTypes';
 
 export const MY_AVATARS_DEFAULT_PAGE_SIZES = [10, 15, 20, 25, 50, 100];
 export const MY_AVATARS_DEFAULT_SORTING = [{ id: 'updated_at', desc: true }];
@@ -60,14 +68,15 @@ const COLUMN_ID_ALIASES: Record<string, string> = {
     action: 'actions'
 };
 const GRID_DENSITY_VALUES = new Set(
-    MY_AVATARS_GRID_DENSITY_OPTIONS.map((option: any) => option.value)
+    MY_AVATARS_GRID_DENSITY_OPTIONS.map((option) => option.value)
 );
-const LEGACY_GRID_DENSITY_ALIASES: Readonly<Record<string, string>> =
-    Object.freeze({
-        compact: 'standard',
-        dense: 'compact',
-        micro: 'dense'
-    });
+const LEGACY_GRID_DENSITY_ALIASES: Readonly<
+    Record<string, MyAvatarsGridDensity>
+> = Object.freeze({
+    compact: 'standard',
+    dense: 'compact',
+    micro: 'dense'
+});
 const SORT_COLUMN_IDS = [
     'name',
     'customTags',
@@ -89,7 +98,15 @@ export function writePersistedMyAvatarsState(patch: Record<string, unknown>) {
     writePersistedTableState(STORAGE_KEY, patch);
 }
 
-export function normalizeMyAvatarsColumnId(columnId: any) {
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object');
+}
+
+function isMyAvatarsGridDensity(value: string): value is MyAvatarsGridDensity {
+    return GRID_DENSITY_VALUES.has(value);
+}
+
+export function normalizeMyAvatarsColumnId(columnId: unknown) {
     const normalized = typeof columnId === 'string' ? columnId.trim() : '';
     if (!normalized) {
         return '';
@@ -98,26 +115,28 @@ export function normalizeMyAvatarsColumnId(columnId: any) {
     return COLUMN_ID_ALIASES[normalized] || normalized;
 }
 
-export function sanitizeMyAvatarsSorting(value: any) {
+export function sanitizeMyAvatarsSorting(value: unknown): SortingState {
     if (!Array.isArray(value)) {
         return MY_AVATARS_DEFAULT_SORTING;
     }
 
     const allowedIds = new Set(SORT_COLUMN_IDS);
     const filtered = value
-        .map((entry: any) =>
-            entry && typeof entry.id === 'string'
-                ? {
+        .map((entry): SortingState[number] | null =>
+            isRecord(entry) && typeof entry.id === 'string'
+                ? ({
                       ...entry,
                       id: normalizeMyAvatarsColumnId(entry.id)
-                  }
+                  } as SortingState[number])
                 : null
         )
-        .filter((entry: any) => entry && allowedIds.has(entry.id));
+        .filter((entry): entry is SortingState[number] =>
+            Boolean(entry && allowedIds.has(entry.id))
+        );
     return filtered.length ? filtered : MY_AVATARS_DEFAULT_SORTING;
 }
 
-export function sanitizeMyAvatarsPageSizes(value: any) {
+export function sanitizeMyAvatarsPageSizes(value: unknown): number[] {
     if (!Array.isArray(value)) {
         return MY_AVATARS_DEFAULT_PAGE_SIZES;
     }
@@ -125,67 +144,72 @@ export function sanitizeMyAvatarsPageSizes(value: any) {
     const normalized = Array.from(
         new Set(
             value
-                .map((entry: any) => Number.parseInt(entry, 10))
+                .map((entry) => Number.parseInt(String(entry), 10))
                 .filter(
-                    (entry: any) =>
+                    (entry) =>
                         Number.isFinite(entry) && entry > 0 && entry <= 1000
                 )
         )
-    ).sort((left: any, right: any) => left - right);
+    ).sort((left, right) => left - right);
 
     return normalized.length ? normalized : MY_AVATARS_DEFAULT_PAGE_SIZES;
 }
 
 export function resolveMyAvatarsPageSize(
-    candidate: any,
-    allowed: any,
-    fallback: any = MY_AVATARS_DEFAULT_PAGE_SIZES[1]
-) {
+    candidate: unknown,
+    allowed: unknown,
+    fallback: unknown = MY_AVATARS_DEFAULT_PAGE_SIZES[1]
+): number {
     const pageSizes = Array.isArray(allowed)
-        ? allowed.filter((size: any) => Number.isFinite(size) && size > 0)
+        ? allowed.filter(
+              (size): size is number => Number.isFinite(size) && size > 0
+          )
         : MY_AVATARS_DEFAULT_PAGE_SIZES;
     const fallbackPageSize = pageSizes.length
         ? pageSizes[0]
         : MY_AVATARS_DEFAULT_PAGE_SIZES[0];
-    const nearestPageSize = (value: any) =>
+    const nearestPageSize = (value: number) =>
         pageSizes.length
-            ? pageSizes.reduce((previous: any, size: any) =>
+            ? pageSizes.reduce((previous, size) =>
                   Math.abs(size - value) < Math.abs(previous - value)
                       ? size
                       : previous
               )
             : fallbackPageSize;
-    const parsed = Number.parseInt(candidate, 10);
+    const parsed = Number.parseInt(String(candidate), 10);
     if (Number.isFinite(parsed) && parsed > 0) {
         return pageSizes.includes(parsed) ? parsed : nearestPageSize(parsed);
     }
 
-    if (pageSizes.includes(fallback)) {
-        return fallback;
+    const parsedFallback = Number.parseInt(String(fallback), 10);
+    if (pageSizes.includes(parsedFallback)) {
+        return parsedFallback;
     }
 
     return nearestPageSize(Number(fallback) || fallbackPageSize);
 }
 
-export function sanitizeMyAvatarsCardScale(value: any) {
-    const parsed = Number.parseFloat(value);
+export function sanitizeMyAvatarsCardScale(value: unknown) {
+    const parsed = Number.parseFloat(String(value));
     if (Number.isFinite(parsed)) {
         return Math.min(1.4, Math.max(0.4, parsed));
     }
     return MY_AVATARS_DEFAULT_CARD_SCALE;
 }
 
-export function sanitizeMyAvatarsCardSpacing(value: any) {
-    const parsed = Number.parseFloat(value);
+export function sanitizeMyAvatarsCardSpacing(value: unknown) {
+    const parsed = Number.parseFloat(String(value));
     if (Number.isFinite(parsed)) {
         return Math.min(2, Math.max(0.6, parsed));
     }
     return MY_AVATARS_DEFAULT_CARD_SPACING;
 }
 
-export function sanitizeMyAvatarsGridDensity(value: any) {
+export function sanitizeMyAvatarsGridDensity(
+    value: unknown
+): MyAvatarsGridDensity {
     const normalized = typeof value === 'string' ? value.trim() : '';
-    return GRID_DENSITY_VALUES.has(normalized)
+    return isMyAvatarsGridDensity(normalized)
         ? normalized
         : MY_AVATARS_DEFAULT_GRID_DENSITY;
 }
@@ -194,10 +218,14 @@ export function resolveMyAvatarsGridDensity({
     persistedDensity,
     legacyGridDensity,
     legacyCardScale
-}: any = {}) {
+}: {
+    persistedDensity?: unknown;
+    legacyGridDensity?: unknown;
+    legacyCardScale?: unknown;
+} = {}): MyAvatarsGridDensity {
     const normalized =
         typeof persistedDensity === 'string' ? persistedDensity.trim() : '';
-    if (GRID_DENSITY_VALUES.has(normalized)) {
+    if (isMyAvatarsGridDensity(normalized)) {
         return normalized;
     }
     const normalizedLegacyDensity =
@@ -206,7 +234,7 @@ export function resolveMyAvatarsGridDensity({
         return LEGACY_GRID_DENSITY_ALIASES[normalizedLegacyDensity];
     }
 
-    const legacyScale = Number.parseFloat(legacyCardScale);
+    const legacyScale = Number.parseFloat(String(legacyCardScale));
     if (!Number.isFinite(legacyScale)) {
         return MY_AVATARS_DEFAULT_GRID_DENSITY;
     }
@@ -219,8 +247,10 @@ export function resolveMyAvatarsGridDensity({
     return MY_AVATARS_DEFAULT_GRID_DENSITY;
 }
 
-export function sanitizeMyAvatarsColumnVisibility(value: any) {
-    const visibility: Record<string, boolean> = {};
+export function sanitizeMyAvatarsColumnVisibility(
+    value: unknown
+): VisibilityState {
+    const visibility: VisibilityState = {};
     if (value && typeof value === 'object') {
         for (const [rawColumnId, rawVisible] of Object.entries(value)) {
             const columnId = normalizeMyAvatarsColumnId(rawColumnId);
@@ -236,14 +266,16 @@ export function sanitizeMyAvatarsColumnVisibility(value: any) {
     return visibility;
 }
 
-export function resolveMyAvatarsColumnVisibility(persistedState: any = {}) {
+export function resolveMyAvatarsColumnVisibility(
+    persistedState: Record<string, unknown> = {}
+) {
     return {
         ...MY_AVATARS_DEFAULT_COLUMN_VISIBILITY,
         ...sanitizeMyAvatarsColumnVisibility(persistedState.columnVisibility)
     };
 }
 
-export function sanitizeMyAvatarsColumnOrder(value: any) {
+export function sanitizeMyAvatarsColumnOrder(value: unknown): string[] {
     if (!Array.isArray(value)) {
         return [...MY_AVATARS_COLUMN_IDS];
     }
@@ -268,7 +300,9 @@ export function sanitizeMyAvatarsColumnOrder(value: any) {
     return ordered;
 }
 
-export function sanitizeMyAvatarsColumnSizing(value: any) {
+export function sanitizeMyAvatarsColumnSizing(
+    value: unknown
+): ColumnSizingState {
     if (!value || typeof value !== 'object') {
         return {};
     }

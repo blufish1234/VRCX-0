@@ -1,8 +1,11 @@
 import { ClockIcon } from 'lucide-react';
+import type { ComponentType, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { isActionRecent } from '@/services/recentActionService';
 import { userStatusIndicatorClassName } from '@/shared/utils/userStatus';
+
+import type { SidebarFriendRecord } from './friendsSidebarModel';
 
 const statusOptions = [
     { value: 'join me', labelKey: 'dialog.user.status.join_me' },
@@ -11,14 +14,33 @@ const statusOptions = [
     { value: 'busy', labelKey: 'dialog.user.status.busy' }
 ];
 
-function statusPresetLabel(preset: any, t: any) {
+export type StatusPreset = {
+    status?: unknown;
+    statusDescription?: unknown;
+};
+
+type ContextMenuItemComponent = ComponentType<{
+    children?: ReactNode;
+    checked?: boolean;
+    disabled?: boolean;
+    onSelect?: () => void;
+}>;
+
+type ContextMenuContainerComponent = ComponentType<{
+    children?: ReactNode;
+}>;
+
+type ContextMenuSeparatorComponent = ComponentType;
+
+function statusPresetLabel(
+    preset: StatusPreset | null | undefined,
+    t: (key: string) => string
+) {
     if (preset?.statusDescription) {
-        return preset.statusDescription;
+        return String(preset.statusDescription);
     }
-    const option = statusOptions.find(
-        (row: any) => row.value === preset?.status
-    );
-    return option ? t(option.labelKey) : preset?.status || '';
+    const option = statusOptions.find((row) => row.value === preset?.status);
+    return option ? t(option.labelKey) : String(preset?.status || '');
 }
 
 export function CurrentUserActionItems({
@@ -33,7 +55,19 @@ export function CurrentUserActionItems({
     Group,
     Separator,
     statusPresets = []
-}: any) {
+}: {
+    friend: SidebarFriendRecord & { statusHistory?: unknown };
+    onOpen?: () => void;
+    onChangeStatus?: (status: string) => void;
+    onSetStatusDescription?: (statusDescription: string) => void;
+    onEditStatusDescription?: () => void;
+    onApplyStatusPreset?: (preset: StatusPreset) => void;
+    MenuItem: ContextMenuItemComponent;
+    CheckboxItem: ContextMenuItemComponent;
+    Group: ContextMenuContainerComponent;
+    Separator: ContextMenuSeparatorComponent;
+    statusPresets?: StatusPreset[];
+}) {
     const { t } = useTranslation();
 
     return (
@@ -45,12 +79,12 @@ export function CurrentUserActionItems({
             </Group>
             <Separator />
             <Group>
-                {statusOptions.map((option: any) => (
+                {statusOptions.map((option) => (
                     <CheckboxItem
                         key={option.value}
                         checked={friend?.status === option.value}
                         onSelect={() => {
-                            onChangeStatus(option.value);
+                            onChangeStatus?.(option.value);
                         }}
                     >
                         <span
@@ -65,7 +99,7 @@ export function CurrentUserActionItems({
                 ))}
                 <MenuItem
                     onSelect={() => {
-                        onEditStatusDescription();
+                        onEditStatusDescription?.();
                     }}
                 >
                     {t(
@@ -81,23 +115,23 @@ export function CurrentUserActionItems({
                         <CheckboxItem
                             checked={!friend?.statusDescription}
                             onSelect={() => {
-                                onSetStatusDescription('');
+                                onSetStatusDescription?.('');
                             }}
                         >
                             {t('dialog.gallery_select.none')}
                         </CheckboxItem>
                         {friend.statusHistory
                             .slice(0, 10)
-                            .map((item: any, index: any) => (
+                            .map((item, index) => (
                                 <CheckboxItem
                                     key={`${item}:${index}`}
                                     checked={friend?.statusDescription === item}
                                     onSelect={() => {
-                                        onSetStatusDescription(item);
+                                        onSetStatusDescription?.(String(item));
                                     }}
                                 >
                                     <span className="max-w-44 truncate">
-                                        {item}
+                                        {String(item)}
                                     </span>
                                 </CheckboxItem>
                             ))}
@@ -108,11 +142,11 @@ export function CurrentUserActionItems({
                 <>
                     <Separator />
                     <Group>
-                        {statusPresets.map((preset: any, index: any) => (
+                        {statusPresets.map((preset, index) => (
                             <MenuItem
                                 key={`${preset?.status || 'status'}:${preset?.statusDescription || ''}:${index}`}
                                 onSelect={() => {
-                                    onApplyStatusPreset(preset);
+                                    onApplyStatusPreset?.(preset);
                                 }}
                             >
                                 <span className="max-w-44 truncate">
@@ -144,7 +178,24 @@ export function FriendActionItems({
     Group,
     Separator,
     recentActionVersion = 0
-}: any) {
+}: {
+    friend: SidebarFriendRecord;
+    friendLocation?: unknown;
+    canUseFriendLocation?: boolean;
+    canSendInvite?: boolean;
+    canRequestInvite?: boolean;
+    canBoop?: boolean;
+    onOpen?: () => void;
+    onLaunch?: (location: unknown) => void;
+    onSelfInvite?: (location: unknown) => void;
+    onInvite?: (friend: SidebarFriendRecord) => void;
+    onRequestInvite?: (friend: SidebarFriendRecord) => void;
+    onBoop?: (friend: SidebarFriendRecord) => void;
+    MenuItem: ContextMenuItemComponent;
+    Group: ContextMenuContainerComponent;
+    Separator: ContextMenuSeparatorComponent;
+    recentActionVersion?: number;
+}) {
     const { t } = useTranslation();
     const recentInvite =
         recentActionVersion >= 0 && isActionRecent(friend?.id, 'Invite');
@@ -163,7 +214,7 @@ export function FriendActionItems({
                 <MenuItem
                     disabled={!canUseFriendLocation}
                     onSelect={() => {
-                        onLaunch(friendLocation);
+                        onLaunch?.(friendLocation);
                     }}
                 >
                     {t('dialog.user.info.launch_invite_tooltip')}
@@ -171,7 +222,7 @@ export function FriendActionItems({
                 <MenuItem
                     disabled={!canUseFriendLocation}
                     onSelect={() => {
-                        onSelfInvite(friendLocation);
+                        onSelfInvite?.(friendLocation);
                     }}
                 >
                     {t('dialog.user.info.self_invite_tooltip')}
@@ -182,7 +233,7 @@ export function FriendActionItems({
                 <MenuItem
                     disabled={!canSendInvite}
                     onSelect={() => {
-                        onInvite(friend);
+                        onInvite?.(friend);
                     }}
                 >
                     <span className="min-w-0 flex-1">
@@ -195,7 +246,7 @@ export function FriendActionItems({
                 <MenuItem
                     disabled={!canRequestInvite}
                     onSelect={() => {
-                        onRequestInvite(friend);
+                        onRequestInvite?.(friend);
                     }}
                 >
                     <span className="min-w-0 flex-1">
@@ -208,7 +259,7 @@ export function FriendActionItems({
                 <MenuItem
                     disabled={!canBoop}
                     onSelect={() => {
-                        onBoop(friend);
+                        onBoop?.(friend);
                     }}
                 >
                     {t('dialog.user.actions.send_boop')}

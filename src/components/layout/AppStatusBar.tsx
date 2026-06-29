@@ -41,8 +41,13 @@ import { ContextMenu, ContextMenuTrigger } from '@/ui/shadcn/context-menu';
 
 import { StatusBarContextMenuContent } from './status-bar/StatusBarContextMenuContent';
 import { StatusBarFooter } from './status-bar/StatusBarFooter';
+import type {
+    StatusBarClock,
+    StatusBarVisibility,
+    StatusBarVisibilityKey
+} from './status-bar/statusBarTypes';
 
-const DEFAULT_VISIBILITY: Record<string, boolean> = {
+const DEFAULT_VISIBILITY: StatusBarVisibility = {
     vrchat: true,
     steamvr: true,
     proxy: true,
@@ -56,7 +61,11 @@ const DEFAULT_VISIBILITY: Record<string, boolean> = {
     servers: true
 };
 
-function normalizeUtcHour(value: any) {
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object');
+}
+
+function normalizeUtcHour(value: unknown) {
     const numeric = Number(value);
     if (!Number.isFinite(numeric)) {
         return 0;
@@ -64,13 +73,12 @@ function normalizeUtcHour(value: any) {
     return Math.max(-12, Math.min(14, Math.round(numeric)));
 }
 
-function parseClockOffset(entry: any) {
-    const value =
-        entry && typeof entry === 'object'
-            ? 'offset' in entry
-                ? entry.offset
-                : entry.timezone
-            : entry;
+function parseClockOffset(entry: unknown) {
+    const value = isRecord(entry)
+        ? 'offset' in entry
+            ? entry.offset
+            : entry.timezone
+        : entry;
     if (typeof value === 'number') {
         return normalizeUtcHour(value);
     }
@@ -94,8 +102,7 @@ function parseClockOffset(entry: any) {
             timeZoneName: 'longOffset'
         }).formatToParts(new Date());
         const timeZoneName =
-            parts.find((part: any) => part.type === 'timeZoneName')?.value ||
-            '';
+            parts.find((part) => part.type === 'timeZoneName')?.value || '';
         const offsetMatch = timeZoneName.match(
             /^GMT([+-])(\d{1,2})(?::(\d{2}))?$/
         );
@@ -112,7 +119,7 @@ function parseClockOffset(entry: any) {
     return 0;
 }
 
-function formatUtcHour(offset: any) {
+function formatUtcHour(offset: unknown) {
     const normalized = normalizeUtcHour(offset);
     return `UTC${normalized >= 0 ? '+' : ''}${normalized}`;
 }
@@ -122,18 +129,18 @@ const TIMEZONE_OPTIONS = Array.from({ length: 27 }, (_, index) => {
     return { value, label: formatUtcHour(value) };
 });
 
-function formatClock(nowMs: any, offset: any) {
+function formatClock(nowMs: number, offset: unknown) {
     const shifted = new Date(nowMs + normalizeUtcHour(offset) * HOUR_MS);
     const hours = String(shifted.getUTCHours()).padStart(2, '0');
     const minutes = String(shifted.getUTCMinutes()).padStart(2, '0');
     return `${hours}:${minutes} ${formatUtcHour(offset)}`;
 }
 
-function getDefaultClockOffset(localOffset: any) {
+function getDefaultClockOffset(localOffset: number) {
     return localOffset >= 0 ? -5 : 9;
 }
 
-function createDefaultClocks() {
+function createDefaultClocks(): StatusBarClock[] {
     const localOffset = normalizeUtcHour(-new Date().getTimezoneOffset() / 60);
     return [
         { offset: getDefaultClockOffset(localOffset) },
@@ -142,7 +149,7 @@ function createDefaultClocks() {
     ];
 }
 
-function formatDuration(ms: any) {
+function formatDuration(ms: unknown) {
     const { hours, minutes, seconds } = durationParts(ms);
     if (hours > 0) {
         return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
@@ -150,7 +157,7 @@ function formatDuration(ms: any) {
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-function durationParts(ms: any) {
+function durationParts(ms: unknown) {
     const safeSeconds = Math.max(0, Math.floor((Number(ms) || 0) / SECOND_MS));
     const hours = Math.floor(safeSeconds / SECONDS_PER_HOUR);
     const minutes = Math.floor(
@@ -160,12 +167,12 @@ function durationParts(ms: any) {
     return { hours, minutes, seconds };
 }
 
-function formatAppUptime(ms: any) {
+function formatAppUptime(ms: number) {
     const { hours, minutes, seconds } = durationParts(ms);
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-function formatStatusDate(value: any) {
+function formatStatusDate(value: unknown) {
     return formatDateTime(value, {
         month: '2-digit',
         day: '2-digit',
@@ -431,7 +438,7 @@ export function AppStatusBar() {
             configRepository.getString(STATUS_BAR_CONFIG_KEYS.clocks, null),
             configRepository.getString(STATUS_BAR_CONFIG_KEYS.clockCount, null)
         ])
-            .then(([savedVisibility, savedClocks, savedClockCount]: any) => {
+            .then(([savedVisibility, savedClocks, savedClockCount]) => {
                 if (!active) {
                     return;
                 }
@@ -453,7 +460,7 @@ export function AppStatusBar() {
                         if (Array.isArray(parsed) && parsed.length > 0) {
                             const defaults = createDefaultClocks();
                             const nextClocks = defaults.map(
-                                (defaultClock: any, index: any) => {
+                                (defaultClock, index) => {
                                     const entry = parsed[index];
                                     return entry
                                         ? { offset: parseClockOffset(entry) }
@@ -481,14 +488,14 @@ export function AppStatusBar() {
         };
     }, []);
 
-    function persistVisibility(nextVisibility: any) {
+    function persistVisibility(nextVisibility: StatusBarVisibility) {
         setVisibility(nextVisibility);
         configRepository
             .setString(
                 STATUS_BAR_CONFIG_KEYS.visibility,
                 JSON.stringify(nextVisibility)
             )
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 toast.error(
                     error instanceof Error
                         ? error.message
@@ -499,15 +506,15 @@ export function AppStatusBar() {
             });
     }
 
-    function toggleVisibility(key: any, checked: any) {
-        const nextVisibility: any = {
+    function toggleVisibility(key: StatusBarVisibilityKey, checked: boolean) {
+        const nextVisibility: StatusBarVisibility = {
             ...visibility,
             [key]: Boolean(checked)
         };
         persistVisibility(nextVisibility);
     }
 
-    function setClockCountValue(nextValue: any) {
+    function setClockCountValue(nextValue: unknown) {
         const parsed = Math.max(0, Math.min(3, Number(nextValue) || 0));
         setClockCount(parsed);
         if (parsed > 0 && !visibility.clocks) {
@@ -518,7 +525,7 @@ export function AppStatusBar() {
         }
         configRepository
             .setString(STATUS_BAR_CONFIG_KEYS.clockCount, String(parsed))
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 toast.error(
                     error instanceof Error
                         ? error.message
@@ -529,19 +536,19 @@ export function AppStatusBar() {
             });
     }
 
-    function setClockPopoverValue(index: any, open: any) {
-        setClockPopoverOpen((current: any) => {
+    function setClockPopoverValue(index: number, open: boolean) {
+        setClockPopoverOpen((current) => {
             const next = [...current];
             next[index] = open;
             return next;
         });
     }
 
-    function updateClockTimezone(index: any, offsetValue: any) {
-        setClocks((current: any) => {
+    function updateClockTimezone(index: number, offsetValue: unknown) {
+        setClocks((current) => {
             const defaults = createDefaultClocks();
             const nextClocks = defaults.map(
-                (defaultClock: any, clockIndex: any) =>
+                (defaultClock, clockIndex) =>
                     current[clockIndex] ?? defaultClock
             );
             nextClocks[index] = { offset: parseClockOffset(offsetValue) };
@@ -550,7 +557,7 @@ export function AppStatusBar() {
                     STATUS_BAR_CONFIG_KEYS.clocks,
                     JSON.stringify(nextClocks)
                 )
-                .catch((error: any) => {
+                .catch((error: unknown) => {
                     toast.error(
                         error instanceof Error
                             ? error.message
@@ -566,7 +573,7 @@ export function AppStatusBar() {
 
     async function openStatusPage() {
         const refreshStatusPromise = refreshVrcStatusNow().catch(
-            (error: any) => {
+            (error: unknown) => {
                 console.warn('VRChat status refresh failed:', error);
             }
         );
@@ -608,7 +615,7 @@ export function AppStatusBar() {
         await setProxyServerPreference(nextProxyServer);
     }
 
-    function showZoomError(error: any) {
+    function showZoomError(error: unknown) {
         toast.error(
             error instanceof Error
                 ? error.message
@@ -617,7 +624,7 @@ export function AppStatusBar() {
     }
 
     function startBackgroundMode() {
-        startBackgroundModeForCurrentSession().catch((error: any) => {
+        startBackgroundModeForCurrentSession().catch((error: unknown) => {
             console.warn('Failed to start background mode:', error);
             toast.error(
                 error instanceof Error
@@ -629,11 +636,11 @@ export function AppStatusBar() {
         });
     }
 
-    function setQueuedZoomLevel(nextZoom: any) {
+    function setQueuedZoomLevel(nextZoom: number) {
         queueZoomLevelPreference(nextZoom, { onError: showZoomError });
     }
 
-    function stepQueuedZoomLevel(delta: any) {
+    function stepQueuedZoomLevel(delta: number) {
         stepQueuedZoomLevelPreference(delta, { onError: showZoomError });
     }
 
@@ -662,7 +669,7 @@ export function AppStatusBar() {
         zoomLabel: formatZoomPercentage(currentZoomLevel),
         zoomLevel: currentZoomLevel,
         onOpenMediaLink: () => {
-            openExternalLink(nowPlaying.url).catch((error: any) => {
+            openExternalLink(nowPlaying.url).catch((error: unknown) => {
                 toast.error(
                     error instanceof Error
                         ? error.message
@@ -675,7 +682,7 @@ export function AppStatusBar() {
         onOpenStatusPage: openStatusPage,
         onStartBackgroundMode: startBackgroundMode,
         onPromptProxySettings: () => {
-            promptProxySettings().catch((error: any) => {
+            promptProxySettings().catch((error: unknown) => {
                 toast.error(
                     error instanceof Error
                         ? error.message

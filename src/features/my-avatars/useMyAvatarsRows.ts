@@ -47,7 +47,7 @@ export function useMyAvatarsRows() {
                 currentAvatarId,
                 previousAvatarSwapTime
             })
-            .then((nextAvatars: any) => {
+            .then((nextAvatars) => {
                 if (requestIdRef.current !== requestId) {
                     return;
                 }
@@ -55,7 +55,7 @@ export function useMyAvatarsRows() {
                 setLoadStatus('ready');
                 setDetail('');
             })
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 if (requestIdRef.current !== requestId) {
                     return;
                 }

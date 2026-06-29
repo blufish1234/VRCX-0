@@ -1,6 +1,13 @@
 import { normalizeString as normalizeId } from '@/shared/utils/string';
 
-import { buildSameInstanceGroups } from './friendsSidebarModel';
+import {
+    buildSameInstanceGroups,
+    type LastLocationSnapshot,
+    type SameInstanceGroup,
+    type SidebarFriendRecord,
+    type SidebarPreferences
+} from './friendsSidebarModel';
+import type { SidebarVirtualRow } from './friendsSidebarVirtualRowBuilder';
 
 interface BuildFavoriteCollectionFriendIdSetOptions {
     sourceGroupKeys?: string[];
@@ -9,7 +16,7 @@ interface BuildFavoriteCollectionFriendIdSetOptions {
 }
 
 function pushSection(
-    nextRows: Array<Record<string, unknown>>,
+    nextRows: SidebarVirtualRow[],
     {
         id,
         title,
@@ -28,15 +35,15 @@ function pushSection(
 }
 
 function pushFriendRows(
-    nextRows: Array<Record<string, unknown>>,
+    nextRows: SidebarVirtualRow[],
     sectionKey: string,
-    sectionRows: unknown[],
+    sectionRows: readonly SidebarFriendRecord[],
     {
         currentUserId,
         isGroupByInstance = false
     }: { currentUserId?: string; isGroupByInstance?: boolean } = {}
 ) {
-    for (const friend of sectionRows as Array<Record<string, unknown>>) {
+    for (const friend of sectionRows) {
         const friendId = normalizeId(friend?.id);
         nextRows.push({
             type: 'friend',
@@ -49,9 +56,9 @@ function pushFriendRows(
 }
 
 function pushSkeletonRows(
-    nextRows: Array<Record<string, unknown>>,
+    nextRows: SidebarVirtualRow[],
     key: string,
-    count: any = 6
+    count = 6
 ) {
     for (let index = 0; index < count; index += 1) {
         nextRows.push({
@@ -91,11 +98,11 @@ export function buildFavoriteCollectionSameInstanceGroups({
     currentLocationSnapshot,
     fallbackJoinTimes
 }: {
-    rows: unknown[];
-    prefs: Record<string, unknown>;
-    currentLocationSnapshot: unknown;
+    rows: readonly SidebarFriendRecord[];
+    prefs: SidebarPreferences;
+    currentLocationSnapshot: LastLocationSnapshot;
     fallbackJoinTimes: Map<string, number>;
-}) {
+}): SameInstanceGroup[] {
     if (!prefs?.sidebarGroupByInstance) {
         return [];
     }
@@ -119,18 +126,18 @@ export function buildFavoriteCollectionSidebarVirtualRows({
     sameInstanceGroups,
     t
 }: {
-    activeRows: unknown[];
+    activeRows: readonly SidebarFriendRecord[];
     currentUserId?: string;
     emptyText: string;
     loadStatus?: string;
-    offlineRows: unknown[];
-    onlineRows: unknown[];
+    offlineRows: readonly SidebarFriendRecord[];
+    onlineRows: readonly SidebarFriendRecord[];
     openGroups: Record<string, boolean>;
     rowsLength: number;
-    sameInstanceGroups: Array<{ location: string; rows: unknown[] }>;
+    sameInstanceGroups: SameInstanceGroup[];
     t: (key: string) => string;
-}) {
-    const nextRows: Array<Record<string, unknown>> = [];
+}): SidebarVirtualRow[] {
+    const nextRows: SidebarVirtualRow[] = [];
 
     if (loadStatus === 'running' && !rowsLength) {
         pushSkeletonRows(nextRows, 'favorite-collection-loading');
@@ -146,7 +153,7 @@ export function buildFavoriteCollectionSidebarVirtualRows({
             open: openGroups.sameInstance
         });
         if (openGroups.sameInstance) {
-            sameInstanceGroups.forEach((group: any, index: any) => {
+            sameInstanceGroups.forEach((group, index) => {
                 nextRows.push({
                     type: 'instance-header',
                     key: `instance:${group.location}:${index}`,

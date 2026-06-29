@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-table';
 
 import { useMyAvatarsColumns } from './components/MyAvatarsColumns';
+import type { MyAvatarRow } from './myAvatarsTypes';
 import { useMyAvatarsActions } from './useMyAvatarsActions';
 import { useMyAvatarsDialogState } from './useMyAvatarsDialogState';
 import { useMyAvatarsFilters } from './useMyAvatarsFilters';
@@ -52,7 +53,7 @@ export function useMyAvatarsPageController() {
         updatingAvatarId: actions.updatingAvatarId,
         uploadingImageAvatarId: actions.uploadingImageAvatarId
     });
-    const table = useReactTable({
+    const table = useReactTable<MyAvatarRow>({
         data: viewData.filteredAvatars,
         columns,
         state: {

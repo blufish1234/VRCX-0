@@ -3,27 +3,70 @@ import { hasGroupIdPrefix } from '@/shared/constants/vrchatIds';
 import {
     compareByDisplayName,
     compareByFriendOrder,
-    compareByLastActiveRef
+    compareByLastActiveRef,
+    type ComparableRecord,
+    type Comparator
 } from '@/shared/utils/compare';
 import { userStatusLabel } from '@/shared/utils/userStatus';
 
 const DASH = '\u2014';
 
-export function firstArray(...values: any[]) {
-    return values.find((value: any) => Array.isArray(value)) || [];
+type UserDialogRow = ComparableRecord & {
+    authorName?: string;
+    avatarName?: string;
+    createdAt?: string;
+    description?: string;
+    display_name?: string;
+    group?: Record<string, unknown>;
+    groupName?: string;
+    group_name?: string;
+    shortCode?: string;
+    statusDescription?: string;
+    subtitle?: string;
+    targetUserId?: string;
+    travelingToTime?: unknown;
+    traveling_to_time?: unknown;
+    updatedAt?: string;
+    userCount?: number;
+    userId?: string;
+    worldName?: string;
+    $favoriteGroup?: string;
+    $location_at?: string | number;
+    $subtitle?: string;
+    $travelingToTime?: unknown;
+};
+
+type LanguageRow = {
+    key: string;
+    value: string;
+};
+
+type PreviousDisplayNameRow = {
+    displayName: string;
+    updated_at: unknown;
+};
+
+type TranslateFn = (key: string) => string;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object');
 }
 
-export function normalizedText(value: any) {
+export function firstArray(...values: unknown[]) {
+    return values.find((value) => Array.isArray(value)) || [];
+}
+
+export function normalizedText(value: unknown) {
     return typeof value === 'string'
         ? value.trim()
         : String(value ?? '').trim();
 }
 
-export function isGroupId(value: any) {
+export function isGroupId(value: unknown) {
     return hasGroupIdPrefix(normalizedText(value));
 }
 
-export function firstNonGroupIdText(...values: any[]) {
+export function firstNonGroupIdText(...values: unknown[]) {
     const fallback = [];
     for (const value of values) {
         const text = normalizedText(value);
@@ -38,7 +81,7 @@ export function firstNonGroupIdText(...values: any[]) {
     return fallback[0] || '';
 }
 
-export function isOfflineLikeValue(value: any) {
+export function isOfflineLikeValue(value: unknown) {
     const normalized = normalizedText(value).toLowerCase();
     return (
         !normalized ||
@@ -48,11 +91,11 @@ export function isOfflineLikeValue(value: any) {
     );
 }
 
-export function summarizeEntityRow(row: any, fallback: any = DASH) {
+export function summarizeEntityRow(row: unknown, fallback: unknown = DASH) {
     if (typeof row === 'string') {
         return /^(usr|wrld|wld|avtr|grp)_/i.test(row.trim()) ? fallback : row;
     }
-    if (!row || typeof row !== 'object') {
+    if (!isRecord(row)) {
         return fallback;
     }
     const label =
@@ -65,10 +108,11 @@ export function summarizeEntityRow(row: any, fallback: any = DASH) {
     return label;
 }
 
-export function groupDisplayName(row: any, fallback: any = 'Group') {
-    if (!row || typeof row !== 'object') {
+export function groupDisplayName(row: unknown, fallback = 'Group') {
+    if (!isRecord(row)) {
         return fallback;
     }
+    const group = isRecord(row.group) ? row.group : {};
     return firstNonGroupIdText(
         row.displayName,
         row.display_name,
@@ -76,21 +120,21 @@ export function groupDisplayName(row: any, fallback: any = 'Group') {
         row.groupName,
         row.group_name,
         row.shortCode,
-        row.group?.displayName,
-        row.group?.display_name,
-        row.group?.name,
+        group.displayName,
+        group.display_name,
+        group.name,
         fallback
     );
 }
 
-export function filterRows(rows: any, query: any) {
+export function filterRows<T extends UserDialogRow>(rows: T[], query: unknown) {
     const normalizedQuery = String(query || '')
         .trim()
         .toLowerCase();
     if (!normalizedQuery) {
         return rows;
     }
-    return rows.filter((row: any) =>
+    return rows.filter((row) =>
         [
             row?.displayName,
             row?.name,
@@ -101,7 +145,7 @@ export function filterRows(rows: any, query: any) {
             row?.description,
             row?.id,
             row?.$favoriteGroup
-        ].some((value: any) =>
+        ].some((value) =>
             String(value || '')
                 .toLowerCase()
                 .includes(normalizedQuery)
@@ -109,35 +153,43 @@ export function filterRows(rows: any, query: any) {
     );
 }
 
-export function sortAvatarRows(rows: any, sortBy: any) {
+export function sortAvatarRows<T extends UserDialogRow>(
+    rows: readonly T[],
+    sortBy: unknown
+) {
     const nextRows = [...rows];
     if (sortBy === 'update') {
-        return nextRows.sort((left: any, right: any) =>
+        return nextRows.sort((left, right) =>
             String(right.updated_at || right.updatedAt || '').localeCompare(
                 String(left.updated_at || left.updatedAt || '')
             )
         );
     }
     if (sortBy === 'createdAt') {
-        return nextRows.sort((left: any, right: any) =>
+        return nextRows.sort((left, right) =>
             String(right.created_at || right.createdAt || '').localeCompare(
                 String(left.created_at || left.createdAt || '')
             )
         );
     }
-    return nextRows.sort((left: any, right: any) =>
+    return nextRows.sort((left, right) =>
         String(left.name || '').localeCompare(String(right.name || ''))
     );
 }
 
-export function sortMutualFriendRows(rows: any, sortBy: any) {
-    const comparers: any = {
+export function sortMutualFriendRows<T extends ComparableRecord>(
+    rows: readonly T[],
+    sortBy: unknown
+) {
+    const comparers: Record<string, Comparator> = {
         alphabetical: compareByDisplayName,
         lastActive: compareByLastActiveRef,
         friendOrder: compareByFriendOrder
     };
-    const comparer = comparers[sortBy] || comparers.alphabetical;
-    return [...rows].sort((left: any, right: any) => {
+    const comparer =
+        (typeof sortBy === 'string' ? comparers[sortBy] : undefined) ||
+        comparers.alphabetical;
+    return [...rows].sort((left, right) => {
         const result = comparer(left, right);
         return Number.isFinite(result)
             ? result
@@ -145,8 +197,11 @@ export function sortMutualFriendRows(rows: any, sortBy: any) {
     });
 }
 
-export function hydrateMutualFriendRows(rows: any, friendsById: any) {
-    return rows.map((row: any) => {
+export function hydrateMutualFriendRows<T extends UserDialogRow>(
+    rows: readonly T[],
+    friendsById: Record<string, UserDialogRow> | null | undefined
+) {
+    return rows.map((row) => {
         const userId = normalizedText(row?.id || row?.userId);
         const cachedFriend = userId ? friendsById?.[userId] : null;
         if (!cachedFriend) {
@@ -167,30 +222,29 @@ export function hydrateMutualFriendRows(rows: any, friendsById: any) {
     });
 }
 
-export function worldOccupantSubtitle(row: any) {
+export function worldOccupantSubtitle(row: UserDialogRow) {
     const occupants = Number(row?.occupants ?? row?.userCount ?? 0) || 0;
     return occupants > 0 ? `(${occupants})` : '';
 }
 
-export function normalizeLanguageRows(rows: any, tags: any[] = []) {
+export function normalizeLanguageRows(rows: unknown, tags: unknown[] = []) {
     const normalizedRows = firstArray(rows)
-        .map((entry: any) => {
+        .map((entry): LanguageRow => {
             if (typeof entry === 'string') {
                 return { key: entry, value: entry };
             }
+            const record = isRecord(entry) ? entry : {};
             return {
-                key: entry?.key || entry?.id || entry?.value || '',
+                key: normalizedText(record.key || record.id || record.value),
                 value:
-                    entry?.value ||
-                    entry?.label ||
-                    entry?.name ||
-                    entry?.key ||
-                    ''
+                    normalizedText(
+                        record.value || record.label || record.name
+                    ) || normalizedText(record.key)
             };
         })
-        .filter((entry: any) => entry.key || entry.value);
+        .filter((entry) => entry.key || entry.value);
     const seen = new Set(
-        normalizedRows.map((entry: any) =>
+        normalizedRows.map((entry) =>
             String(entry.key || entry.value).toLowerCase()
         )
     );
@@ -211,48 +265,51 @@ export function normalizeLanguageRows(rows: any, tags: any[] = []) {
     return normalizedRows;
 }
 
-export function formatStatsDate(value: any) {
+export function formatStatsDate(value: unknown) {
     return formatDateFilterOrFallback(value, 'long', { empty: DASH });
 }
 
-export function formatStatsDuration(value: any) {
+export function formatStatsDuration(value: unknown) {
     const duration = Number(value) || 0;
     return duration > 0 ? timeToText(duration) : DASH;
 }
 
-export function normalizePreviousDisplayNames(value: any) {
+export function normalizePreviousDisplayNames(value: unknown) {
     const rows =
         value instanceof Map
-            ? Array.from(value, ([displayName, updated_at]: any) => ({
+            ? Array.from(value, ([displayName, updated_at]) => ({
                   displayName,
                   updated_at
               }))
             : firstArray(value);
 
     return rows
-        .map((entry: any) => {
+        .map((entry): PreviousDisplayNameRow => {
             if (typeof entry === 'string') {
                 return { displayName: entry, updated_at: '' };
             }
+            const record = isRecord(entry) ? entry : {};
             return {
-                displayName: normalizedText(entry?.displayName || entry?.name),
+                displayName: normalizedText(record.displayName || record.name),
                 updated_at:
-                    entry?.updated_at || entry?.updatedAt || entry?.date || ''
+                    record.updated_at || record.updatedAt || record.date || ''
             };
         })
-        .filter((entry: any) => entry.displayName);
+        .filter((entry) => entry.displayName);
 }
 
-export function userIdForRow(row: any) {
+export function userIdForRow(row: UserDialogRow | null | undefined) {
     return normalizedText(row?.id || row?.userId || row?.targetUserId);
 }
 
-export function formatCountText(count: any, max: any) {
+export function formatCountText(count: unknown, max: unknown) {
     const normalizedMax = Number(max) || 0;
     return normalizedMax ? `${count}/${normalizedMax}` : String(count);
 }
 
-export function resolveStatusStateText(profile: any) {
+export function resolveStatusStateText(
+    profile: UserDialogRow | null | undefined
+) {
     const state = normalizedText(profile?.state);
     const status = normalizedText(profile?.status);
     if (state && status && state.toLowerCase() !== status.toLowerCase()) {
@@ -261,7 +318,7 @@ export function resolveStatusStateText(profile: any) {
     return state || status || '';
 }
 
-export function userTravelingTimestamp(row: any) {
+export function userTravelingTimestamp(row: UserDialogRow) {
     if (normalizedText(row?.location).toLowerCase() !== 'traveling') {
         return 0;
     }
@@ -271,11 +328,15 @@ export function userTravelingTimestamp(row: any) {
     if (Number.isFinite(numeric) && numeric > 0) {
         return numeric;
     }
-    const parsed = Date.parse(value);
+    const parsed = Date.parse(String(value));
     return Number.isNaN(parsed) ? 0 : parsed;
 }
 
-export function userRowSubtitle(row: any, nowMs: any, t: any) {
+export function userRowSubtitle(
+    row: UserDialogRow,
+    nowMs: unknown,
+    t: TranslateFn
+) {
     if (userTravelingTimestamp(row)) {
         return '';
     }

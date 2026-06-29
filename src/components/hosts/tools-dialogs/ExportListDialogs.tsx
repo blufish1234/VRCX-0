@@ -102,7 +102,7 @@ export function ExportFriendsListDialog({ open, onOpenChange }: any) {
                 setCsv(lines.join('\n'));
                 setJson(JSON.stringify({ friends: friendsList }, null, 4));
             })
-            .catch((error: any) =>
+            .catch((error: unknown) =>
                 toast.error(
                     userFacingErrorMessage(
                         error,
@@ -174,7 +174,7 @@ export function ExportAvatarsListDialog({ open, onOpenChange }: any) {
                 }
                 setContent(lines.join('\n'));
             })
-            .catch((error: any) =>
+            .catch((error: unknown) =>
                 toast.error(
                     userFacingErrorMessage(
                         error,

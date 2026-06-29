@@ -40,7 +40,7 @@ export function CommunityThemeSafetyHost(): null {
                 }
                 unlisten = unsubscribe;
             })
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 console.warn(
                     'Unable to subscribe community theme tray event:',
                     error

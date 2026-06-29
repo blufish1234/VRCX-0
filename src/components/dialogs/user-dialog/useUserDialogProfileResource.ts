@@ -5,19 +5,114 @@ import myAvatarRepository from '@/repositories/myAvatarRepository';
 import userProfileRepository from '@/repositories/userProfileRepository';
 import {
     buildCurrentUserPresenceView,
-    mergeCurrentUserPresenceFields
+    mergeCurrentUserPresenceFields,
+    type CurrentUserPresenceGameState,
+    type CurrentUserPresenceRecord
 } from '@/shared/utils/currentUserPresence';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
 
 import { normalizeUserId } from './userProfileFields';
 
-function resolveProfileUserId(profile: any) {
+type UserDialogProfileRecord = CurrentUserPresenceRecord & {
+    id?: string;
+    userId?: string;
+    user_id?: string;
+    targetUserId?: string;
+    target_user_id?: string;
+    displayName?: string;
+    display_name?: string;
+    username?: string;
+    name?: string;
+    currentAvatar?: string;
+    currentAvatarName?: string;
+    avatarName?: string;
+    currentAvatarImageUrl?: string;
+    currentAvatarThumbnailImageUrl?: string;
+    profilePicOverride?: string;
+    profilePicOverrideThumbnail?: string;
+};
+
+type UserDialogProfileSnapshot = UserDialogProfileRecord | null;
+
+type UserDialogAvatarRecord = Record<string, unknown> & {
+    id?: unknown;
+    name?: unknown;
+    imageUrl?: unknown;
+    thumbnailImageUrl?: unknown;
+    avatarName?: unknown;
+};
+
+type UserDialogProfileLoadStatus = 'idle' | 'running' | 'ready' | 'error';
+
+type ActiveUserTarget = {
+    userId: string;
+    endpoint?: string;
+};
+
+type MergeSnapshotIntoCurrentProfileInput = {
+    currentProfile: UserDialogProfileSnapshot;
+    isTargetCurrentUser: boolean;
+    snapshot: UserDialogProfileSnapshot;
+    targetUserId: string;
+};
+
+type NormalizeTargetSnapshotOptions = {
+    allowMissingId?: boolean;
+};
+
+type CurrentAvatarDetailsInput = {
+    avatarId: string;
+    currentUserId: string;
+    endpoint?: string;
+    profile: UserDialogProfileSnapshot;
+};
+
+type MergeUserDialogLocalSnapshotInput = {
+    friendSnapshot?: unknown;
+    seedData?: unknown;
+    knownTargetUser?: unknown;
+};
+
+type UserDialogGameStateInput = Omit<
+    CurrentUserPresenceGameState,
+    'isGameRunning'
+> & {
+    isGameRunning?: boolean | null;
+};
+
+type UseUserDialogProfileResourceInput = {
+    activitySnapshot?: unknown;
+    currentEndpoint?: string;
+    currentUserSnapshot?: unknown;
+    gameLogDisabled?: boolean;
+    gameState?: UserDialogGameStateInput | null;
+    isFriend?: boolean;
+    isTargetCurrentUser: boolean;
+    localSnapshot?: unknown;
+    normalizedUserId: string;
+    updateEntityDialogMetadata: (metadata: {
+        kind: 'user';
+        entityId: string;
+        title: string;
+    }) => void;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object');
+}
+
+function toProfileSnapshot(value: unknown): UserDialogProfileSnapshot {
+    return isRecord(value) ? value : null;
+}
+
+function resolveProfileUserId(profile: unknown) {
+    const record = isRecord(profile) ? profile : {};
     return normalizeUserId(
-        profile?.id ||
-            profile?.userId ||
-            profile?.user_id ||
-            profile?.targetUserId ||
-            profile?.target_user_id
+        record.id ||
+            record.userId ||
+            record.user_id ||
+            record.targetUserId ||
+            record.target_user_id
     );
 }
 
@@ -29,7 +124,7 @@ const SNAPSHOT_DEFAULT_FIELDS = [
     '$active_for'
 ];
 
-function hasOwnField(source: any, field: any) {
+function hasOwnField(source: unknown, field: PropertyKey) {
     return Object.prototype.hasOwnProperty.call(source, field);
 }
 
@@ -44,11 +139,14 @@ const FRIEND_PRESENCE_OVERRIDE_FIELDS = [
     'pendingOffline'
 ];
 
-function overlayFriendPresence(base: any, friend: any) {
+function overlayFriendPresence(
+    base: UserDialogProfileSnapshot,
+    friend: Record<string, unknown> | null | undefined
+): UserDialogProfileSnapshot {
     if (!base || !friend) {
         return base;
     }
-    let next = base;
+    let next: UserDialogProfileRecord = base;
     for (const field of FRIEND_PRESENCE_OVERRIDE_FIELDS) {
         const value = friend[field];
         if (value === undefined) {
@@ -62,12 +160,15 @@ function overlayFriendPresence(base: any, friend: any) {
     return next;
 }
 
-function stripSyntheticSnapshotDefaults(profile: any, snapshot: any) {
-    if (!profile || !snapshot || typeof snapshot !== 'object') {
+function stripSyntheticSnapshotDefaults(
+    profile: UserDialogProfileSnapshot,
+    snapshot: unknown
+) {
+    if (!profile || !isRecord(snapshot)) {
         return profile;
     }
 
-    let nextProfile = profile;
+    let nextProfile: UserDialogProfileRecord = profile;
     for (const field of SNAPSHOT_DEFAULT_FIELDS) {
         if (!hasOwnField(snapshot, field) && hasOwnField(nextProfile, field)) {
             if (nextProfile === profile) {
@@ -79,7 +180,7 @@ function stripSyntheticSnapshotDefaults(profile: any, snapshot: any) {
     return nextProfile;
 }
 
-function valuesEqual(left: any, right: any) {
+function valuesEqual(left: unknown, right: unknown) {
     if (left === right) {
         return true;
     }
@@ -94,16 +195,11 @@ function valuesEqual(left: any, right: any) {
     return false;
 }
 
-function profilesEqual(left: any, right: any) {
+function profilesEqual(left: unknown, right: unknown) {
     if (left === right) {
         return true;
     }
-    if (
-        !left ||
-        !right ||
-        typeof left !== 'object' ||
-        typeof right !== 'object'
-    ) {
+    if (!isRecord(left) || !isRecord(right)) {
         return false;
     }
 
@@ -117,10 +213,10 @@ function profilesEqual(left: any, right: any) {
 }
 
 function preserveProfileIdentity(
-    currentProfile: any,
-    nextProfile: any,
-    targetUserId: any
-) {
+    currentProfile: UserDialogProfileSnapshot,
+    nextProfile: UserDialogProfileSnapshot,
+    targetUserId: string
+): UserDialogProfileSnapshot {
     const currentTargetProfile = previousTargetProfile(
         currentProfile,
         targetUserId
@@ -136,7 +232,7 @@ function mergeSnapshotIntoCurrentProfile({
     isTargetCurrentUser,
     snapshot,
     targetUserId
-}: any) {
+}: MergeSnapshotIntoCurrentProfileInput) {
     const previousProfile = previousTargetProfile(currentProfile, targetUserId);
     const nextProfile =
         isTargetCurrentUser && snapshot
@@ -146,9 +242,9 @@ function mergeSnapshotIntoCurrentProfile({
 }
 
 function normalizeTargetSnapshot(
-    snapshot: any,
-    targetUserId: any,
-    { allowMissingId = true }: any = {}
+    snapshot: unknown,
+    targetUserId: string,
+    { allowMissingId = true }: NormalizeTargetSnapshotOptions = {}
 ) {
     if (!snapshot) {
         return null;
@@ -171,7 +267,7 @@ function normalizeTargetSnapshot(
     return nextProfile;
 }
 
-function profileMatchesTarget(profile: any, targetUserId: any) {
+function profileMatchesTarget(profile: unknown, targetUserId: string) {
     return Boolean(
         profile &&
         targetUserId &&
@@ -179,14 +275,20 @@ function profileMatchesTarget(profile: any, targetUserId: any) {
     );
 }
 
-function previousTargetProfile(profile: any, targetUserId: any) {
+function previousTargetProfile(
+    profile: UserDialogProfileSnapshot,
+    targetUserId: string
+): UserDialogProfileSnapshot {
     return profileMatchesTarget(profile, targetUserId) ? profile : null;
 }
 
 const ACTIVITY_TIMESTAMP_FIELDS = ['last_activity', 'last_login'];
 
-function mergeActivityTimestampsIntoProfile(profile: any, snapshot: any) {
-    if (!profile || !snapshot || typeof snapshot !== 'object') {
+function mergeActivityTimestampsIntoProfile(
+    profile: UserDialogProfileSnapshot,
+    snapshot: unknown
+) {
+    if (!profile || !isRecord(snapshot)) {
         return profile;
     }
 
@@ -196,7 +298,7 @@ function mergeActivityTimestampsIntoProfile(profile: any, snapshot: any) {
         return profile;
     }
 
-    let nextProfile = profile;
+    let nextProfile: UserDialogProfileRecord = profile;
     for (const field of ACTIVITY_TIMESTAMP_FIELDS) {
         if (!hasRefreshValue(snapshot[field])) {
             continue;
@@ -243,22 +345,22 @@ const ID_ONLY_SEED_FIELDS = new Set([
     ...LOCAL_SNAPSHOT_REFRESH_FIELDS
 ]);
 
-function hasRefreshValue(value: any) {
+function hasRefreshValue(value: unknown) {
     return value !== undefined && value !== null && value !== '';
 }
 
-function normalizedAvatarName(value: any) {
+function normalizedAvatarName(value: unknown) {
     return typeof value === 'string' ? value.trim() : '';
 }
 
-function isUnknownAvatarName(value: any) {
+function isUnknownAvatarName(value: unknown) {
     const name = normalizedAvatarName(value).toLowerCase();
     return (
         !name || name === '-' || name === 'unknown' || name === 'unknown avatar'
     );
 }
 
-function shouldHydrateCurrentAvatar(profile: any) {
+function shouldHydrateCurrentAvatar(profile: UserDialogProfileSnapshot) {
     return Boolean(
         normalizeUserId(profile?.currentAvatar) &&
         (isUnknownAvatarName(
@@ -269,12 +371,16 @@ function shouldHydrateCurrentAvatar(profile: any) {
     );
 }
 
-function mergeCurrentAvatarProfile(profile: any, avatar: any) {
-    if (!profile || !avatar || typeof avatar !== 'object') {
+function mergeCurrentAvatarProfile(
+    profile: UserDialogProfileSnapshot,
+    avatar: unknown
+) {
+    if (!profile || !isRecord(avatar)) {
         return profile;
     }
+    const avatarRecord: UserDialogAvatarRecord = avatar;
 
-    const avatarId = normalizeUserId(avatar.id);
+    const avatarId = normalizeUserId(avatarRecord.id);
     const currentAvatar = normalizeUserId(profile.currentAvatar) || avatarId;
     if (!currentAvatar || !avatarId || currentAvatar !== avatarId) {
         return profile;
@@ -286,14 +392,14 @@ function mergeCurrentAvatarProfile(profile: any, avatar: any) {
     const profileAvatarNameUnknown = isUnknownAvatarName(
         profile.currentAvatarName || profile.avatarName
     );
-    const avatarName = normalizedAvatarName(avatar.name);
+    const avatarName = normalizedAvatarName(avatarRecord.name);
     if (avatarName && profileAvatarNameUnknown) {
         nextProfile = { ...nextProfile, currentAvatarName: avatarName };
     }
 
     const thumbnailImageUrl =
-        normalizedAvatarName(avatar.thumbnailImageUrl) ||
-        normalizedAvatarName(avatar.imageUrl);
+        normalizedAvatarName(avatarRecord.thumbnailImageUrl) ||
+        normalizedAvatarName(avatarRecord.imageUrl);
     if (
         thumbnailImageUrl &&
         (profileAvatarNameUnknown ||
@@ -306,8 +412,8 @@ function mergeCurrentAvatarProfile(profile: any, avatar: any) {
     }
 
     const imageUrl =
-        normalizedAvatarName(avatar.imageUrl) ||
-        normalizedAvatarName(avatar.thumbnailImageUrl);
+        normalizedAvatarName(avatarRecord.imageUrl) ||
+        normalizedAvatarName(avatarRecord.thumbnailImageUrl);
     if (
         imageUrl &&
         (profileAvatarNameUnknown ||
@@ -319,8 +425,11 @@ function mergeCurrentAvatarProfile(profile: any, avatar: any) {
     return nextProfile;
 }
 
-function mergeCurrentUserAvatarFields(profile: any, previousProfile: any) {
-    if (!previousProfile || !profile || typeof profile !== 'object') {
+function mergeCurrentUserAvatarFields(
+    profile: UserDialogProfileSnapshot,
+    previousProfile: UserDialogProfileSnapshot
+) {
+    if (!previousProfile || !profile) {
         return profile;
     }
     const previousAvatarId = normalizeUserId(previousProfile.currentAvatar);
@@ -336,8 +445,8 @@ function mergeCurrentUserAvatarFields(profile: any, previousProfile: any) {
     });
 }
 
-function hasUsefulAvatarDetails(avatar: any) {
-    if (!avatar || typeof avatar !== 'object') {
+function hasUsefulAvatarDetails(avatar: unknown) {
+    if (!isRecord(avatar)) {
         return false;
     }
     return Boolean(
@@ -347,12 +456,8 @@ function hasUsefulAvatarDetails(avatar: any) {
     );
 }
 
-function hasUsefulAvatarName(avatar: any) {
-    return Boolean(
-        avatar &&
-        typeof avatar === 'object' &&
-        !isUnknownAvatarName(avatar.name)
-    );
+function hasUsefulAvatarName(avatar: unknown) {
+    return Boolean(isRecord(avatar) && !isUnknownAvatarName(avatar.name));
 }
 
 async function getCurrentAvatarDetails({
@@ -360,8 +465,8 @@ async function getCurrentAvatarDetails({
     currentUserId,
     endpoint,
     profile
-}: any) {
-    let avatarProfile = null;
+}: CurrentAvatarDetailsInput) {
+    let avatarProfile: UserDialogAvatarRecord | null = null;
     try {
         avatarProfile = await avatarProfileRepository.getAvatarProfile({
             avatarId,
@@ -379,7 +484,7 @@ async function getCurrentAvatarDetails({
         return avatarProfile;
     }
 
-    let myAvatar = null;
+    let myAvatar: UserDialogAvatarRecord | null = null;
     try {
         myAvatar = await myAvatarRepository.getMyAvatarById({
             avatarId,
@@ -433,18 +538,19 @@ async function getCurrentAvatarDetails({
         : avatarProfile || myAvatar;
 }
 
-function hasUsefulDisplayName(snapshot: any, userId: any) {
+function hasUsefulDisplayName(snapshot: unknown, userId: unknown) {
+    const record = isRecord(snapshot) ? snapshot : {};
     const displayName = normalizeUserId(
-        snapshot?.displayName ||
-            snapshot?.display_name ||
-            snapshot?.username ||
-            snapshot?.name
+        record.displayName ||
+            record.display_name ||
+            record.username ||
+            record.name
     );
     return Boolean(displayName && displayName !== normalizeUserId(userId));
 }
 
-function isIdOnlyUserSeed(snapshot: any) {
-    if (!snapshot || typeof snapshot !== 'object') {
+function isIdOnlyUserSeed(snapshot: unknown) {
+    if (!isRecord(snapshot)) {
         return false;
     }
     const userId = resolveProfileUserId(snapshot);
@@ -457,13 +563,16 @@ function isIdOnlyUserSeed(snapshot: any) {
     );
 }
 
-function sameSnapshotTarget(left: any, right: any) {
+function sameSnapshotTarget(left: unknown, right: unknown) {
     const leftUserId = resolveProfileUserId(left);
     const rightUserId = resolveProfileUserId(right);
     return Boolean(leftUserId && rightUserId && leftUserId === rightUserId);
 }
 
-function mergeSeedAndKnownSnapshot(seedData: any, knownTargetUser: any) {
+function mergeSeedAndKnownSnapshot(
+    seedData: UserDialogProfileSnapshot,
+    knownTargetUser: UserDialogProfileSnapshot
+) {
     if (!seedData || !knownTargetUser) {
         return seedData || knownTargetUser || null;
     }
@@ -476,13 +585,13 @@ function mergeSeedAndKnownSnapshot(seedData: any, knownTargetUser: any) {
 }
 
 export function mergeLocalSnapshotIntoProfile(
-    localSnapshot: any,
-    profile: any
+    localSnapshot: UserDialogProfileSnapshot,
+    profile: UserDialogProfileSnapshot
 ) {
     if (!localSnapshot) {
         return profile || null;
     }
-    if (!profile || typeof profile !== 'object') {
+    if (!profile) {
         return localSnapshot;
     }
 
@@ -492,7 +601,7 @@ export function mergeLocalSnapshotIntoProfile(
         return localSnapshot;
     }
 
-    const merged: any = { ...localSnapshot, ...profile };
+    const merged: UserDialogProfileRecord = { ...localSnapshot, ...profile };
     for (const field of LOCAL_SNAPSHOT_REFRESH_FIELDS) {
         if (hasRefreshValue(localSnapshot[field])) {
             merged[field] = localSnapshot[field];
@@ -505,12 +614,16 @@ export function mergeUserDialogLocalSnapshot({
     friendSnapshot = null,
     seedData = null,
     knownTargetUser = null
-}: any = {}) {
-    const baseSnapshot = mergeSeedAndKnownSnapshot(seedData, knownTargetUser);
-    if (friendSnapshot && baseSnapshot) {
-        return mergeLocalSnapshotIntoProfile(friendSnapshot, baseSnapshot);
+}: MergeUserDialogLocalSnapshotInput = {}) {
+    const friendProfile = toProfileSnapshot(friendSnapshot);
+    const baseSnapshot = mergeSeedAndKnownSnapshot(
+        toProfileSnapshot(seedData),
+        toProfileSnapshot(knownTargetUser)
+    );
+    if (friendProfile && baseSnapshot) {
+        return mergeLocalSnapshotIntoProfile(friendProfile, baseSnapshot);
     }
-    return friendSnapshot || baseSnapshot;
+    return friendProfile || baseSnapshot;
 }
 
 export function useUserDialogProfileResource({
@@ -524,7 +637,7 @@ export function useUserDialogProfileResource({
     localSnapshot,
     normalizedUserId,
     updateEntityDialogMetadata
-}: any) {
+}: UseUserDialogProfileResourceInput) {
     const normalizedLocalSnapshot = useMemo(
         () => normalizeTargetSnapshot(localSnapshot, normalizedUserId),
         [localSnapshot, normalizedUserId]
@@ -540,12 +653,22 @@ export function useUserDialogProfileResource({
         () => normalizeTargetSnapshot(activitySnapshot, normalizedUserId),
         [activitySnapshot, normalizedUserId]
     );
+    const normalizedGameState = useMemo<CurrentUserPresenceGameState | null>(
+        () =>
+            gameState
+                ? {
+                      ...gameState,
+                      isGameRunning: gameState.isGameRunning === true
+                  }
+                : null,
+        [gameState]
+    );
     const localSnapshotRef = useRef(normalizedLocalSnapshot);
     localSnapshotRef.current = normalizedLocalSnapshot;
     const activitySnapshotRef = useRef(normalizedActivitySnapshot);
     activitySnapshotRef.current = normalizedActivitySnapshot;
     const avatarHydrationKeyRef = useRef('');
-    const [baseProfile, setBaseProfile] = useState(
+    const [baseProfile, setBaseProfile] = useState<UserDialogProfileSnapshot>(
         () => normalizedLocalSnapshot
     );
     const activeBaseProfile = useMemo(
@@ -564,7 +687,7 @@ export function useUserDialogProfileResource({
         const base = isTargetCurrentUser
             ? buildCurrentUserPresenceView(activeBaseProfile, {
                   currentUserSnapshot: currentUserPresenceSnapshot,
-                  gameState,
+                  gameState: normalizedGameState,
                   gameLogDisabled
               })
             : activeBaseProfile;
@@ -572,22 +695,19 @@ export function useUserDialogProfileResource({
     }, [
         activeBaseProfile,
         currentUserPresenceSnapshot,
-        gameState?.currentDestination,
-        gameState?.currentLocation,
-        gameState?.currentWorldId,
-        gameState?.isGameRunning,
         gameLogDisabled,
         isTargetCurrentUser,
-        friendPresenceSource
+        friendPresenceSource,
+        normalizedGameState
     ]);
     const profileRef = useRef(profile);
     profileRef.current = profile;
-    const [loadStatus, setLoadStatus] = useState(
+    const [loadStatus, setLoadStatus] = useState<UserDialogProfileLoadStatus>(
         normalizedUserId ? 'running' : 'idle'
     );
     const [reloadToken, setReloadToken] = useState(0);
     const [detail, setDetail] = useState('');
-    const activeUserTargetRef = useRef<any>({
+    const activeUserTargetRef = useRef<ActiveUserTarget>({
         userId: normalizedUserId,
         endpoint: currentEndpoint
     });
@@ -601,7 +721,7 @@ export function useUserDialogProfileResource({
 
     useEffect(() => {
         if (normalizedLocalSnapshot) {
-            setBaseProfile((currentProfile: any) =>
+            setBaseProfile((currentProfile) =>
                 mergeSnapshotIntoCurrentProfile({
                     currentProfile,
                     isTargetCurrentUser,
@@ -646,7 +766,7 @@ export function useUserDialogProfileResource({
         }
 
         const snapshot = localSnapshotRef.current;
-        setBaseProfile((currentProfile: any) =>
+        setBaseProfile((currentProfile) =>
             mergeSnapshotIntoCurrentProfile({
                 currentProfile,
                 isTargetCurrentUser,
@@ -665,7 +785,7 @@ export function useUserDialogProfileResource({
                 dialog: true,
                 isFriend
             })
-            .then((nextProfile: any) => {
+            .then((nextProfile) => {
                 if (!active) {
                     return;
                 }
@@ -674,7 +794,7 @@ export function useUserDialogProfileResource({
                     {}
                 );
 
-                setBaseProfile((currentProfile: any) =>
+                setBaseProfile((currentProfile) =>
                     preserveProfileIdentity(
                         currentProfile,
                         mergeActivityTimestampsIntoProfile(
@@ -703,14 +823,14 @@ export function useUserDialogProfileResource({
                 );
                 setLoadStatus('ready');
             })
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 if (!active) {
                     return;
                 }
 
                 const fallbackSnapshot = localSnapshotRef.current;
                 if (fallbackSnapshot) {
-                    setBaseProfile((currentProfile: any) =>
+                    setBaseProfile((currentProfile) =>
                         mergeSnapshotIntoCurrentProfile({
                             currentProfile,
                             isTargetCurrentUser,
@@ -763,11 +883,11 @@ export function useUserDialogProfileResource({
             currentUserId: normalizedUserId,
             profile
         })
-            .then((avatar: any) => {
+            .then((avatar) => {
                 if (!active) {
                     return;
                 }
-                setBaseProfile((currentProfile: any) =>
+                setBaseProfile((currentProfile) =>
                     preserveProfileIdentity(
                         currentProfile,
                         mergeCurrentAvatarProfile(
@@ -806,7 +926,7 @@ export function useUserDialogProfileResource({
     ]);
 
     function refreshProfile() {
-        setReloadToken((value: any) => value + 1);
+        setReloadToken((value) => value + 1);
     }
 
     return {

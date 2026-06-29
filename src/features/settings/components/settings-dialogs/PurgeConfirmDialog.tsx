@@ -21,6 +21,15 @@ import {
 
 import { Field } from '../SettingsField';
 
+type PurgeConfirmDialogProps = {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    period: string;
+    onPeriodChange: (value: string) => void;
+    inProgress?: boolean;
+    onConfirm: () => void;
+};
+
 export function PurgeConfirmDialog({
     open: purgeDialogOpen,
     onOpenChange: setPurgeDialogOpen,
@@ -28,7 +37,7 @@ export function PurgeConfirmDialog({
     onPeriodChange: setPurgePeriod,
     inProgress: purgeInProgress,
     onConfirm: purgeAvatarFeedData
-}: any) {
+}: PurgeConfirmDialogProps) {
     const { t } = useTranslation();
 
     return (

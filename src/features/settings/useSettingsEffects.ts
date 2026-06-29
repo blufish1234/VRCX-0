@@ -47,7 +47,7 @@ export function useSettingsEffects({
                 applyPreferenceSnapshotToLocalState(snapshot);
                 applyAvatarProviderConfig(avatarConfig);
             })
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 toast.error(
                     error instanceof Error
                         ? error.message
@@ -119,7 +119,7 @@ export function useSettingsEffects({
                     setAppDataDirState(state);
                 }
             })
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 toast.error(
                     error instanceof Error
                         ? error.message

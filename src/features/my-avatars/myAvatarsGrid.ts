@@ -7,7 +7,12 @@ import {
     MY_AVATARS_DEFAULT_GRID_DENSITY,
     sanitizeMyAvatarsGridDensity
 } from './myAvatarsState';
-import type { MyAvatarsGridDensityConfig } from './myAvatarsTypes';
+import type {
+    MyAvatarRow,
+    MyAvatarsGridDensity,
+    MyAvatarsGridDensityConfig,
+    MyAvatarsGridRow
+} from './myAvatarsTypes';
 
 const MY_AVATARS_GRID_DENSITY_CONFIGS = Object.freeze({
     standard: Object.freeze({
@@ -63,7 +68,7 @@ const MY_AVATARS_GRID_DENSITY_CONFIGS = Object.freeze({
 type MyAvatarsGridDensityKey = keyof typeof MY_AVATARS_GRID_DENSITY_CONFIGS;
 
 export function getMyAvatarsGridDensityConfig(
-    value: any
+    value: unknown
 ): MyAvatarsGridDensityConfig {
     const densityKey = sanitizeMyAvatarsGridDensity(
         value
@@ -74,12 +79,19 @@ export function getMyAvatarsGridDensityConfig(
     );
 }
 
+type MyAvatarsGridMetricsInput = {
+    cardScale?: number;
+    cardSpacing?: number;
+    gridDensity?: MyAvatarsGridDensity | null;
+    width: number;
+};
+
 export function getMyAvatarsGridMetrics({
     cardScale,
     cardSpacing,
     gridDensity,
     width
-}: any) {
+}: MyAvatarsGridMetricsInput) {
     if (gridDensity) {
         const densityConfig = getMyAvatarsGridDensityConfig(gridDensity);
         const gridGap = densityConfig.gridGap;
@@ -112,8 +124,10 @@ export function getMyAvatarsGridMetrics({
         };
     }
 
-    const gridGap = Math.round(12 * cardSpacing);
-    const gridMinWidth = Math.round(Math.max(200, 320 * cardScale));
+    const gridGap = Math.round(12 * (cardSpacing ?? Number.NaN));
+    const gridMinWidth = Math.round(
+        Math.max(200, 320 * (cardScale ?? Number.NaN))
+    );
     const gridColumnCount = Math.max(
         1,
         Math.floor((width + gridGap) / (gridMinWidth + gridGap)) || 1
@@ -141,12 +155,18 @@ export function getMyAvatarsGridMetrics({
     };
 }
 
+type BuildMyAvatarsGridRowsInput = {
+    avatars: readonly MyAvatarRow[] | null | undefined;
+    gridColumnCount: number;
+    gridRowHeight: number;
+};
+
 export function buildMyAvatarsGridRows({
     avatars,
     gridColumnCount,
     gridRowHeight
-}: any) {
-    const rows = [];
+}: BuildMyAvatarsGridRowsInput): MyAvatarsGridRow[] {
+    const rows: Omit<MyAvatarsGridRow, 'top'>[] = [];
     const visibleAvatars = Array.isArray(avatars) ? avatars : [];
     for (
         let index = 0;
@@ -162,12 +182,18 @@ export function buildMyAvatarsGridRows({
     return positionKnownSizeRows(rows).rows;
 }
 
+type VisibleMyAvatarsGridRowsInput = {
+    gridRows: readonly MyAvatarsGridRow[] | null | undefined;
+    scrollTop: unknown;
+    viewportHeight: unknown;
+};
+
 export function getVisibleMyAvatarsGridRows({
     gridRows,
     scrollTop,
     viewportHeight
-}: any) {
-    const overscan = Math.max(480, viewportHeight);
+}: VisibleMyAvatarsGridRowsInput) {
+    const overscan = Math.max(480, Number(viewportHeight) || 0);
     return getVisibleKnownSizeRows({
         rows: gridRows,
         scrollTop,

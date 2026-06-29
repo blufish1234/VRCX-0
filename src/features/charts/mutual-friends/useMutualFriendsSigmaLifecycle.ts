@@ -100,7 +100,7 @@ export function useMutualFriendsSigmaLifecycle({
                     t
                 });
             })
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 if (active) {
                     console.warn(
                         '[MutualFriendsPage] Failed to render mutual graph.',

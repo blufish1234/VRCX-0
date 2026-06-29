@@ -124,7 +124,7 @@ export function useGroupDialogState({ groupId, seedData = null }: any) {
                 setGroup(nextGroup);
                 setLoadStatus('ready');
             })
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 if (!active) {
                     return;
                 }

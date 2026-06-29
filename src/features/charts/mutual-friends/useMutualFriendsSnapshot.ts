@@ -47,7 +47,7 @@ export function useMutualFriendsSnapshot({
                     'Reading the cached mutual-friends graph from the local database.'
                 );
             })
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 if (!active) {
                     return;
                 }

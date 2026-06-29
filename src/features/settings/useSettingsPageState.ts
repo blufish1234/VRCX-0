@@ -42,15 +42,46 @@ import { createDefaultSettingsPrefs } from './settingsDefaultPrefs';
 import { buildFavoriteFriendGroupOptions } from './settingsFavoriteGroupOptions';
 import { buildSettingsPageStateSections } from './settingsPageStateSections';
 import { normalizeSharedFeedFilters } from './settingsValues';
-import { useAvatarProviderConfig } from './useAvatarProviderConfig';
+import {
+    useAvatarProviderConfig,
+    type AvatarProviderConfig
+} from './useAvatarProviderConfig';
 import { useSettingsActions } from './useSettingsActions';
 import { useSettingsCommit } from './useSettingsCommit';
 import { useSettingsEffects } from './useSettingsEffects';
-import { useSettingsIntegrations } from './useSettingsIntegrations';
+import {
+    useSettingsIntegrations,
+    type SettingsIntegrationPrefs
+} from './useSettingsIntegrations';
 
 const FEED_FILTER_OPTIONS = feedFiltersOptions();
 const SETTINGS_PREFERENCE_KEYS = Object.keys(DEFAULT_PREFERENCES) as Array<
     keyof PreferencesSnapshot
+>;
+
+type SettingsSqliteTableSizes = Record<string, unknown>;
+type SettingsAppDataDirState = Record<string, unknown> | null;
+type SettingsCacheStats = {
+    queryCache: number;
+    userCache: number;
+    worldCache: number;
+    avatarCache: number;
+    groupCache: number;
+    avatarNameCache: number;
+    instanceCache: number;
+    favoriteDetailsCache: number;
+    favoriteDetailsPending: number;
+    assetBundleCacheSize: string;
+};
+type SettingsConfigTreeData = Record<string, unknown>;
+type SettingsTableLimitsDraft = {
+    maxTableSize: string;
+    searchLimit: string;
+};
+type PreferenceAction = () => unknown | Promise<unknown>;
+type SettingsIntegrationBoolKey = Extract<
+    keyof SettingsIntegrationPrefs,
+    'translationAPI' | 'youtubeAPI'
 >;
 
 export function useSettingsPageState() {
@@ -77,10 +108,12 @@ export function useSettingsPageState() {
         })
     );
     const [prefs, setPrefs] = useState(() => createDefaultSettingsPrefs());
-    const [sqliteTableSizes, setSqliteTableSizes] = useState<any>({});
-    const [appDataDirState, setAppDataDirState] = useState<any>(null);
+    const [sqliteTableSizes, setSqliteTableSizes] =
+        useState<SettingsSqliteTableSizes>({});
+    const [appDataDirState, setAppDataDirState] =
+        useState<SettingsAppDataDirState>(null);
     const [cacheStatsVisible, setCacheStatsVisible] = useState(false);
-    const [cacheStats, setCacheStats] = useState<any>({
+    const [cacheStats, setCacheStats] = useState<SettingsCacheStats>({
         queryCache: 0,
         userCache: 0,
         worldCache: 0,
@@ -95,13 +128,16 @@ export function useSettingsPageState() {
     const [purgeDialogOpen, setPurgeDialogOpen] = useState(false);
     const [purgePeriod, setPurgePeriod] = useState('180');
     const [purgeInProgress, setPurgeInProgress] = useState(false);
-    const [onlineVisitCount, setOnlineVisitCount] = useState(null);
-    const [configTreeData, setConfigTreeData] = useState<any>({});
-    const [tauriAppSnapshot, setRuntimeAppSnapshot] = useState(null);
+    const [onlineVisitCount, setOnlineVisitCount] = useState<number | null>(
+        null
+    );
+    const [configTreeData, setConfigTreeData] =
+        useState<SettingsConfigTreeData>({});
+    const [tauriAppSnapshot, setRuntimeAppSnapshot] = useState<unknown>(null);
     const [localFavoriteFriendsGroups, setLocalFavoriteFriendsGroups] =
-        useState<any[]>([]);
+        useState<string[]>([]);
     const [zoomInput, setZoomInput] = useState('100');
-    const [ttsVoices, setTtsVoices] = useState<any[]>([]);
+    const [ttsVoices, setTtsVoices] = useState<SpeechSynthesisVoice[]>([]);
     const [notificationTtsTest, setNotificationTtsTest] = useState('');
     const [customFontDialogOpen, setCustomFontDialogOpen] = useState(false);
     const [customFontDraft, setCustomFontDraft] = useState({
@@ -134,10 +170,11 @@ export function useSettingsPageState() {
     const [tablePageSizesDialogOpen, setTablePageSizesDialogOpen] =
         useState(false);
     const [tableLimitsDialogOpen, setTableLimitsDialogOpen] = useState(false);
-    const [tableLimitsDraft, setTableLimitsDraft] = useState<any>({
-        maxTableSize: String(DEFAULT_MAX_TABLE_SIZE),
-        searchLimit: String(DEFAULT_SEARCH_LIMIT)
-    });
+    const [tableLimitsDraft, setTableLimitsDraft] =
+        useState<SettingsTableLimitsDraft>({
+            maxTableSize: String(DEFAULT_MAX_TABLE_SIZE),
+            searchLimit: String(DEFAULT_SEARCH_LIMIT)
+        });
     const [avatarProviderDialogOpen, setAvatarProviderDialogOpen] =
         useState(false);
     const commit = useSettingsCommit();
@@ -292,15 +329,15 @@ export function useSettingsPageState() {
         ]
     );
 
-    function normalizeRecentActionCooldownMinutes(value: any) {
-        const parsed = Number.parseInt(value, 10);
+    function normalizeRecentActionCooldownMinutes(value: unknown) {
+        const parsed = Number.parseInt(String(value), 10);
         if (!Number.isFinite(parsed)) {
             return 60;
         }
         return Math.min(MINUTES_PER_DAY, Math.max(1, parsed));
     }
 
-    async function saveInterfaceZoomLevel(value: any) {
+    async function saveInterfaceZoomLevel(value: string | number) {
         let savedZoom = zoomLevel;
         const saved = await commit(async () => {
             savedZoom = await setZoomLevelPreference(value);
@@ -310,7 +347,11 @@ export function useSettingsPageState() {
         }
     }
 
-    function saveIntegrationBoolPreference(key: any, value: any, action: any) {
+    function saveIntegrationBoolPreference(
+        key: SettingsIntegrationBoolKey,
+        value: boolean,
+        action: PreferenceAction
+    ) {
         commit(action, () => {
             const previous = integrationPrefs[key];
             setIntegrationValue(key, value);
@@ -318,9 +359,9 @@ export function useSettingsPageState() {
         });
     }
 
-    function saveAvatarProviderEnabled(value: any) {
+    function saveAvatarProviderEnabled(value: unknown) {
         const previousConfig = avatarProviderConfigRef.current;
-        const nextConfig = {
+        const nextConfig: AvatarProviderConfig = {
             ...previousConfig,
             enabled: Boolean(value)
         };

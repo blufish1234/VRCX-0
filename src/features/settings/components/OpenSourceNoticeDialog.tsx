@@ -21,7 +21,7 @@ import {
 import { Empty, EmptyHeader, EmptyTitle } from '@/ui/shadcn/empty';
 import { Input } from '@/ui/shadcn/input';
 
-function buildAssetUrl(relativePath: any) {
+function buildAssetUrl(relativePath: string) {
     return new URL(relativePath, window.location.href).toString();
 }
 
@@ -38,7 +38,39 @@ type OpenSourceEntry = {
     [key: string]: unknown;
 };
 
-export function OpenSourceNoticeDialog({ open, onOpenChange }: any) {
+type OpenSourceManifest = {
+    entries?: OpenSourceEntry[];
+    noticePath?: string;
+};
+
+type OpenSourceNoticeDialogProps = {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object');
+}
+
+function normalizeOpenSourceManifest(value: unknown): OpenSourceManifest {
+    if (!isRecord(value)) {
+        return {};
+    }
+    return {
+        entries: Array.isArray(value.entries)
+            ? value.entries.filter((entry): entry is OpenSourceEntry =>
+                  isRecord(entry)
+              )
+            : [],
+        noticePath:
+            typeof value.noticePath === 'string' ? value.noticePath : undefined
+    };
+}
+
+export function OpenSourceNoticeDialog({
+    open,
+    onOpenChange
+}: OpenSourceNoticeDialogProps) {
     const { t } = useTranslation();
     const [entries, setEntries] = useState<OpenSourceEntry[]>([]);
     const [noticePath, setNoticePath] = useState(
@@ -54,7 +86,7 @@ export function OpenSourceNoticeDialog({ open, onOpenChange }: any) {
         if (!query) {
             return entries;
         }
-        return entries.filter((entry: any) =>
+        return entries.filter((entry) =>
             [
                 entry.name,
                 entry.version,
@@ -69,7 +101,7 @@ export function OpenSourceNoticeDialog({ open, onOpenChange }: any) {
         );
     }, [entries, searchQuery]);
     const selectedEntry =
-        filteredEntries.find((entry: any) => entry.id === selectedEntryId) ||
+        filteredEntries.find((entry) => entry.id === selectedEntryId) ||
         filteredEntries[0] ||
         null;
 
@@ -83,7 +115,7 @@ export function OpenSourceNoticeDialog({ open, onOpenChange }: any) {
         fetch(buildAssetUrl('licenses/third-party-licenses.json'), {
             cache: 'no-store'
         })
-            .then((response: any) => {
+            .then((response) => {
                 if (!response.ok) {
                     throw new Error(
                         `Failed to load third-party license manifest: ${response.status}`
@@ -91,16 +123,17 @@ export function OpenSourceNoticeDialog({ open, onOpenChange }: any) {
                 }
                 return response.json();
             })
-            .then((manifest: any) => {
+            .then((manifest: unknown) => {
                 if (!active) {
                     return;
                 }
-                const nextEntries = Array.isArray(manifest.entries)
-                    ? manifest.entries
-                    : [];
+                const normalizedManifest =
+                    normalizeOpenSourceManifest(manifest);
+                const nextEntries = normalizedManifest.entries || [];
                 setEntries(nextEntries);
                 setNoticePath(
-                    manifest.noticePath || 'licenses/THIRD_PARTY_NOTICES.txt'
+                    normalizedManifest.noticePath ||
+                        'licenses/THIRD_PARTY_NOTICES.txt'
                 );
                 setSelectedEntryId(nextEntries[0]?.id || '');
                 setLoaded(true);
@@ -121,9 +154,7 @@ export function OpenSourceNoticeDialog({ open, onOpenChange }: any) {
     }, [loaded, open]);
 
     useEffect(() => {
-        if (
-            !filteredEntries.some((entry: any) => entry.id === selectedEntryId)
-        ) {
+        if (!filteredEntries.some((entry) => entry.id === selectedEntryId)) {
             setSelectedEntryId(filteredEntries[0]?.id || '');
         }
     }, [filteredEntries, selectedEntryId]);
@@ -161,7 +192,7 @@ export function OpenSourceNoticeDialog({ open, onOpenChange }: any) {
                     ) : (
                         <div className="grid min-h-0 gap-4 md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
                             <div className="flex max-h-[30rem] flex-col gap-2 overflow-y-auto pr-1">
-                                {filteredEntries.map((entry: any) => (
+                                {filteredEntries.map((entry) => (
                                     <Button
                                         key={entry.id}
                                         type="button"
@@ -172,7 +203,7 @@ export function OpenSourceNoticeDialog({ open, onOpenChange }: any) {
                                         }
                                         className="h-auto w-full flex-col items-start justify-start p-3 text-left font-normal"
                                         onClick={() =>
-                                            setSelectedEntryId(entry.id)
+                                            setSelectedEntryId(entry.id || '')
                                         }
                                     >
                                         <span className="block truncate font-medium">

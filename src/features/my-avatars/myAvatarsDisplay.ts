@@ -1,33 +1,41 @@
+import type { CSSProperties } from 'react';
+
 import { getTagColor } from '@/shared/constants/tags';
 import { getPlatformInfo } from '@/shared/utils/avatarPlatform';
 
-export function getMyAvatarPlatformInfo(avatar: any) {
+import type { MyAvatarRow, MyAvatarTag } from './myAvatarsTypes';
+
+export function getMyAvatarPlatformInfo(
+    avatar: Pick<MyAvatarRow, 'unityPackages'> | null | undefined
+) {
     return getPlatformInfo(avatar?.unityPackages);
 }
 
-export function resolveMyAvatarPerformanceLabel(value: any) {
+export function resolveMyAvatarPerformanceLabel(value: unknown) {
     if (!value) {
         return '-';
     }
 
-    return value;
+    return String(value);
 }
 
-export function resolveMyAvatarActionDisabled(avatar: any, isUpdating: any) {
+export function resolveMyAvatarActionDisabled(
+    avatar: Pick<MyAvatarRow, 'id'> | null | undefined,
+    isUpdating: boolean
+) {
     return isUpdating || !avatar?.id;
 }
 
 export const MY_AVATAR_TAG_BADGE_CLASS_NAME =
     'rounded-sm px-1 py-0 text-xs leading-tight';
 
-export function resolveMyAvatarTagBadgeStyle(entry: any) {
+export function resolveMyAvatarTagBadgeStyle(
+    entry: Pick<MyAvatarTag, 'tag' | 'color'>
+): CSSProperties {
     const color = entry?.color
         ? {
-              bg: entry.color,
-              text:
-                  typeof entry.color === 'string'
-                      ? entry.color.replace(/\/ [\d.]+\)$/, ')')
-                      : entry.color
+              bg: String(entry.color),
+              text: String(entry.color).replace(/\/ [\d.]+\)$/, ')')
           }
         : getTagColor(entry?.tag || '');
     return {

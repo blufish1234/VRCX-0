@@ -8,6 +8,7 @@ import {
     UserIcon,
     UsersIcon
 } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Location } from '@/components/Location';
@@ -21,7 +22,20 @@ import { Skeleton } from '@/ui/shadcn/skeleton';
 
 import { useUserHoverCardData } from './useUserHoverCardData';
 
-function NoteLine({ icon, label, text }: any) {
+type UserHoverCardContentProps = {
+    userId: unknown;
+    seed?: Parameters<typeof useUserHoverCardData>[0]['seed'];
+};
+
+function NoteLine({
+    icon,
+    label,
+    text
+}: {
+    icon: ReactNode;
+    label: ReactNode;
+    text: ReactNode;
+}) {
     return (
         <div className="flex min-w-0 items-start gap-1.5">
             <span className="text-muted-foreground/70 flex shrink-0 items-center gap-1 pt-px text-[11px]">
@@ -35,7 +49,10 @@ function NoteLine({ icon, label, text }: any) {
     );
 }
 
-export function UserHoverCardContent({ userId, seed }: any) {
+export function UserHoverCardContent({
+    userId,
+    seed = null
+}: UserHoverCardContentProps) {
     const { t } = useTranslation();
     const {
         model,
@@ -50,11 +67,13 @@ export function UserHoverCardContent({ userId, seed }: any) {
     const worldDialogTarget = model.location.tag || model.location.worldId;
 
     const trustEntry = TRUST_COLOR_ENTRIES.find(
-        (entry: any) => entry.key === model.trustKey
+        (entry) => entry.key === model.trustKey
     );
     const trustLabel = trustEntry ? t(trustEntry.labelKey) : '';
-    const nameColour =
-        model.userColour || getTrustColor(model.trustSource, trustColor);
+    const displayName = String(model.displayName || '');
+    const nameColour = String(
+        model.userColour || getTrustColor(model.trustSource, trustColor)
+    );
     const statusText = model.statusKey
         ? t(`dialog.user.status.${model.statusKey}`)
         : '';
@@ -100,7 +119,7 @@ export function UserHoverCardContent({ userId, seed }: any) {
                             model.avatarPreviewUrl &&
                             openImagePreview({
                                 url: model.avatarPreviewUrl,
-                                title: model.displayName
+                                title: displayName
                             })
                         }
                     >
@@ -127,7 +146,7 @@ export function UserHoverCardContent({ userId, seed }: any) {
                             style={{ color: nameColour }}
                             onClick={() => openUserDialog({ userId })}
                         >
-                            {model.displayName}
+                            {displayName}
                         </button>
                         {trustLabel ? (
                             <span className="text-muted-foreground block truncate text-xs">

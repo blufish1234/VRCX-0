@@ -158,7 +158,8 @@ async function fixNegativeGPS(): Promise<void> {
 }
 
 async function getBrokenLeaveEntries(): Promise<LocalDbValue[]> {
-    return commands.appDatabaseMaintenanceBrokenLeaveEntriesGet();
+    const rows = await commands.appDatabaseMaintenanceBrokenLeaveEntriesGet();
+    return Array.isArray(rows) ? rows : [];
 }
 
 async function fixBrokenLeaveEntries(): Promise<void> {
@@ -186,7 +187,7 @@ async function getBrokenGameLogDisplayNames(): Promise<
 > {
     const rows =
         await commands.appDatabaseMaintenanceBrokenGameLogDisplayNamesGet();
-    return rows.map((row) => ({
+    return (Array.isArray(rows) ? rows : []).map((row) => ({
         id: row.id,
         displayName: row.displayName
     }));

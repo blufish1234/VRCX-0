@@ -8,13 +8,27 @@ import { CommandGroup, CommandItem } from '@/ui/shadcn/command';
 
 const NAV_RESULT_LIMIT = 6;
 
-export function useNavCommands(normalizedQuery: any) {
+export type QuickSearchNavCommand = {
+    key: string;
+    path: string;
+    label: string;
+    icon: unknown;
+    keywords: string;
+};
+
+function isNavCommand(
+    command: QuickSearchNavCommand | null
+): command is QuickSearchNavCommand {
+    return Boolean(command);
+}
+
+export function useNavCommands(normalizedQuery: string) {
     const { t } = useTranslation();
 
     const allCommands = useMemo(
         () =>
             navDefinitions
-                .map((definition: any) => {
+                .map((definition): QuickSearchNavCommand | null => {
                     const path = getPathForNavEntry(definition);
                     if (!path) {
                         return null;
@@ -32,7 +46,7 @@ export function useNavCommands(normalizedQuery: any) {
                         keywords
                     };
                 })
-                .filter(Boolean),
+                .filter(isNavCommand),
         [t]
     );
 
@@ -41,20 +55,26 @@ export function useNavCommands(normalizedQuery: any) {
             return [];
         }
         return allCommands
-            .filter((command: any) =>
-                command.keywords.includes(normalizedQuery)
-            )
+            .filter((command) => command.keywords.includes(normalizedQuery))
             .slice(0, NAV_RESULT_LIMIT);
     }, [allCommands, normalizedQuery]);
 }
 
-export function NavResultGroup({ title, items, onSelect }: any) {
+export function NavResultGroup({
+    title,
+    items,
+    onSelect
+}: {
+    title: string;
+    items: readonly QuickSearchNavCommand[];
+    onSelect: (item: QuickSearchNavCommand) => void;
+}) {
     if (!items.length) {
         return null;
     }
     return (
         <CommandGroup heading={title}>
-            {items.map((item: any) => {
+            {items.map((item) => {
                 const Icon = getNavIconComponent(item.icon);
                 return (
                     <CommandItem

@@ -1,4 +1,5 @@
 import { UserIcon } from 'lucide-react';
+import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { UserHoverCard } from '@/components/user-hover-card/UserHoverCard';
@@ -18,7 +19,8 @@ import {
 
 import {
     CurrentUserActionItems,
-    FriendActionItems
+    FriendActionItems,
+    type StatusPreset
 } from './FriendsSidebarActionItems';
 import {
     FriendInstanceTimer,
@@ -28,10 +30,58 @@ import {
 import {
     readFriendRef,
     resolveSidebarStatusDotClassName,
-    resolveTrustNameColour
+    resolveTrustNameColour,
+    type SidebarFriendRecord
 } from './friendsSidebarModel';
 
-export function FriendRow({ friend, rowModel, rowCommands, appearance }: any) {
+type FriendRowModel = {
+    isCurrentUser?: boolean;
+    isGroupByInstance?: boolean;
+    canSendInvite?: boolean;
+    canRequestInvite?: boolean;
+    canBoop?: boolean;
+    canUseFriendInstance?: boolean;
+};
+
+type FriendRowCommands = {
+    onOpen?: () => void;
+    onLaunch?: (location: unknown) => unknown;
+    onSelfInvite?: (location: unknown) => unknown;
+    onInvite?: (friend: SidebarFriendRecord) => unknown;
+    onRequestInvite?: (friend: SidebarFriendRecord) => unknown;
+    onBoop?: (friend: SidebarFriendRecord) => unknown;
+    onChangeStatus?: (status: string) => unknown;
+    onSetStatusDescription?: (statusDescription: string) => unknown;
+    onEditStatusDescription?: () => unknown;
+    onApplyStatusPreset?: (preset: StatusPreset) => unknown;
+    statusPresets?: StatusPreset[];
+};
+
+type FriendRowAppearance = {
+    randomUserColours?: boolean;
+    isDarkMode?: boolean;
+    trustColor?: unknown;
+    currentUserSnapshot?: SidebarFriendRecord | null;
+    isGameRunning?: boolean | null;
+    recentActionVersion?: number;
+    locationMetadata?: Record<string, unknown> | null;
+    showInstanceIdInLocation?: boolean;
+    ageGatedInstancesVisible?: boolean;
+};
+
+type FriendRowProps = {
+    friend: SidebarFriendRecord;
+    rowModel?: FriendRowModel;
+    rowCommands?: FriendRowCommands;
+    appearance?: FriendRowAppearance;
+};
+
+export function FriendRow({
+    friend,
+    rowModel,
+    rowCommands,
+    appearance
+}: FriendRowProps) {
     const { t } = useTranslation();
     const {
         isCurrentUser,
@@ -74,7 +124,7 @@ export function FriendRow({ friend, rowModel, rowCommands, appearance }: any) {
         friend?.username ||
         friend?.id ||
         'Unknown';
-    const nameStyle =
+    const nameStyle: CSSProperties =
         randomUserColours && friend?.id
             ? { color: getNameColour(friend.id, isDarkMode) }
             : {
@@ -112,7 +162,7 @@ export function FriendRow({ friend, rowModel, rowCommands, appearance }: any) {
     );
     const subline = statusSource?.pendingOffline
         ? t('side_panel.pending_offline')
-        : displaySource?.statusDescription || '';
+        : String(displaySource?.statusDescription || '');
 
     return (
         <ContextMenu>

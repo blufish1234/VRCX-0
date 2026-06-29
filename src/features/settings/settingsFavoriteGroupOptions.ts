@@ -1,30 +1,54 @@
+type RemoteFavoriteFriendGroup = {
+    key?: string;
+    displayName?: string;
+    name?: string;
+};
+
+type FavoriteFriendGroupOption = {
+    value: string;
+    label: string;
+};
+
 export function buildRemoteFavoriteFriendGroupOptions(
-    favoriteFriendGroups: any
+    favoriteFriendGroups:
+        | readonly RemoteFavoriteFriendGroup[]
+        | null
+        | undefined
 ) {
     return (favoriteFriendGroups || [])
-        .map((group: any) => ({
-            value: group?.key,
-            label: group?.displayName || group?.name || group?.key
-        }))
-        .filter((group: any) => group.value);
+        .map(
+            (group): FavoriteFriendGroupOption => ({
+                value: group?.key || '',
+                label: group?.displayName || group?.name || group?.key || ''
+            })
+        )
+        .filter((group) => group.value);
 }
 
 export function buildLocalFavoriteFriendGroupOptions(
-    localFriendFavoriteGroups: any
+    localFriendFavoriteGroups: readonly string[] | null | undefined
 ) {
     return (localFriendFavoriteGroups || [])
-        .map((groupName: any) => ({
-            value: `local:${groupName}`,
-            label: groupName
-        }))
-        .filter((group: any) => group.value);
+        .map(
+            (groupName): FavoriteFriendGroupOption => ({
+                value: `local:${groupName}`,
+                label: groupName
+            })
+        )
+        .filter((group) => group.value);
 }
+
+type BuildFavoriteFriendGroupOptionsInput = {
+    favoriteFriendGroups?: readonly RemoteFavoriteFriendGroup[] | null;
+    localFriendFavoriteGroups?: readonly string[] | null;
+    localFavoriteFriendsGroups?: readonly string[] | null;
+};
 
 export function buildFavoriteFriendGroupOptions({
     favoriteFriendGroups,
     localFriendFavoriteGroups,
     localFavoriteFriendsGroups
-}: any) {
+}: BuildFavoriteFriendGroupOptionsInput) {
     const remoteFavoriteFriendGroupOptions =
         buildRemoteFavoriteFriendGroupOptions(favoriteFriendGroups);
     const localFavoriteFriendGroupOptions =
@@ -34,10 +58,10 @@ export function buildFavoriteFriendGroupOptions({
         ...localFavoriteFriendGroupOptions
     ];
     const selectedFavoriteFriendGroupLabel = favoriteFriendGroupOptions
-        .filter((group: any) =>
+        .filter((group) =>
             (localFavoriteFriendsGroups || []).includes(group.value)
         )
-        .map((group: any) => group.label)
+        .map((group) => group.label)
         .join(', ');
 
     return {

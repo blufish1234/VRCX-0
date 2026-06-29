@@ -1,4 +1,9 @@
-import { DndContext, closestCenter, useDroppable } from '@dnd-kit/core';
+import {
+    DndContext,
+    closestCenter,
+    type DragEndEvent,
+    useDroppable
+} from '@dnd-kit/core';
 import {
     SortableContext,
     useSortable,
@@ -13,6 +18,12 @@ import {
     PencilIcon,
     Trash2Icon
 } from 'lucide-react';
+import type {
+    CSSProperties,
+    HTMLAttributes,
+    MouseEvent,
+    ReactNode
+} from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { getNavIconComponent } from '@/components/layout/navIconRegistry';
@@ -42,14 +53,95 @@ import {
     getFolderItemKey,
     getFolderSortableId,
     getItemSortableId,
-    isDashboardKey
+    isDashboardKey,
+    type CustomNavDefinition,
+    type CustomNavLayout,
+    type CustomNavFolderItem
 } from './customNavLayout';
 
-function customNavActionLabel(t: any, key: any, value: any) {
+type TranslationFn = (key: string, options?: Record<string, unknown>) => string;
+type DndSensors = Parameters<typeof DndContext>[0]['sensors'];
+type DragHandleProps = HTMLAttributes<HTMLElement> & {
+    ref?: (node: HTMLElement | null) => void;
+};
+type SortableRowRenderProps = {
+    rowRef: (node: HTMLElement | null) => void;
+    rowStyle: CSSProperties;
+    dragHandleProps: DragHandleProps;
+    isDragging: boolean;
+};
+
+type NavIconSelectProps = {
+    value?: unknown;
+    fallbackIcon?: unknown;
+    ariaLabel: string;
+    onValueChange: (value: string) => void;
+};
+
+type NavItemRowProps = Partial<SortableRowRenderProps> & {
+    label: ReactNode;
+    icon?: unknown;
+    fallbackIcon?: unknown;
+    indent?: boolean;
+    isTool: boolean;
+    isDashboard: boolean;
+    onHide: () => void;
+    onIconChange?: (value: string) => void;
+    onEditDashboard: () => void;
+    onDeleteDashboard: () => void;
+};
+
+type SortableNavItemRowProps = {
+    id: string;
+    children: (props: SortableRowRenderProps) => ReactNode;
+};
+
+type FolderDropZoneProps = {
+    folderId: unknown;
+    label: ReactNode;
+};
+
+type HiddenNavItem = {
+    key: unknown;
+    label: string;
+};
+
+type CustomNavDialogLayoutEditorProps = {
+    sensors: DndSensors;
+    sortableNodeIds: string[];
+    localLayout: CustomNavLayout;
+    definitionMap: Map<unknown, CustomNavDefinition>;
+    hiddenItems: HiddenNavItem[];
+    onDragEnd: (event: DragEndEvent) => void;
+    onFolderIconChange: (
+        index: number,
+        icon: string,
+        fallbackIcon?: unknown
+    ) => void;
+    onFolderEdit: (index: number) => void;
+    onFolderDelete: (index: number) => void;
+    onFolderChildIconChange: (
+        folderIndex: number,
+        itemIndex: number,
+        icon: string,
+        fallbackIcon: unknown
+    ) => void;
+    onHideItem: (key: unknown) => void;
+    onEditDashboard: (key: unknown) => void;
+    onDeleteDashboard: (key: unknown) => void;
+    onShowItem: (key: unknown) => void;
+};
+
+function customNavActionLabel(t: TranslationFn, key: string, value: unknown) {
     return t(`nav_menu.custom_nav.dynamic.${key}`, { value });
 }
 
-function NavIconSelect({ value, fallbackIcon, ariaLabel, onValueChange }: any) {
+function NavIconSelect({
+    value,
+    fallbackIcon,
+    ariaLabel,
+    onValueChange
+}: NavIconSelectProps) {
     const normalizedIcon = normalizeNavIconKey(value, fallbackIcon);
 
     return (
@@ -59,7 +151,7 @@ function NavIconSelect({ value, fallbackIcon, ariaLabel, onValueChange }: any) {
             </SelectTrigger>
             <SelectContent align="start">
                 <SelectGroup>
-                    {NAV_ICON_OPTIONS.map((option: any) => {
+                    {NAV_ICON_OPTIONS.map((option) => {
                         const OptionIcon = getNavIconComponent(option.key);
                         return (
                             <SelectItem key={option.key} value={option.key}>
@@ -93,7 +185,7 @@ function NavItemRow({
     onIconChange,
     onEditDashboard,
     onDeleteDashboard
-}: any) {
+}: NavItemRowProps) {
     const { t } = useTranslation();
 
     return (
@@ -121,7 +213,7 @@ function NavItemRow({
                     value={icon}
                     fallbackIcon={fallbackIcon}
                     ariaLabel={customNavActionLabel(t, 'icon_for_value', label)}
-                    onValueChange={(onValue: any) => onIconChange(onValue)}
+                    onValueChange={(onValue) => onIconChange(onValue)}
                 />
             ) : null}
             <span className="min-w-0 flex-1 truncate">{label}</span>
@@ -176,7 +268,7 @@ function NavItemRow({
     );
 }
 
-function SortableNavItemRow({ id, children }: any) {
+function SortableNavItemRow({ id, children }: SortableNavItemRowProps) {
     const {
         attributes,
         listeners,
@@ -186,15 +278,15 @@ function SortableNavItemRow({ id, children }: any) {
         transition,
         isDragging
     } = useSortable({ id });
-    const rowStyle: any = {
+    const rowStyle: CSSProperties = {
         transform: CSS.Transform.toString(transform),
         transition
     };
-    const dragHandleProps: any = {
+    const dragHandleProps: DragHandleProps = {
         ...attributes,
         ...listeners,
         ref: setActivatorNodeRef,
-        onClick: (event: any) => event.stopPropagation()
+        onClick: (event: MouseEvent<HTMLElement>) => event.stopPropagation()
     };
 
     return children({
@@ -205,7 +297,7 @@ function SortableNavItemRow({ id, children }: any) {
     });
 }
 
-function FolderDropZone({ folderId, label }: any) {
+function FolderDropZone({ folderId, label }: FolderDropZoneProps) {
     const { setNodeRef } = useDroppable({
         id: getFolderDropId(folderId)
     });
@@ -235,7 +327,7 @@ export function CustomNavDialogLayoutEditor({
     onEditDashboard,
     onDeleteDashboard,
     onShowItem
-}: any) {
+}: CustomNavDialogLayoutEditorProps) {
     const { t } = useTranslation();
 
     return (
@@ -255,11 +347,11 @@ export function CustomNavDialogLayoutEditor({
                     strategy={verticalListSortingStrategy}
                 >
                     <div className="flex flex-col gap-1">
-                        {localLayout.map((entry: any, index: any) => {
+                        {localLayout.map((entry, index) => {
                             if (entry.type === 'folder') {
                                 return (
                                     <div
-                                        key={entry.id}
+                                        key={String(entry.id)}
                                         className="flex flex-col gap-1 rounded-lg border p-2"
                                     >
                                         <SortableNavItemRow
@@ -270,7 +362,7 @@ export function CustomNavDialogLayoutEditor({
                                                 rowStyle,
                                                 dragHandleProps,
                                                 isDragging
-                                            }: any) => (
+                                            }) => (
                                                 <div
                                                     ref={rowRef}
                                                     style={rowStyle}
@@ -304,9 +396,7 @@ export function CustomNavDialogLayoutEditor({
                                                             'icon_for_value',
                                                             entry.name
                                                         )}
-                                                        onValueChange={(
-                                                            icon: any
-                                                        ) =>
+                                                        onValueChange={(icon) =>
                                                             onFolderIconChange(
                                                                 index,
                                                                 icon
@@ -314,7 +404,9 @@ export function CustomNavDialogLayoutEditor({
                                                         }
                                                     />
                                                     <span className="min-w-0 flex-1 truncate">
-                                                        {entry.name}
+                                                        {String(
+                                                            entry.name || ''
+                                                        )}
                                                     </span>
                                                     <Button
                                                         type="button"
@@ -355,8 +447,8 @@ export function CustomNavDialogLayoutEditor({
                                             <div className="flex flex-col gap-1">
                                                 {entry.items.map(
                                                     (
-                                                        item: any,
-                                                        childIndex: any
+                                                        item: CustomNavFolderItem,
+                                                        childIndex
                                                     ) => {
                                                         const key =
                                                             getFolderItemKey(
@@ -371,14 +463,14 @@ export function CustomNavDialogLayoutEditor({
                                                         }
                                                         return (
                                                             <SortableNavItemRow
-                                                                key={key}
+                                                                key={String(
+                                                                    key
+                                                                )}
                                                                 id={getItemSortableId(
                                                                     key
                                                                 )}
                                                             >
-                                                                {(
-                                                                    rowProps: any
-                                                                ) => (
+                                                                {(rowProps) => (
                                                                     <NavItemRow
                                                                         {...rowProps}
                                                                         indent
@@ -403,7 +495,7 @@ export function CustomNavDialogLayoutEditor({
                                                                             key
                                                                         )}
                                                                         onIconChange={(
-                                                                            icon: any
+                                                                            icon
                                                                         ) =>
                                                                             onFolderChildIconChange(
                                                                                 index,
@@ -453,10 +545,10 @@ export function CustomNavDialogLayoutEditor({
                             }
                             return (
                                 <SortableNavItemRow
-                                    key={entry.key}
+                                    key={String(entry.key)}
                                     id={getItemSortableId(entry.key)}
                                 >
-                                    {(rowProps: any) => (
+                                    {(rowProps) => (
                                         <NavItemRow
                                             {...rowProps}
                                             label={definitionLabel(
@@ -472,7 +564,7 @@ export function CustomNavDialogLayoutEditor({
                                             isDashboard={isDashboardKey(
                                                 entry.key
                                             )}
-                                            onIconChange={(icon: any) =>
+                                            onIconChange={(icon) =>
                                                 onFolderIconChange(
                                                     index,
                                                     icon,
@@ -505,9 +597,9 @@ export function CustomNavDialogLayoutEditor({
                         <Separator className="flex-1" />
                     </div>
                     <div className="flex flex-col gap-1">
-                        {hiddenItems.map((item: any) => (
+                        {hiddenItems.map((item) => (
                             <Button
-                                key={item.key}
+                                key={String(item.key)}
                                 type="button"
                                 variant="ghost"
                                 className="text-muted-foreground h-auto w-full justify-start px-2 py-1.5 text-left font-normal"

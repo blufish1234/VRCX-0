@@ -1,9 +1,143 @@
 import { hasWorldIdPrefix } from '@/shared/constants/vrchatIds';
 export { resolveCurrentInviteLocation as resolveFriendsLocationsCurrentInviteLocation } from '@/shared/utils/invite';
+import type { FriendRecord } from '@/domain/friends/friendRosterTypes';
 import {
     parseLocation,
     resolveFriendPresenceLocation
 } from '@/shared/utils/location';
+
+type TranslationFn = (
+    key: string,
+    options?: Record<string, unknown>
+) => unknown;
+
+type FriendLocationRecord = Record<string, unknown> & {
+    $groupName?: unknown;
+    $location?: FriendLocationRecord | null;
+    $location_at?: unknown;
+    $travelingToLocation?: unknown;
+    $travelingToWorld?: unknown;
+    displayName?: unknown;
+    group?: FriendLocationRecord | null;
+    groupName?: unknown;
+    id?: unknown;
+    instanceId?: unknown;
+    instance_id?: unknown;
+    isOffline?: unknown;
+    isPrivate?: unknown;
+    isTraveling?: unknown;
+    location?: unknown;
+    locationName?: unknown;
+    name?: unknown;
+    ref?: FriendLocationRecord | null;
+    shortCode?: unknown;
+    state?: unknown;
+    stateBucket?: unknown;
+    tag?: unknown;
+    travelingToLocation?: unknown;
+    travelingToTime?: unknown;
+    travelingToWorld?: unknown;
+    userId?: unknown;
+    world?: FriendLocationRecord | null;
+    worldId?: unknown;
+    worldName?: unknown;
+    world_id?: unknown;
+};
+
+export type FriendLocationFriend = FriendRecord | FriendLocationRecord;
+
+type FavoriteGroupOption = {
+    key?: unknown;
+    displayName?: unknown;
+    name?: unknown;
+};
+
+type FavoriteGroupLabelsByFriendId = Map<string, string[]>;
+
+type FavoriteGroupLabelsInput = {
+    favoriteFriendGroups?: FavoriteGroupOption[] | null;
+    groupedFavoriteFriendIdsByGroupKey?: Record<string, unknown>;
+    localFriendFavorites?: Record<string, unknown>;
+    t?: TranslationFn | null;
+};
+
+type FavoriteGroupSortValue = {
+    key: string;
+    label?: string;
+};
+
+type FriendsLocationsLastLocation = {
+    friendList?:
+        | Set<string>
+        | Map<string, unknown>
+        | string[]
+        | Record<string, unknown>;
+    location?: unknown;
+};
+
+export type SameInstanceGroup<
+    TFriend extends FriendLocationFriend = FriendLocationFriend
+> = {
+    location: string;
+    friends: TFriend[];
+};
+
+type FriendLocationTarget = {
+    rawLocation: string;
+    parsed: ReturnType<typeof parseLocation>;
+    worldId: string;
+    groupId: string;
+    instanceId: string;
+    accessTypeName: string;
+    isOffline: boolean;
+    isPrivate: boolean;
+    isTraveling: boolean;
+};
+
+export type FriendLocationSectionDescriptor = {
+    key: string;
+    title: string;
+    description: string;
+    worldId: string;
+    groupId: string;
+    rawLocation: string;
+};
+
+export type FriendLocationSection<
+    TFriend extends FriendLocationFriend = FriendLocationFriend
+> = FriendLocationSectionDescriptor & {
+    displayInstanceInfo?: boolean;
+    friends: TFriend[];
+};
+
+type SameInstanceSectionsInput<
+    TFriend extends FriendLocationFriend = FriendLocationFriend
+> = {
+    sameInstanceGroups: SameInstanceGroup<TFriend>[];
+    displayInstanceInfo?: boolean;
+    t?: TranslationFn | null;
+};
+
+type FriendSectionsInput<
+    TFriend extends FriendLocationFriend = FriendLocationFriend
+> = {
+    friends: TFriend[];
+    groupingMode: string;
+    favoriteIds: Set<string>;
+    favoriteGroupLabelsByFriendId: FavoriteGroupLabelsByFriendId;
+    t?: TranslationFn | null;
+};
+
+function isRecord(value: unknown): value is FriendLocationRecord {
+    return typeof value === 'object' && value !== null;
+}
+
+function sourceFromFriend(friend: unknown): FriendLocationRecord {
+    if (!isRecord(friend)) {
+        return {};
+    }
+    return isRecord(friend.ref) ? friend.ref : friend;
+}
 
 const SENTINEL_LOCATION_VALUES = new Set([
     'offline',
@@ -14,11 +148,11 @@ const SENTINEL_LOCATION_VALUES = new Set([
     'traveling:traveling'
 ]);
 
-export function normalizeFriendsLocationId(value: any): string {
+export function normalizeFriendsLocationId(value: unknown): string {
     if (typeof value === 'string') {
         return value.trim();
     }
-    if (!value || typeof value !== 'object') {
+    if (!isRecord(value)) {
         return String(value ?? '').trim();
     }
 
@@ -55,13 +189,21 @@ export function normalizeFriendsLocationId(value: any): string {
     return '';
 }
 
-function interpolateFallback(value: any, values: any = {}) {
-    return String(value ?? '').replace(/\{(\w+)\}/g, (match: any, key: any) =>
+function interpolateFallback(
+    value: unknown,
+    values: Record<string, unknown> = {}
+) {
+    return String(value ?? '').replace(/\{(\w+)\}/g, (match, key) =>
         Object.hasOwn(values, key) ? String(values[key]) : match
     );
 }
 
-function localized(t: any, key: any, fallback: any, values: any = {}) {
+function localized(
+    t: TranslationFn | null | undefined,
+    key: string,
+    fallback: string,
+    values: Record<string, unknown> = {}
+) {
     if (typeof t !== 'function') {
         return interpolateFallback(fallback, values);
     }
@@ -72,11 +214,11 @@ function localized(t: any, key: any, fallback: any, values: any = {}) {
     );
 }
 
-export function normalizeDisplayText(value: any) {
+export function normalizeDisplayText(value: unknown) {
     if (typeof value === 'string') {
         return value.trim();
     }
-    if (!value || typeof value !== 'object') {
+    if (!isRecord(value)) {
         return String(value ?? '').trim();
     }
     return normalizeDisplayText(
@@ -90,12 +232,12 @@ export function normalizeDisplayText(value: any) {
     );
 }
 
-export function isSentinelLocationValue(value: any) {
+export function isSentinelLocationValue(value: unknown) {
     const normalizedValue = normalizeFriendsLocationId(value).toLowerCase();
     return SENTINEL_LOCATION_VALUES.has(normalizedValue);
 }
 
-export function resolveWorldIdCandidate(...values: any[]) {
+export function resolveWorldIdCandidate(...values: unknown[]) {
     for (const value of values) {
         const normalizedValue = normalizeFriendsLocationId(value);
         if (normalizedValue && hasWorldIdPrefix(normalizedValue)) {
@@ -105,11 +247,11 @@ export function resolveWorldIdCandidate(...values: any[]) {
     return '';
 }
 
-export function isRawWorldReference(value: any) {
+export function isRawWorldReference(value: unknown) {
     return Boolean(resolveWorldIdCandidate(value));
 }
 
-export function resolveDisplayWorldName(...values: any[]) {
+export function resolveDisplayWorldName(...values: unknown[]) {
     for (const value of values) {
         const normalizedValue = normalizeDisplayText(value);
         if (normalizedValue && !isRawWorldReference(normalizedValue)) {
@@ -119,9 +261,10 @@ export function resolveDisplayWorldName(...values: any[]) {
     return '';
 }
 
-export function resolveFriendWorldName(friend: any) {
-    const source =
-        friend?.ref && typeof friend.ref === 'object' ? friend.ref : friend;
+export function resolveFriendWorldName(
+    friend: FriendLocationFriend | null | undefined
+) {
+    const source = sourceFromFriend(friend);
     return resolveDisplayWorldName(
         source?.worldName,
         source?.$worldName,
@@ -133,9 +276,10 @@ export function resolveFriendWorldName(friend: any) {
     );
 }
 
-export function resolveFriendTravelingWorldName(friend: any) {
-    const source =
-        friend?.ref && typeof friend.ref === 'object' ? friend.ref : friend;
+export function resolveFriendTravelingWorldName(
+    friend: FriendLocationFriend | null | undefined
+) {
+    const source = sourceFromFriend(friend);
     return resolveDisplayWorldName(
         source?.travelingToWorld,
         source?.$travelingToWorld,
@@ -143,18 +287,20 @@ export function resolveFriendTravelingWorldName(friend: any) {
     );
 }
 
-export function resolveFriendTravelingWorldId(friend: any) {
-    const source =
-        friend?.ref && typeof friend.ref === 'object' ? friend.ref : friend;
+export function resolveFriendTravelingWorldId(
+    friend: FriendLocationFriend | null | undefined
+) {
+    const source = sourceFromFriend(friend);
     return resolveWorldIdCandidate(
         source?.travelingToWorld,
         source?.$travelingToWorld
     );
 }
 
-export function resolveFriendGroupName(friend: any) {
-    const source =
-        friend?.ref && typeof friend.ref === 'object' ? friend.ref : friend;
+export function resolveFriendGroupName(
+    friend: FriendLocationFriend | null | undefined
+) {
+    const source = sourceFromFriend(friend);
     return normalizeDisplayText(
         source?.groupName ||
             source?.$groupName ||
@@ -166,11 +312,15 @@ export function resolveFriendGroupName(friend: any) {
     );
 }
 
-export function uniqueFriendsById(friends: any) {
-    const seen = new Set();
-    const rows = [];
+export function uniqueFriendsById<TFriend extends FriendLocationFriend>(
+    friends: TFriend[] | null
+) {
+    const seen = new Set<string>();
+    const rows: TFriend[] = [];
     for (const friend of friends ?? []) {
-        const id = normalizeFriendsLocationId(friend?.id || friend?.userId);
+        const id = normalizeFriendsLocationId(
+            isRecord(friend) ? friend.id || friend.userId : ''
+        );
         if (!id) {
             rows.push(friend);
             continue;
@@ -184,17 +334,22 @@ export function uniqueFriendsById(friends: any) {
     return rows;
 }
 
-export function resolvePresenceLocation(friend: any) {
+export function resolvePresenceLocation(
+    friend: FriendLocationFriend | null | undefined
+) {
     return resolveFriendPresenceLocation(friend);
 }
 
-export function isOnlineFriend(friend: any) {
+export function isOnlineFriend(
+    friend: FriendLocationFriend | null | undefined
+) {
     return Boolean(
-        friend?.stateBucket === 'online' || friend?.state === 'online'
+        isRecord(friend) &&
+        (friend.stateBucket === 'online' || friend.state === 'online')
     );
 }
 
-export function isShareableInstanceLocation(location: any) {
+export function isShareableInstanceLocation(location: unknown) {
     const parsed = parseLocation(location);
     return Boolean(
         location &&
@@ -206,11 +361,11 @@ export function isShareableInstanceLocation(location: any) {
     );
 }
 
-export function buildSameInstanceGroups(
-    friends: any,
-    lastLocation: any = null
-) {
-    const groupsByLocation = new Map();
+export function buildSameInstanceGroups<TFriend extends FriendLocationFriend>(
+    friends: TFriend[] | null,
+    lastLocation: FriendsLocationsLastLocation | null = null
+): SameInstanceGroup<TFriend>[] {
+    const groupsByLocation = new Map<string, TFriend[]>();
 
     for (const friend of friends ?? []) {
         const location = resolveFriendPresenceLocation(friend, {
@@ -223,17 +378,17 @@ export function buildSameInstanceGroups(
         if (!groupsByLocation.has(location)) {
             groupsByLocation.set(location, []);
         }
-        groupsByLocation.get(location).push(friend);
+        groupsByLocation.get(location)?.push(friend);
     }
 
     return Array.from(groupsByLocation.entries())
-        .filter(([, friendsInLocation]: any) => friendsInLocation.length > 1)
-        .map(([location, friendsInLocation]: any) => ({
+        .filter(([, friendsInLocation]) => friendsInLocation.length > 1)
+        .map(([location, friendsInLocation]) => ({
             location,
             friends: friendsInLocation
         }))
         .sort(
-            (left: any, right: any) =>
+            (left, right) =>
                 right.friends.length - left.friends.length ||
                 left.location.localeCompare(right.location, undefined, {
                     sensitivity: 'base'
@@ -241,14 +396,18 @@ export function buildSameInstanceGroups(
         );
 }
 
-export function resolveLocationTarget(friend: any) {
+export function resolveLocationTarget(
+    friend: FriendLocationFriend | null | undefined
+): FriendLocationTarget {
     const rawLocation = resolvePresenceLocation(friend);
     const parsed = parseLocation(rawLocation);
     const parsedWorldId = resolveWorldIdCandidate(parsed.worldId);
     const travelingWorldId = parsed.isTraveling
         ? resolveFriendTravelingWorldId(friend)
         : '';
-    const explicitWorldId = resolveWorldIdCandidate(friend?.worldId);
+    const explicitWorldId = resolveWorldIdCandidate(
+        isRecord(friend) ? friend.worldId : ''
+    );
     const worldId =
         !rawLocation || parsed.isOffline || parsed.isPrivate
             ? ''
@@ -267,15 +426,17 @@ export function resolveLocationTarget(friend: any) {
     };
 }
 
-export function resolveLocationSummary(friend: any, t: any = null) {
-    const source =
-        friend?.ref && typeof friend.ref === 'object' ? friend.ref : friend;
+export function resolveLocationSummary(
+    friend: FriendLocationFriend | null | undefined,
+    t: TranslationFn | null = null
+) {
+    const source = sourceFromFriend(friend);
     const travelingToLocation = [
         source?.travelingToLocation,
         source?.$travelingToLocation
     ]
         .map(normalizeFriendsLocationId)
-        .find((value: any) => value && !isSentinelLocationValue(value));
+        .find((value) => value && !isSentinelLocationValue(value));
     if (travelingToLocation && !isSentinelLocationValue(travelingToLocation)) {
         const parsedTraveling = parseLocation(travelingToLocation);
         return {
@@ -322,7 +483,9 @@ export function resolveLocationSummary(friend: any, t: any = null) {
     };
 }
 
-export function resolveWorldDialogTarget(target: any) {
+export function resolveWorldDialogTarget(
+    target: Partial<FriendLocationTarget> | null
+) {
     const rawLocation = normalizeFriendsLocationId(target?.rawLocation);
     const worldId = normalizeFriendsLocationId(target?.worldId);
     const parsed = target?.parsed || parseLocation(rawLocation);
@@ -333,7 +496,11 @@ export function resolveWorldDialogTarget(target: any) {
     return resolveWorldIdCandidate(worldId, parsedWorldId, rawLocation);
 }
 
-function appendLabel(labelsByFriendId: any, friendId: any, label: any) {
+function appendLabel(
+    labelsByFriendId: FavoriteGroupLabelsByFriendId,
+    friendId: unknown,
+    label: unknown
+) {
     const normalizedFriendId = normalizeFriendsLocationId(friendId);
     const normalizedLabel =
         typeof label === 'string' ? label.trim() : String(label ?? '').trim();
@@ -353,8 +520,8 @@ export function buildFavoriteGroupLabelsByFriendId({
     groupedFavoriteFriendIdsByGroupKey,
     localFriendFavorites,
     t
-}: any) {
-    const labelsByFriendId = new Map();
+}: FavoriteGroupLabelsInput) {
+    const labelsByFriendId: FavoriteGroupLabelsByFriendId = new Map();
 
     for (const group of favoriteFriendGroups ?? []) {
         const groupKey = normalizeFriendsLocationId(group?.key);
@@ -362,10 +529,12 @@ export function buildFavoriteGroupLabelsByFriendId({
             continue;
         }
 
-        const label = group?.displayName || group?.name || groupKey;
-        for (const friendId of groupedFavoriteFriendIdsByGroupKey?.[groupKey] ??
-            []) {
-            appendLabel(labelsByFriendId, friendId, label);
+        const label = group.displayName || group.name || groupKey;
+        const friendIds = groupedFavoriteFriendIdsByGroupKey?.[groupKey];
+        if (Array.isArray(friendIds)) {
+            for (const friendId of friendIds) {
+                appendLabel(labelsByFriendId, friendId, label);
+            }
         }
     }
 
@@ -395,9 +564,9 @@ export function buildFavoriteGroupLabelsByFriendId({
 }
 
 export function compareFavoriteGroups(
-    left: any,
-    right: any,
-    order: any[] = []
+    left: FavoriteGroupSortValue,
+    right: FavoriteGroupSortValue,
+    order: string[] = []
 ) {
     const leftIndex = order.indexOf(left.key);
     const rightIndex = order.indexOf(right.key);
@@ -418,12 +587,14 @@ export function compareFavoriteGroups(
 }
 
 export function resolveFavoriteGroupLabels(
-    friend: any,
-    favoriteGroupLabelsByFriendId: any,
-    favoriteIds: any,
-    t: any = null
+    friend: FriendLocationFriend | null | undefined,
+    favoriteGroupLabelsByFriendId: FavoriteGroupLabelsByFriendId,
+    favoriteIds: Set<string>,
+    t: TranslationFn | null = null
 ) {
-    const friendId = normalizeFriendsLocationId(friend?.id);
+    const friendId = normalizeFriendsLocationId(
+        isRecord(friend) ? friend.id : ''
+    );
     if (!friendId) {
         return [];
     }
@@ -438,10 +609,13 @@ export function resolveFavoriteGroupLabels(
         : [];
 }
 
-export function resolveInstanceSectionDescriptor(friend: any, t: any = null) {
+export function resolveInstanceSectionDescriptor(
+    friend: FriendLocationFriend | null | undefined,
+    t: TranslationFn | null = null
+): FriendLocationSectionDescriptor {
     const target = resolveLocationTarget(friend);
     const summary = resolveLocationSummary(friend, t);
-    const descriptor: any = {
+    const descriptor: FriendLocationSectionDescriptor = {
         key: 'instance:unknown',
         title: '',
         description: '',
@@ -505,13 +679,15 @@ export function resolveInstanceSectionDescriptor(friend: any, t: any = null) {
     };
 }
 
-export function buildSameInstanceSections({
+export function buildSameInstanceSections<
+    TFriend extends FriendLocationFriend
+>({
     sameInstanceGroups,
     displayInstanceInfo = true,
     t
-}: any) {
+}: SameInstanceSectionsInput<TFriend>): FriendLocationSection<TFriend>[] {
     return sameInstanceGroups
-        .map(({ location, friends }: any) => {
+        .map(({ location, friends }) => {
             const descriptor = resolveInstanceSectionDescriptor(
                 {
                     ...friends[0],
@@ -529,10 +705,14 @@ export function buildSameInstanceSections({
                 friends
             };
         })
-        .filter((section: any) => section.friends.length > 0);
+        .filter((section) => section.friends.length > 0);
 }
 
-function upsertSection(sectionMap: any, descriptor: any, friend: any) {
+function upsertSection<TFriend extends FriendLocationFriend>(
+    sectionMap: Map<string, FriendLocationSection<TFriend>>,
+    descriptor: FriendLocationSectionDescriptor,
+    friend: TFriend
+) {
     const existing = sectionMap.get(descriptor.key);
     if (existing) {
         existing.friends.push(friend);
@@ -545,13 +725,13 @@ function upsertSection(sectionMap: any, descriptor: any, friend: any) {
     });
 }
 
-export function buildFriendSections({
+export function buildFriendSections<TFriend extends FriendLocationFriend>({
     friends,
     groupingMode,
     favoriteIds,
     favoriteGroupLabelsByFriendId,
     t
-}: any) {
+}: FriendSectionsInput<TFriend>): FriendLocationSection<TFriend>[] {
     if (groupingMode === 'flat') {
         return [
             {
@@ -564,12 +744,13 @@ export function buildFriendSections({
                 description: '',
                 friends,
                 worldId: '',
-                groupId: ''
+                groupId: '',
+                rawLocation: ''
             }
         ];
     }
 
-    const sectionsByKey = new Map();
+    const sectionsByKey = new Map<string, FriendLocationSection<TFriend>>();
 
     for (const friend of friends) {
         if (groupingMode === 'favoriteGroup') {
@@ -605,7 +786,8 @@ export function buildFriendSections({
                                   'Friend is not in a hydrated favorite group.'
                               ),
                     worldId: '',
-                    groupId: ''
+                    groupId: '',
+                    rawLocation: ''
                 },
                 friend
             );
@@ -619,7 +801,7 @@ export function buildFriendSections({
         );
     }
 
-    return Array.from(sectionsByKey.values()).sort((left: any, right: any) => {
+    return Array.from(sectionsByKey.values()).sort((left, right) => {
         if (
             left.key.startsWith('instance:offline') &&
             !right.key.startsWith('instance:offline')

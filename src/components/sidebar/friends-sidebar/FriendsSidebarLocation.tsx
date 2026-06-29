@@ -1,5 +1,12 @@
 import { AlertTriangleIcon, LockIcon } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import {
+    useEffect,
+    useMemo,
+    useState,
+    type KeyboardEvent,
+    type ReactNode,
+    type SyntheticEvent
+} from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { RegionCodeBadge } from '@/components/location/RegionCodeBadge';
@@ -26,10 +33,33 @@ import {
     readFriendRefTravelingLocation,
     readFriendStatusSource,
     resolvePresenceLocation,
-    timestampMsFromValue
+    timestampMsFromValue,
+    type SidebarFriendRecord
 } from './friendsSidebarModel';
+import type { SidebarVirtualRow } from './friendsSidebarVirtualRowBuilder';
 
-export function FriendInstanceTimer({ epoch, traveling = false }: any) {
+type SidebarLocationMetadata = Record<string, unknown> & {
+    groupName?: unknown;
+    instanceName?: unknown;
+    isClosed?: unknown;
+    region?: unknown;
+    worldName?: unknown;
+    worldNameHint?: unknown;
+};
+
+function recordValue(value: unknown): Record<string, unknown> | null {
+    return value && typeof value === 'object'
+        ? (value as Record<string, unknown>)
+        : null;
+}
+
+export function FriendInstanceTimer({
+    epoch,
+    traveling = false
+}: {
+    epoch?: unknown;
+    traveling?: boolean;
+}) {
     const timeUnitLabels = useShellStore((state) => state.timeUnitLabels);
     const [now, setNow] = useState(() => Date.now());
     const normalizedEpoch = timestampMsFromValue(epoch);
@@ -52,7 +82,7 @@ export function FriendInstanceTimer({ epoch, traveling = false }: any) {
     );
 }
 
-function sidebarLocationTarget(location: any, traveling: any = '') {
+function sidebarLocationTarget(location: unknown, traveling: unknown = '') {
     const normalizedLocation = normalizeId(location);
     if (
         typeof traveling !== 'undefined' &&
@@ -63,7 +93,9 @@ function sidebarLocationTarget(location: any, traveling: any = '') {
     return normalizedLocation;
 }
 
-function friendLocationHint(displaySource: any) {
+function friendLocationHint(
+    displaySource: SidebarFriendRecord | null | undefined
+) {
     return (
         displaySource?.worldName ||
         displaySource?.$worldName ||
@@ -73,15 +105,20 @@ function friendLocationHint(displaySource: any) {
     );
 }
 
-function friendGroupHint(displaySource: any) {
+function friendGroupHint(
+    displaySource: SidebarFriendRecord | null | undefined
+) {
+    const location = recordValue(displaySource?.$location);
+    const group = recordValue(location?.group);
+    const sourceGroup = recordValue(displaySource?.group);
     return (
         displaySource?.groupName ||
         displaySource?.$groupName ||
-        displaySource?.$location?.groupName ||
-        displaySource?.$location?.group?.name ||
-        displaySource?.$location?.group?.displayName ||
-        displaySource?.group?.name ||
-        displaySource?.group?.displayName ||
+        location?.groupName ||
+        group?.name ||
+        group?.displayName ||
+        sourceGroup?.name ||
+        sourceGroup?.displayName ||
         ''
     );
 }
@@ -90,7 +127,11 @@ export function resolveFriendRowLocationState({
     friend,
     isCurrentUser = false,
     isGroupByInstance = false
-}: any) {
+}: {
+    friend: SidebarFriendRecord;
+    isCurrentUser?: boolean;
+    isGroupByInstance?: boolean;
+}) {
     const displaySource = readFriendRef(friend);
     const statusSource = readFriendStatusSource(friend);
     const friendState = normalizeLocationStatus(
@@ -158,7 +199,11 @@ function StaticLocationTooltip({
     disabled = false,
     content = '',
     children
-}: any) {
+}: {
+    disabled?: boolean;
+    content?: ReactNode;
+    children: ReactNode;
+}) {
     if (disabled || !content) {
         return children;
     }
@@ -181,7 +226,18 @@ export function StaticSidebarLocation({
     showInstanceIdInLocation = false,
     ageGatedInstancesVisible = false,
     className = ''
-}: any) {
+}: {
+    location?: unknown;
+    traveling?: unknown;
+    hint?: unknown;
+    link?: boolean;
+    showGroupLink?: boolean;
+    tooltips?: boolean;
+    metadata?: SidebarLocationMetadata | null;
+    showInstanceIdInLocation?: boolean;
+    ageGatedInstancesVisible?: boolean;
+    className?: string;
+}) {
     const { t } = useTranslation();
     const currentLocation = sidebarLocationTarget(location, traveling);
     const parsedLocation = useMemo(
@@ -193,16 +249,16 @@ export function StaticSidebarLocation({
         t,
         accessTypeLocaleKeyMap
     );
-    const worldNameHint = metadata?.worldNameHint || '';
-    const worldName = metadata?.worldName || '';
+    const worldNameHint = String(metadata?.worldNameHint || '');
+    const worldName = String(metadata?.worldName || '');
     const worldDialogTitle = worldName || worldNameHint || undefined;
     const text = getLocationText(parsedLocation, {
-        hint: metadata ? worldNameHint : hint,
+        hint: metadata ? worldNameHint : String(hint || ''),
         worldName,
         accessTypeLabel,
         t
     });
-    const instanceName = metadata?.instanceName || '';
+    const instanceName = String(metadata?.instanceName || '');
     const tooltipContent = instanceName
         ? `${t('dialog.new_instance.instance_id')}: #${instanceName}`
         : '';
@@ -218,7 +274,7 @@ export function StaticSidebarLocation({
         parsedLocation.worldId
     );
 
-    function openWorld(event: any) {
+    function openWorld(event: Pick<SyntheticEvent, 'stopPropagation'>) {
         if (!isLocationLink) {
             return;
         }
@@ -233,7 +289,7 @@ export function StaticSidebarLocation({
         });
     }
 
-    function openWorldFromKeyboard(event: any) {
+    function openWorldFromKeyboard(event: KeyboardEvent<HTMLSpanElement>) {
         if (!isLocationLink || (event.key !== 'Enter' && event.key !== ' ')) {
             return;
         }
@@ -241,7 +297,7 @@ export function StaticSidebarLocation({
         openWorld(event);
     }
 
-    function openGroup(event: any) {
+    function openGroup(event: Pick<SyntheticEvent, 'stopPropagation'>) {
         event?.stopPropagation?.();
         const groupId = normalizeId(parsedLocation.groupId);
         if (!groupId) {
@@ -249,11 +305,11 @@ export function StaticSidebarLocation({
         }
         openGroupDialog({
             groupId,
-            title: metadata?.groupName || undefined
+            title: metadata?.groupName ? String(metadata.groupName) : undefined
         });
     }
 
-    function openGroupFromKeyboard(event: any) {
+    function openGroupFromKeyboard(event: KeyboardEvent<HTMLSpanElement>) {
         event.stopPropagation();
         if (event.key !== 'Enter' && event.key !== ' ') {
             return;
@@ -294,7 +350,7 @@ export function StaticSidebarLocation({
                 className
             )}
         >
-            <RegionCodeBadge region={metadata?.region || ''} />
+            <RegionCodeBadge region={String(metadata?.region || '')} />
             <StaticLocationTooltip
                 disabled={!tooltips || !tooltipContent || showInstanceName}
                 content={tooltipContent}
@@ -337,7 +393,7 @@ export function StaticSidebarLocation({
                     onClick={openGroup}
                     onKeyDown={openGroupFromKeyboard}
                 >
-                    ({metadata.groupName})
+                    ({String(metadata.groupName)})
                 </span>
             ) : null}
             {metadata?.isClosed ? (
@@ -355,7 +411,7 @@ export function StaticSidebarLocation({
     );
 }
 
-export function buildSidebarLocationMetadataEntry(row: any) {
+export function buildSidebarLocationMetadataEntry(row: SidebarVirtualRow) {
     if (row?.type === 'instance-header') {
         const currentLocation = sidebarLocationTarget(row.location);
         return {
@@ -365,7 +421,7 @@ export function buildSidebarLocationMetadataEntry(row: any) {
         };
     }
 
-    if (row?.type !== 'friend') {
+    if (row?.type !== 'friend' || !row.friend) {
         return null;
     }
 

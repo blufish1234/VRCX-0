@@ -59,7 +59,7 @@ export function LaunchOptionsDialog({ open, onOpenChange }: any) {
                     configRepository.setString('vrcLaunchPathOverride', '');
                 }
             })
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 toast.error(
                     userFacingErrorMessage(
                         error,

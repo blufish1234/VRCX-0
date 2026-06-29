@@ -1,3 +1,8 @@
+import type {
+    ColumnOrderState,
+    PaginationState,
+    Updater
+} from '@tanstack/react-table';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
@@ -21,12 +26,9 @@ import {
 } from './myAvatarsState';
 import type { MyAvatarsViewMode } from './myAvatarsTypes';
 
-function resolveTableColumnOrder(columnOrder: any) {
+function resolveTableColumnOrder(columnOrder: unknown): ColumnOrderState {
     const ordered = sanitizeMyAvatarsColumnOrder(columnOrder);
-    return [
-        ...ordered.filter((columnId: any) => columnId !== 'actions'),
-        'actions'
-    ];
+    return [...ordered.filter((columnId) => columnId !== 'actions'), 'actions'];
 }
 
 export function useMyAvatarsTableState({
@@ -70,7 +72,7 @@ export function useMyAvatarsTableState({
     const [columnOrderLocked, setColumnOrderLocked] = useState(
         () => persistedState.columnOrderLocked === true
     );
-    const [pagination, setPagination] = useState(() => ({
+    const [pagination, setPagination] = useState<PaginationState>(() => ({
         pageIndex: 0,
         pageSize: resolveMyAvatarsPageSize(
             persistedState.pageSize,
@@ -89,7 +91,7 @@ export function useMyAvatarsTableState({
             getTablePageSizesPreference(MY_AVATARS_DEFAULT_PAGE_SIZES),
             getTablePageSizePreference(20)
         ])
-            .then(([nextPageSizes, nextPageSize]: any) => {
+            .then(([nextPageSizes, nextPageSize]) => {
                 if (!active) {
                     return;
                 }
@@ -115,7 +117,7 @@ export function useMyAvatarsTableState({
                       )
                     : resolvedConfiguredPageSize;
                 setPageSizes(resolvedPageSizes);
-                setPagination((current: any) => ({
+                setPagination((current) => ({
                     ...current,
                     pageSize: resolvedActivePageSize
                 }));
@@ -134,7 +136,7 @@ export function useMyAvatarsTableState({
             tablePageSizesPreference
         );
         setPageSizes(resolvedPageSizes);
-        setPagination((current: any) => {
+        setPagination((current) => {
             const pageSize = resolveMyAvatarsPageSize(
                 current.pageSize,
                 resolvedPageSizes
@@ -183,7 +185,7 @@ export function useMyAvatarsTableState({
     }, [columnOrder, columnOrderLocked, columnSizing, columnVisibility]);
 
     useEffect(() => {
-        setPagination((current: any) => ({
+        setPagination((current) => ({
             ...current,
             pageIndex: 0
         }));
@@ -201,15 +203,15 @@ export function useMyAvatarsTableState({
             Math.ceil(filteredCount / pagination.pageSize) - 1
         );
         if (pagination.pageIndex > maxPageIndex) {
-            setPagination((current: any) => ({
+            setPagination((current) => ({
                 ...current,
                 pageIndex: maxPageIndex
             }));
         }
     }, [filteredCount, pagination.pageIndex, pagination.pageSize]);
 
-    function handleColumnOrderChange(updater: any) {
-        setColumnOrder((current: any) =>
+    function handleColumnOrderChange(updater: Updater<ColumnOrderState>) {
+        setColumnOrder((current) =>
             resolveTableColumnOrder(
                 typeof updater === 'function'
                     ? updater(resolveTableColumnOrder(current))
@@ -218,7 +220,7 @@ export function useMyAvatarsTableState({
         );
     }
 
-    function handlePageSizeChange(value: any) {
+    function handlePageSizeChange(value: unknown) {
         const nextPageSize = resolveMyAvatarsPageSize(
             value,
             pageSizes,

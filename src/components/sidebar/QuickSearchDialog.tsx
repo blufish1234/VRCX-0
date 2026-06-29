@@ -43,30 +43,84 @@ import {
 import {
     buildUserTextMap,
     createEmptyCatalog,
-    loadQuickSearchCatalog
+    loadQuickSearchCatalog,
+    type QuickSearchCatalog,
+    type QuickSearchEntityType,
+    type QuickSearchResult
 } from './quickSearchCatalog';
-import { NavResultGroup, useNavCommands } from './QuickSearchNavCommands';
+import {
+    NavResultGroup,
+    useNavCommands,
+    type QuickSearchNavCommand
+} from './QuickSearchNavCommands';
 import { entityTypeLabel, ResultGroup } from './QuickSearchResults';
 
 const RESULT_LIMIT = 8;
 const USER_QUERY_MIN_LENGTH = 1;
 const DETAIL_QUERY_MIN_LENGTH = 2;
 
-function normalize(value: any) {
+type QuickSearchResults = {
+    friends: QuickSearchResult[];
+    ownAvatars: QuickSearchResult[];
+    favoriteAvatars: QuickSearchResult[];
+    ownWorlds: QuickSearchResult[];
+    favoriteWorlds: QuickSearchResult[];
+    ownGroups: QuickSearchResult[];
+    joinedGroups: QuickSearchResult[];
+};
+
+type QuickSearchRecord = Record<string, unknown> & {
+    $memo?: unknown;
+    $nickName?: unknown;
+    $userColour?: unknown;
+    authorName?: unknown;
+    author_name?: unknown;
+    bannerUrl?: unknown;
+    displayName?: unknown;
+    favoriteId?: unknown;
+    group?: unknown;
+    groupId?: unknown;
+    groupName?: unknown;
+    iconUrl?: unknown;
+    id?: unknown;
+    imageUrl?: unknown;
+    image_url?: unknown;
+    memo?: unknown;
+    name?: unknown;
+    note?: unknown;
+    objectId?: unknown;
+    ownerDisplayName?: unknown;
+    ownerId?: unknown;
+    seedData?: unknown;
+    statusDescription?: unknown;
+    thumbnailImageUrl?: unknown;
+    thumbnail_image_url?: unknown;
+    type?: unknown;
+    username?: unknown;
+    worldName?: unknown;
+};
+
+function recordValue(value: unknown): QuickSearchRecord | null {
+    return value && typeof value === 'object'
+        ? (value as QuickSearchRecord)
+        : null;
+}
+
+function normalize(value: unknown) {
     return typeof value === 'string'
         ? value.trim()
         : String(value ?? '').trim();
 }
 
-function normalizeQuery(value: any) {
+function normalizeQuery(value: unknown) {
     return normalize(value).toLowerCase();
 }
 
-function matchesEntityName(row: any, query: any) {
+function matchesEntityName(row: QuickSearchResult, query: string) {
     return normalizeQuery(row.name).includes(query);
 }
 
-function matchesFriend(row: any, query: any) {
+function matchesFriend(row: QuickSearchResult, query: string) {
     if (matchesEntityName(row, query)) {
         return true;
     }
@@ -79,7 +133,10 @@ function matchesFriend(row: any, query: any) {
     );
 }
 
-function matchedField(row: any, query: any) {
+function matchedField(
+    row: Pick<QuickSearchResult, 'name' | 'memo' | 'note'>,
+    query: string
+): QuickSearchResult['matchedField'] {
     if (!query) {
         return 'name';
     }
@@ -99,14 +156,17 @@ function matchedField(row: any, query: any) {
 }
 
 function filterResults(
-    rows: any,
-    query: any,
-    matcher: any = matchesEntityName,
-    limit: any = RESULT_LIMIT
+    rows: readonly QuickSearchResult[],
+    query: string,
+    matcher: (
+        row: QuickSearchResult,
+        query: string
+    ) => boolean = matchesEntityName,
+    limit = RESULT_LIMIT
 ) {
     return rows
-        .filter((row: any) => matcher(row, query))
-        .sort((left: any, right: any) => {
+        .filter((row) => matcher(row, query))
+        .sort((left, right) => {
             const leftPrefix = normalizeQuery(left.name).startsWith(query)
                 ? 0
                 : 1;
@@ -127,11 +187,14 @@ function filterResults(
         .slice(0, limit);
 }
 
-function dedupeResults(rows: any, excludeIds: any = new Set()) {
-    const rowsById = new Map();
+function dedupeResults(
+    rows: readonly (QuickSearchResult | null | undefined)[],
+    excludeIds: ReadonlySet<string> = new Set()
+) {
+    const rowsById = new Map<string, QuickSearchResult>();
     for (const row of rows) {
         const id = normalize(row?.id);
-        if (!id || excludeIds.has(id) || rowsById.has(id)) {
+        if (!row || !id || excludeIds.has(id) || rowsById.has(id)) {
             continue;
         }
         rowsById.set(id, row);
@@ -139,22 +202,29 @@ function dedupeResults(rows: any, excludeIds: any = new Set()) {
     return Array.from(rowsById.values());
 }
 
-function favoriteName(row: any) {
+function favoriteName(row: QuickSearchRecord | null) {
     return row?.name || row?.displayName || '';
 }
 
-function resolveImageUrl(row: any) {
+function resolveImageUrl(row: QuickSearchRecord | null) {
     return convertFileUrlToImageUrl(
-        row?.thumbnailImageUrl ||
-            row?.thumbnail_image_url ||
-            row?.imageUrl ||
-            row?.image_url ||
-            row?.iconUrl ||
-            row?.bannerUrl
+        normalize(
+            row?.thumbnailImageUrl ||
+                row?.thumbnail_image_url ||
+                row?.imageUrl ||
+                row?.image_url ||
+                row?.iconUrl ||
+                row?.bannerUrl
+        )
     );
 }
 
-function buildEntityResult(row: any, type: any, source: any) {
+function buildEntityResult(
+    value: unknown,
+    type: QuickSearchEntityType,
+    source: string
+): QuickSearchResult | null {
+    const row = recordValue(value);
     const id = normalize(row?.favoriteId || row?.objectId || row?.id);
     if (!id) {
         return null;
@@ -163,26 +233,33 @@ function buildEntityResult(row: any, type: any, source: any) {
         id,
         type,
         source,
-        name: favoriteName(row) || entityTypeLabel(type),
-        subtitle:
+        name: normalize(favoriteName(row)) || entityTypeLabel(type),
+        subtitle: normalize(
             row?.authorName ||
-            row?.author_name ||
-            row?.ownerDisplayName ||
-            row?.groupName ||
-            source,
+                row?.author_name ||
+                row?.ownerDisplayName ||
+                row?.groupName ||
+                source
+        ),
         imageUrl: resolveImageUrl(row),
         seedData: row || null
     };
 }
 
-function buildEntityResults(rows: any, type: any, source: any) {
+function buildEntityResults(
+    rows: unknown,
+    type: QuickSearchEntityType,
+    source: string
+) {
     return (Array.isArray(rows) ? rows : [])
-        .map((row: any) => buildEntityResult(row, type, source))
-        .filter(Boolean);
+        .map((row) => buildEntityResult(row, type, source))
+        .filter((row): row is QuickSearchResult => Boolean(row));
 }
 
-function resolveGroupInstanceId(instance: any) {
-    const nestedId = normalize(instance?.group?.groupId || instance?.group?.id);
+function resolveGroupInstanceId(value: unknown) {
+    const instance = recordValue(value);
+    const group = recordValue(instance?.group);
+    const nestedId = normalize(group?.groupId || group?.id);
     if (nestedId) {
         return nestedId;
     }
@@ -198,24 +275,28 @@ function resolveGroupInstanceId(instance: any) {
     return hasGroupIdPrefix(id) ? id : '';
 }
 
-function buildGroupInstanceResults(groupInstances: any) {
-    const groupsById = new Map();
-    for (const group of groupInstances || []) {
+function buildGroupInstanceResults(groupInstances: unknown) {
+    const groupsById = new Map<string, QuickSearchResult>();
+    for (const value of Array.isArray(groupInstances) ? groupInstances : []) {
+        const group = recordValue(value);
+        const groupRecord = recordValue(group?.group);
         const groupId = resolveGroupInstanceId(group);
         if (!groupId || groupsById.has(groupId)) {
             continue;
         }
-        const row: any = {
+        const row: QuickSearchResult = {
             id: groupId,
             type: 'group',
             source: 'instances',
             name:
-                group?.group?.name || group.groupName || group.name || 'Group',
-            subtitle: group.worldName || 'instances',
+                normalize(
+                    groupRecord?.name || group?.groupName || group?.name
+                ) || 'Group',
+            subtitle: normalize(group?.worldName) || 'instances',
             imageUrl: convertFileUrlToImageUrl(
-                group?.group?.iconUrl || group.iconUrl
+                normalize(groupRecord?.iconUrl || group?.iconUrl)
             ),
-            seedData: group?.group || group
+            seedData: groupRecord || group
         };
         groupsById.set(groupId, row);
     }
@@ -226,7 +307,11 @@ function useQuickSearchCatalogState({
     currentEndpoint,
     currentUserId,
     open
-}: any) {
+}: {
+    currentEndpoint?: string | null;
+    currentUserId?: string | null;
+    open: boolean;
+}) {
     const [catalog, setCatalog] = useState(() => createEmptyCatalog());
 
     useEffect(() => {
@@ -236,13 +321,16 @@ function useQuickSearchCatalogState({
 
         let active = true;
         setCatalog(createEmptyCatalog('running'));
-        loadQuickSearchCatalog({ currentUserId, endpoint: currentEndpoint })
-            .then((nextCatalog: any) => {
+        loadQuickSearchCatalog({
+            currentUserId,
+            endpoint: currentEndpoint
+        })
+            .then((nextCatalog) => {
                 if (active) {
                     setCatalog(nextCatalog);
                 }
             })
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 if (active) {
                     setCatalog(
                         createEmptyCatalog(
@@ -263,7 +351,25 @@ function useQuickSearchCatalogState({
     return catalog;
 }
 
-function useQuickSearchResults({ catalog, normalizedQuery }: any) {
+function createEmptyResults(): QuickSearchResults {
+    return {
+        friends: [],
+        ownAvatars: [],
+        favoriteAvatars: [],
+        ownWorlds: [],
+        favoriteWorlds: [],
+        ownGroups: [],
+        joinedGroups: []
+    };
+}
+
+function useQuickSearchResults({
+    catalog,
+    normalizedQuery
+}: {
+    catalog: QuickSearchCatalog;
+    normalizedQuery: string;
+}): QuickSearchResults {
     const friendsById = useFriendRosterStore((state) => state.friendsById);
     const remoteFavoritesByObjectId = useFavoriteStore(
         (state) => state.remoteFavoritesByObjectId
@@ -296,66 +402,62 @@ function useQuickSearchResults({ catalog, normalizedQuery }: any) {
 
     return useMemo(() => {
         if (normalizedQuery.length < USER_QUERY_MIN_LENGTH) {
-            return {
-                friends: [],
-                ownAvatars: [],
-                favoriteAvatars: [],
-                ownWorlds: [],
-                favoriteWorlds: [],
-                ownGroups: [],
-                joinedGroups: []
-            };
+            return createEmptyResults();
         }
 
         const canSearchDetails =
             normalizedQuery.length >= DETAIL_QUERY_MIN_LENGTH;
         const userMemoById = buildUserTextMap(catalog.userMemos, 'memo');
         const userNoteById = buildUserTextMap(catalog.userNotes, 'note');
-        const friends = Object.values(friendsById || {}).map((friend: any) => {
-            const friendId = normalize(friend?.id);
-            const knownUser = knownFriendUsersById[friend.id] || null;
-            const memo =
-                userMemoById.get(friendId) ||
-                friend.memo ||
-                friend.$memo ||
-                friend.$nickName ||
-                knownUser?.memo ||
-                '';
-            const note =
-                userNoteById.get(friendId) ||
-                friend.note ||
-                knownUser?.note ||
-                '';
-            const profile: any = {
-                ...(knownUser || {}),
-                ...friend,
-                displayName: friend.displayName || knownUser?.displayName,
-                username: friend.username || knownUser?.username,
-                memo,
-                note
-            };
-            const name = profile.displayName || profile.username || 'User';
-            return {
-                id: profile.id || friend.id,
-                type: 'friend',
-                source: 'friends',
-                name,
-                subtitle: profile.statusDescription || '',
-                memo,
-                note,
-                matchedField: matchedField(
-                    {
-                        name,
-                        memo,
-                        note
-                    },
-                    normalizedQuery
-                ),
-                userColour: profile.$userColour,
-                imageUrl: userImage(profile, true, '64'),
-                seedData: profile
-            };
-        });
+        const friends: QuickSearchResult[] = Object.values(friendsById || {})
+            .filter(recordValue)
+            .map((friend) => {
+                const friendId = normalize(friend?.id);
+                const knownUser = recordValue(knownFriendUsersById[friendId]);
+                const memo =
+                    userMemoById.get(friendId) ||
+                    friend.memo ||
+                    friend.$memo ||
+                    friend.$nickName ||
+                    knownUser?.memo ||
+                    '';
+                const note =
+                    userNoteById.get(friendId) ||
+                    friend.note ||
+                    knownUser?.note ||
+                    '';
+                const profile: QuickSearchRecord = {
+                    ...(knownUser || {}),
+                    ...friend,
+                    displayName: friend.displayName || knownUser?.displayName,
+                    username: friend.username || knownUser?.username,
+                    memo,
+                    note
+                };
+                const name =
+                    normalize(profile.displayName || profile.username) ||
+                    'User';
+                return {
+                    id: normalize(profile.id || friend.id),
+                    type: 'friend',
+                    source: 'friends',
+                    name,
+                    subtitle: normalize(profile.statusDescription),
+                    memo: normalize(memo),
+                    note: normalize(note),
+                    matchedField: matchedField(
+                        {
+                            name,
+                            memo: normalize(memo),
+                            note: normalize(note)
+                        },
+                        normalizedQuery
+                    ),
+                    userColour: normalize(profile.$userColour),
+                    imageUrl: userImage(profile, true, '64'),
+                    seedData: profile
+                };
+            });
 
         const remoteFavorites = Object.values(remoteFavoritesByObjectId || []);
         const localAvatars = Object.values(localAvatarDetailsById || []);
@@ -366,8 +468,8 @@ function useQuickSearchResults({ catalog, normalizedQuery }: any) {
             'own'
         );
         const ownWorlds = buildEntityResults(catalog.ownWorlds, 'world', 'own');
-        const ownAvatarIds = new Set(ownAvatars.map((row: any) => row.id));
-        const ownWorldIds = new Set(ownWorlds.map((row: any) => row.id));
+        const ownAvatarIds = new Set(ownAvatars.map((row) => row.id));
+        const ownWorldIds = new Set(ownWorlds.map((row) => row.id));
 
         const favoriteAvatars = dedupeResults(
             [
@@ -377,11 +479,9 @@ function useQuickSearchResults({ catalog, normalizedQuery }: any) {
                     'favorite'
                 ),
                 ...remoteFavorites
-                    .filter((row: any) => row?.type === 'avatar')
-                    .map((row: any) =>
-                        buildEntityResult(row, 'avatar', 'favorite')
-                    ),
-                ...localAvatars.map((row: any) =>
+                    .filter((row) => recordValue(row)?.type === 'avatar')
+                    .map((row) => buildEntityResult(row, 'avatar', 'favorite')),
+                ...localAvatars.map((row) =>
                     buildEntityResult(row, 'avatar', 'local')
                 )
             ].filter(Boolean),
@@ -397,14 +497,12 @@ function useQuickSearchResults({ catalog, normalizedQuery }: any) {
                 ),
                 ...remoteFavorites
                     .filter(
-                        (row: any) =>
-                            row?.type === 'world' ||
-                            row?.type === 'vrcPlusWorld'
+                        (row) =>
+                            recordValue(row)?.type === 'world' ||
+                            recordValue(row)?.type === 'vrcPlusWorld'
                     )
-                    .map((row: any) =>
-                        buildEntityResult(row, 'world', 'favorite')
-                    ),
-                ...localWorlds.map((row: any) =>
+                    .map((row) => buildEntityResult(row, 'world', 'favorite')),
+                ...localWorlds.map((row) =>
                     buildEntityResult(row, 'world', 'local')
                 )
             ].filter(Boolean),
@@ -417,13 +515,13 @@ function useQuickSearchResults({ catalog, normalizedQuery }: any) {
             'joined'
         );
         const ownGroupRows = groupResults.filter(
-            (row: any) =>
+            (row) =>
                 normalize(row.seedData?.ownerId) === normalize(currentUserId)
         );
-        const ownGroupIds = new Set(ownGroupRows.map((row: any) => row.id));
+        const ownGroupIds = new Set(ownGroupRows.map((row) => row.id));
         const joinedGroupRows = dedupeResults(
             [
-                ...groupResults.filter((row: any) => !ownGroupIds.has(row.id)),
+                ...groupResults.filter((row) => !ownGroupIds.has(row.id)),
                 ...buildGroupInstanceResults(groupInstances)
             ],
             ownGroupIds
@@ -469,8 +567,14 @@ function useQuickSearchResults({ catalog, normalizedQuery }: any) {
     ]);
 }
 
-function useQuickSearchSelectResult({ onOpenChange, setQuery }: any) {
-    return function selectResult(item: any) {
+function useQuickSearchSelectResult({
+    onOpenChange,
+    setQuery
+}: {
+    onOpenChange: (open: boolean) => void;
+    setQuery: (query: string) => void;
+}) {
+    return function selectResult(item: QuickSearchResult) {
         onOpenChange(false);
         setQuery('');
         if (item.type === 'friend') {
@@ -501,7 +605,13 @@ function useQuickSearchSelectResult({ onOpenChange, setQuery }: any) {
     };
 }
 
-export function QuickSearchDialog({ open, onOpenChange }: any) {
+export function QuickSearchDialog({
+    open,
+    onOpenChange
+}: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+}) {
     const { t } = useTranslation();
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
     const currentEndpoint = useRuntimeStore(
@@ -639,7 +749,7 @@ export function QuickSearchDialog({ open, onOpenChange }: any) {
                                 <NavResultGroup
                                     title={t('side_panel.search_pages')}
                                     items={navCommands}
-                                    onSelect={(item: any) => {
+                                    onSelect={(item: QuickSearchNavCommand) => {
                                         onOpenChange(false);
                                         setQuery('');
                                         navigate(item.path);

@@ -1,9 +1,19 @@
-import { buildCurrentUserPresenceView } from '@/shared/utils/currentUserPresence';
+import {
+    buildCurrentUserPresenceView,
+    type CurrentUserPresenceGameState,
+    type CurrentUserPresenceRecord
+} from '@/shared/utils/currentUserPresence';
 import { normalizeString as normalizeId } from '@/shared/utils/string';
 
-import { resolveCurrentUserStateBucket } from './friendsSidebarModel';
+import {
+    resolveCurrentUserStateBucket,
+    type SameInstanceGroup,
+    type SidebarFriendRecord,
+    type SidebarPreferences
+} from './friendsSidebarModel';
+import type { FriendsSidebarOpenGroups } from './useFriendsSidebarPreferences';
 
-interface SidebarVirtualRow {
+export interface SidebarVirtualRow {
     type:
         | 'section'
         | 'friend'
@@ -19,10 +29,38 @@ interface SidebarVirtualRow {
     open?: boolean;
     label?: string;
     location?: unknown;
-    friend?: unknown;
+    friend?: SidebarFriendRecord;
     isCurrentUser?: boolean;
     isGroupByInstance?: boolean;
+    className?: string;
+    text?: string;
 }
+
+type SidebarSectionInput = {
+    id: string;
+    title: string;
+    count?: number;
+    open?: boolean;
+};
+
+type SidebarFriendRowsOptions = {
+    currentUserId?: string | null;
+    isCurrentUser?: boolean;
+    isGroupByInstance?: boolean;
+};
+
+type FavoriteGroupSection = {
+    key: string;
+    label: string;
+    rows: readonly SidebarFriendRecord[];
+};
+
+type SidebarGameState = Record<string, unknown> & {
+    isGameRunning?: boolean | null;
+    currentLocation?: unknown;
+    currentDestination?: unknown;
+    currentWorldId?: unknown;
+};
 
 const STOPPED_GAME_CURRENT_USER_PRESENCE_FIELDS = [
     'location',
@@ -41,7 +79,7 @@ const STOPPED_GAME_CURRENT_USER_PRESENCE_FIELDS = [
 
 function pushSection(
     nextRows: SidebarVirtualRow[],
-    { id, title, count, open }: any
+    { id, title, count, open }: SidebarSectionInput
 ) {
     nextRows.push({
         type: 'section',
@@ -55,13 +93,13 @@ function pushSection(
 
 function pushFriendRows(
     nextRows: SidebarVirtualRow[],
-    sectionKey: any,
-    sectionRows: any,
+    sectionKey: string,
+    sectionRows: readonly SidebarFriendRecord[],
     {
         currentUserId,
         isCurrentUser = false,
         isGroupByInstance = false
-    }: any = {}
+    }: SidebarFriendRowsOptions = {}
 ) {
     for (const friend of sectionRows) {
         const friendId = normalizeId(friend?.id);
@@ -77,7 +115,11 @@ function pushFriendRows(
     }
 }
 
-function buildFriendRows(sectionKey: any, sectionRows: any, options: any) {
+function buildFriendRows(
+    sectionKey: string,
+    sectionRows: readonly SidebarFriendRecord[],
+    options: SidebarFriendRowsOptions
+) {
     const nextRows: SidebarVirtualRow[] = [];
     pushFriendRows(nextRows, sectionKey, sectionRows, options);
     return nextRows;
@@ -85,8 +127,8 @@ function buildFriendRows(sectionKey: any, sectionRows: any, options: any) {
 
 function pushSkeletonRows(
     nextRows: SidebarVirtualRow[],
-    key: any,
-    count: any = 6
+    key: string,
+    count = 6
 ) {
     for (let index = 0; index < count; index += 1) {
         nextRows.push({
@@ -101,7 +143,12 @@ function buildFavoriteRows({
     favoriteGroupSections,
     favoriteRows,
     prefs
-}: any) {
+}: {
+    currentUserId?: string | null;
+    favoriteGroupSections: FavoriteGroupSection[];
+    favoriteRows: readonly SidebarFriendRecord[];
+    prefs: SidebarPreferences;
+}) {
     const nextRows: SidebarVirtualRow[] = [];
 
     if (!prefs.isSidebarDivideByFriendGroup) {
@@ -123,11 +170,14 @@ function buildFavoriteRows({
     return nextRows;
 }
 
-function stripStoppedGameCurrentUserPresence(currentUser: any, gameState: any) {
+function stripStoppedGameCurrentUserPresence(
+    currentUser: CurrentUserPresenceRecord | null | undefined,
+    gameState: SidebarGameState | null | undefined
+) {
     if (!currentUser || gameState?.isGameRunning !== false) {
         return currentUser;
     }
-    const strippedUser: any = { ...currentUser };
+    const strippedUser: CurrentUserPresenceRecord = { ...currentUser };
     for (const field of STOPPED_GAME_CURRENT_USER_PRESENCE_FIELDS) {
         delete strippedUser[field];
     }
@@ -139,11 +189,16 @@ function buildCurrentUserRows({
     currentUserId,
     gameState,
     prefs
-}: any): SidebarVirtualRow[] {
+}: {
+    currentUser: CurrentUserPresenceRecord | null | undefined;
+    currentUserId?: string | null;
+    gameState: SidebarGameState | null | undefined;
+    prefs: SidebarPreferences;
+}): SidebarVirtualRow[] {
     if (!currentUser) {
         return Array.from(
             { length: 1 },
-            (_: any, index: any): SidebarVirtualRow => ({
+            (_unused, index): SidebarVirtualRow => ({
                 type: 'skeleton',
                 key: `skeleton:me:${index}`
             })
@@ -151,7 +206,7 @@ function buildCurrentUserRows({
     }
 
     const currentUserRow = buildCurrentUserPresenceView(currentUser, {
-        gameState,
+        gameState: gameState as CurrentUserPresenceGameState,
         gameLogDisabled: Boolean(prefs.gameLogDisabled)
     });
     const currentUserDisplayRow = stripStoppedGameCurrentUserPresence(
@@ -165,7 +220,7 @@ function buildCurrentUserRows({
             {
                 ...currentUserDisplayRow,
                 stateBucket: resolveCurrentUserStateBucket(
-                    currentUserDisplayRow
+                    currentUserDisplayRow as SidebarFriendRecord
                 )
             }
         ],
@@ -188,7 +243,22 @@ export function buildFriendsSidebarVirtualRows({
     rowsLength,
     sameInstanceGroups,
     t
-}: any) {
+}: {
+    activeRows: readonly SidebarFriendRecord[];
+    currentUser: CurrentUserPresenceRecord | null | undefined;
+    currentUserId?: string | null;
+    favoriteGroupSections: FavoriteGroupSection[];
+    favoriteRows: readonly SidebarFriendRecord[];
+    gameState: SidebarGameState | null | undefined;
+    loadStatus?: string;
+    offlineRows: readonly SidebarFriendRecord[];
+    onlineRows: readonly SidebarFriendRecord[];
+    openGroups: Partial<FriendsSidebarOpenGroups>;
+    prefs: SidebarPreferences;
+    rowsLength: number;
+    sameInstanceGroups: SameInstanceGroup[];
+    t: (key: string) => string;
+}) {
     const nextRows: SidebarVirtualRow[] = [];
 
     if (loadStatus === 'running' && !rowsLength) {
@@ -224,7 +294,7 @@ export function buildFriendsSidebarVirtualRows({
             open: openGroups.sameInstance
         });
         if (openGroups.sameInstance) {
-            sameInstanceGroups.forEach((group: any, index: any) => {
+            sameInstanceGroups.forEach((group, index) => {
                 nextRows.push({
                     type: 'instance-header',
                     key: `instance:${group.location}:${index}`,

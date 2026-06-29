@@ -3,12 +3,14 @@ import {
     getSortedRowModel,
     useReactTable
 } from '@tanstack/react-table';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 
 import { TableColumnVisibilityMenu } from '@/components/data-table/TableColumnVisibilityMenu';
 import { LoadingState } from '@/components/layout/PageScaffold';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 
+import type { PlayerListRow, PlayerListSourceRow } from '../playerListTypes';
 import { usePlayerListTableState } from '../usePlayerListTableState';
 import { usePlayerListColumns } from './PlayerListColumns';
 import {
@@ -17,13 +19,24 @@ import {
     PlayerListTableShell
 } from './PlayerListViewParts';
 
+type PlayerListParsedLocation = {
+    isTraveling?: boolean;
+    isOffline?: boolean;
+};
+
 function resolvePlayerListEmptyCopy({
     gameLogDisabled,
     isGameRunning,
     isPlayerListSourceUnavailable,
     parsedLocation,
     t
-}: any) {
+}: {
+    gameLogDisabled: boolean;
+    isGameRunning: boolean;
+    isPlayerListSourceUnavailable: boolean;
+    parsedLocation: PlayerListParsedLocation;
+    t: TFunction;
+}) {
     if (gameLogDisabled) {
         return {
             title: t('view.game_log.label.game_log_is_disabled'),
@@ -93,11 +106,21 @@ export function PlayerListTableSection({
     onOpenPlayer,
     parsedLocation,
     playerSourceRows
-}: any) {
+}: {
+    detail?: string;
+    filteredRows: PlayerListRow[];
+    gameLogDisabled: boolean;
+    isGameRunning: boolean;
+    isPlayerListSourceUnavailable: boolean;
+    loadStatus: string;
+    onOpenPlayer: (row: PlayerListRow) => void;
+    parsedLocation: PlayerListParsedLocation;
+    playerSourceRows: readonly PlayerListSourceRow[];
+}) {
     const { t } = useTranslation();
     const tableState = usePlayerListTableState();
     const tableColumns = usePlayerListColumns();
-    const table = useReactTable({
+    const table = useReactTable<PlayerListRow>({
         data: filteredRows,
         columns: tableColumns,
         state: {
@@ -112,8 +135,8 @@ export function PlayerListTableSection({
         onColumnSizingChange: tableState.setColumnSizing,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
-        getRowId: (row: any) =>
-            `${row?.userId || row?.id || ''}:${row?.displayName || ''}`,
+        getRowId: (row) =>
+            `${row.userId || String(row.id || '')}:${row.displayName || ''}`,
         enableColumnResizing: true,
         columnResizeMode: 'onChange',
         meta: {

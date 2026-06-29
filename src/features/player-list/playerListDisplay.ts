@@ -10,7 +10,34 @@ import { parseLocation } from '@/shared/utils/location';
 import { normalizeString } from '@/shared/utils/string';
 import { userStatusIndicatorClassName } from '@/shared/utils/userStatus';
 
-export function resolvePlatformMeta(platform: any) {
+import type { PlayerListRecord, PlayerListRow } from './playerListTypes';
+
+type PlatformMeta = {
+    label: string;
+    icon: LucideIcon | null;
+    className: string;
+};
+
+type StatusMeta = {
+    badgeVariant: 'default' | 'secondary' | 'outline';
+    indicatorClassName: string;
+    label: string;
+};
+
+type PlayerStatusSource = PlayerListRecord & {
+    isCurrentUser?: unknown;
+    isFavorite?: unknown;
+    isFriend?: unknown;
+    location?: unknown;
+    status?: unknown;
+    statusDescription?: unknown;
+};
+
+function isRecord(value: unknown): value is PlayerListRecord {
+    return Boolean(value && typeof value === 'object');
+}
+
+export function resolvePlatformMeta(platform: unknown): PlatformMeta {
     const normalized = normalizeString(platform).toLowerCase();
 
     if (
@@ -48,7 +75,7 @@ export function resolvePlatformMeta(platform: any) {
     };
 }
 
-function isLivePlayerLocation(location: any) {
+function isLivePlayerLocation(location: unknown) {
     const parsed = parseLocation(normalizeString(location));
     return Boolean(
         parsed.worldId &&
@@ -58,7 +85,7 @@ function isLivePlayerLocation(location: any) {
     );
 }
 
-function normalizePlayerStatus(value: any) {
+function normalizePlayerStatus(value: unknown) {
     const normalized = normalizeString(value).toLowerCase();
     if (normalized === 'joinme') {
         return 'join me';
@@ -72,7 +99,7 @@ function normalizePlayerStatus(value: any) {
     return normalized;
 }
 
-function resolveStatusIndicatorSource(row: any) {
+function resolveStatusIndicatorSource(row: PlayerStatusSource) {
     if (!row?.isCurrentUser || !isLivePlayerLocation(row.location)) {
         return row;
     }
@@ -86,7 +113,7 @@ function resolveStatusIndicatorSource(row: any) {
     };
 }
 
-export function resolveStatusMeta(row: any) {
+export function resolveStatusMeta(row: PlayerStatusSource): StatusMeta {
     const indicatorClassName = userStatusIndicatorClassName(
         resolveStatusIndicatorSource(row),
         {
@@ -99,7 +126,7 @@ export function resolveStatusMeta(row: any) {
         return {
             badgeVariant: 'default',
             indicatorClassName,
-            label: row.statusDescription || ''
+            label: normalizeString(row.statusDescription)
         };
     }
 
@@ -107,18 +134,20 @@ export function resolveStatusMeta(row: any) {
         return {
             badgeVariant: 'secondary',
             indicatorClassName,
-            label: row.statusDescription || ''
+            label: normalizeString(row.statusDescription)
         };
     }
 
     return {
         badgeVariant: 'outline',
         indicatorClassName,
-        label: row.statusDescription || ''
+        label: normalizeString(row.statusDescription)
     };
 }
 
-export function resolvePlatformMode(row: any) {
+export function resolvePlatformMode(
+    row: Pick<PlayerListRow, 'inVRMode' | 'platformLabel'>
+) {
     if (row?.inVRMode === true) {
         return 'VR';
     }
@@ -130,20 +159,24 @@ export function resolvePlatformMode(row: any) {
     return '';
 }
 
-export function languageCodeLabel(languageKey: any) {
+export function languageCodeLabel(languageKey: unknown) {
     const key = normalizeString(languageKey)
         .toLowerCase()
         .replace(/^language_/, '');
     return key ? key.toUpperCase() : '';
 }
 
-export function getHomeWorldId(homeLocation: any) {
+export function getHomeWorldId(homeLocation: unknown) {
     if (!homeLocation) {
         return '';
     }
 
     if (typeof homeLocation === 'string') {
         return parseLocation(homeLocation).worldId || homeLocation;
+    }
+
+    if (!isRecord(homeLocation)) {
+        return '';
     }
 
     return (
@@ -153,19 +186,21 @@ export function getHomeWorldId(homeLocation: any) {
     );
 }
 
-export function formatCount(value: any) {
+export function formatCount(value: unknown) {
     const number = Number(value);
     return Number.isFinite(number) ? number.toLocaleString() : '-';
 }
 
-export function getWorldImage(world: any) {
-    const imageUrl = world?.thumbnailImageUrl || world?.imageUrl || '';
+export function getWorldImage(world: PlayerListRecord | null | undefined) {
+    const imageUrl = normalizeString(
+        world?.thumbnailImageUrl || world?.imageUrl || ''
+    );
     return imageUrl ? convertFileUrlToImageUrl(imageUrl, 256) : '';
 }
 
-export function resolvePlatformBadge(platform: any): {
-    key: any;
-    label: any;
+export function resolvePlatformBadge(platform: unknown): {
+    key: unknown;
+    label: unknown;
     icon: LucideIcon | null;
 } {
     const normalized = normalizeString(platform).toLowerCase();
@@ -194,25 +229,29 @@ export function resolvePlatformBadge(platform: any): {
             icon: AppleIcon
         };
     }
+    const label = platform || '';
     return {
-        key: platform,
-        label: platform,
+        key: label,
+        label,
         icon: null
     };
 }
 
 export function fileAnalysisSizeForPlatform(
-    fileAnalysis: any,
-    platformKey: any
+    fileAnalysis:
+        | Record<string, PlayerListRecord | undefined>
+        | null
+        | undefined,
+    platformKey: unknown
 ) {
     if (platformKey === 'PC') {
-        return fileAnalysis?.standalonewindows?._fileSize || '';
+        return normalizeString(fileAnalysis?.standalonewindows?._fileSize);
     }
     if (platformKey === 'Quest' || platformKey === 'Android') {
-        return fileAnalysis?.android?._fileSize || '';
+        return normalizeString(fileAnalysis?.android?._fileSize);
     }
     if (platformKey === 'iOS') {
-        return fileAnalysis?.ios?._fileSize || '';
+        return normalizeString(fileAnalysis?.ios?._fileSize);
     }
     return '';
 }

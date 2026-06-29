@@ -8,9 +8,11 @@ import {
 import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
 import worldProfileRepository from '@/repositories/worldProfileRepository';
 import { parseLocation } from '@/shared/utils/location';
+import { normalizeString } from '@/shared/utils/string';
 import { useModalStore } from '@/state/modalStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
+import type { PlayerListContext } from '../playerListTypes';
 import { CurrentWorldHeader } from './PlayerListViewParts';
 
 type CurrentWorldProfile = Awaited<
@@ -34,6 +36,16 @@ type WorldFileAnalysisPlatform = {
     [key: string]: unknown;
 };
 
+type PlayerListWorldHeaderProps = {
+    clockNow: number;
+    currentUserLocation?: unknown;
+    friendCount: number;
+    instanceSnapshot: PlayerListContext;
+    isGameRunning: boolean;
+    playerCount: number;
+    startedAt?: unknown;
+};
+
 export function PlayerListWorldHeader({
     clockNow,
     currentUserLocation,
@@ -42,7 +54,7 @@ export function PlayerListWorldHeader({
     isGameRunning,
     playerCount,
     startedAt
-}: any) {
+}: PlayerListWorldHeaderProps) {
     const currentUserEndpoint = useRuntimeStore(
         (state) => state.auth.currentUserEndpoint
     );
@@ -51,7 +63,7 @@ export function PlayerListWorldHeader({
     );
     const openImagePreview = useModalStore((state) => state.openImagePreview);
     const parsedLocation = parseLocation(
-        instanceSnapshot.location || currentUserLocation || ''
+        normalizeString(instanceSnapshot.location || currentUserLocation || '')
     );
     const [currentWorldProfile, setCurrentWorldProfile] =
         useState<CurrentWorldProfile | null>(null);
@@ -64,7 +76,7 @@ export function PlayerListWorldHeader({
     useEffect(() => {
         let active = true;
         const worldId =
-            parsedLocation.worldId || instanceSnapshot.worldId || '';
+            parsedLocation.worldId || normalizeString(instanceSnapshot.worldId);
 
         if (!isGameRunning || !worldId) {
             setCurrentWorldProfile(null);
@@ -81,14 +93,14 @@ export function PlayerListWorldHeader({
                 endpoint: currentUserEndpoint,
                 full: true
             })
-            .then((world: any) => {
+            .then((world) => {
                 if (active) {
                     setCurrentWorldProfile(world);
                 }
                 return vrchatAuthRepository
                     .getConfig({ endpoint: currentUserEndpoint })
                     .catch((): null => null)
-                    .then((configResponse: any) => {
+                    .then((configResponse) => {
                         const sdkUnityVersion = String(
                             configResponse?.json?.sdkUnityVersion || ''
                         );
@@ -106,9 +118,11 @@ export function PlayerListWorldHeader({
                         ]);
                     });
             })
-            .then(([fileAnalysis, cacheInfo]: any) => {
+            .then(([fileAnalysis, cacheInfo]) => {
                 if (active) {
-                    setCurrentWorldFileAnalysis(fileAnalysis || {});
+                    setCurrentWorldFileAnalysis(
+                        (fileAnalysis || {}) as CurrentWorldFileAnalysis
+                    );
                     setCurrentWorldCacheInfo(
                         cacheInfo || defaultWorldCacheInfo()
                     );
@@ -140,10 +154,10 @@ export function PlayerListWorldHeader({
             fileAnalysis={currentWorldFileAnalysis}
             friendCount={friendCount}
             instanceCreatedAt={instanceSnapshot.createdAt}
-            instanceGroupName={instanceSnapshot.groupName}
-            instanceLocation={instanceSnapshot.location}
-            instanceWorldId={instanceSnapshot.worldId}
-            instanceWorldName={instanceSnapshot.worldName}
+            instanceGroupName={normalizeString(instanceSnapshot.groupName)}
+            instanceLocation={normalizeString(instanceSnapshot.location)}
+            instanceWorldId={normalizeString(instanceSnapshot.worldId)}
+            instanceWorldName={normalizeString(instanceSnapshot.worldName)}
             isGameRunning={isGameRunning}
             onPreviewImage={openImagePreview}
             playerCount={playerCount}

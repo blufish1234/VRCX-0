@@ -2,6 +2,7 @@ import { openUGCPhotosFolder } from '@/services/shellIntegrationService';
 import { recordViewModeUsage } from '@/services/telemetry/telemetryViewModeUsage';
 import { normalizeFeedTimeDisplayMode } from '@/state/preferencesStore';
 
+import type { createDefaultSettingsPrefs } from './settingsDefaultPrefs';
 import {
     avatarAutoCleanupOptions,
     desktopToastOptions,
@@ -12,6 +13,117 @@ import {
     translationProviderOptions
 } from './settingsOptions';
 import { normalizeCheckedState } from './settingsValues';
+
+export type SettingsPagePrefs = ReturnType<typeof createDefaultSettingsPrefs> &
+    Record<string, unknown>;
+type SettingsPrefs = SettingsPagePrefs;
+type SettingsAction = () => unknown | Promise<unknown>;
+type SettingsAppDataDirState = {
+    cliOverride?: boolean;
+    currentDir?: string | null;
+    defaultDir?: string | null;
+    persistedDir?: string | null;
+    source?: string;
+};
+type SettingsCallback<Args extends unknown[] = unknown[]> = {
+    bivarianceHack(...args: Args): unknown;
+}['bivarianceHack'];
+type SetSettingsPrefs = SettingsCallback<
+    [
+        | SettingsPrefs
+        | ((current: SettingsPrefs) => SettingsPrefs | Record<string, unknown>)
+    ]
+>;
+
+export type BuildSettingsPageStateSectionsInput = Record<string, unknown> & {
+    activeSettingsTab: string;
+    appDataDirState?: SettingsAppDataDirState | null;
+    cacheStatsVisible: boolean;
+    clearVrcxCache: SettingsCallback;
+    commit: SettingsCallback<
+        [action: SettingsAction, optimistic?: () => unknown]
+    >;
+    deleteAllScreenshotMetadata: SettingsCallback;
+    handleCropInstancePrintsChange: SettingsCallback<[boolean]>;
+    handleGameLogDisabledChange: SettingsCallback<[boolean]>;
+    loading: boolean;
+    migrateLegacyVrcxData: SettingsCallback;
+    normalizeRecentActionCooldownMinutes: (value: unknown) => number;
+    notificationTtsTest: string;
+    notificationTtsTestVisible: boolean;
+    openAppDataDirSelector: SettingsCallback;
+    openCustomFontDialog: SettingsCallback;
+    openTableLimitsDialog: SettingsCallback;
+    openTablePageSizesDialog: SettingsCallback;
+    openTranslationApiDialog: SettingsCallback;
+    openUgcFolderSelector: SettingsCallback;
+    openYoutubeApiDialog: SettingsCallback;
+    promptAutoClearVrcxCacheFrequency: SettingsCallback;
+    promptAutoLoginDelaySeconds: SettingsCallback;
+    promptProxySettings: SettingsCallback;
+    prefs: SettingsPrefs;
+    refreshCacheSize: SettingsCallback;
+    refreshConfigTreeData: SettingsCallback;
+    refreshOnlineVisits: SettingsCallback;
+    refreshRuntimeAppSnapshot: SettingsCallback;
+    refreshSqliteTableSizes: SettingsCallback;
+    resetAppDataDir: SettingsCallback;
+    resetTrustColors: SettingsCallback;
+    resetUgcFolder: SettingsCallback;
+    restartForAppDataDir: SettingsCallback;
+    saveAvatarProviderEnabled: SettingsCallback<[boolean]>;
+    saveBoolPreference: SettingsCallback<[string, string, boolean]>;
+    saveDiscordBoolPreference: SettingsCallback<[string, boolean]>;
+    saveFontFamilyPreference: SettingsCallback<[unknown]>;
+    saveIntegrationBoolPreference: SettingsCallback<
+        [string, boolean, SettingsAction]
+    >;
+    saveInterfaceZoomLevel: SettingsCallback<[unknown]>;
+    savePreferenceValue: SettingsCallback<[string, unknown, SettingsAction]>;
+    saveStringPreference: SettingsCallback<[string, string, string]>;
+    saveTrustColor: SettingsCallback<[string, string]>;
+    saveNotificationTtsMode: SettingsCallback<[string]>;
+    saveNotificationTtsVoice: SettingsCallback<[string]>;
+    saveWristOverlayEnabled: SettingsCallback<[boolean]>;
+    selectCjkFontPack: SettingsCallback<[unknown]>;
+    setAccessibleStatusIndicatorsPreference: SettingsCallback<[boolean]>;
+    setActiveSettingsTab: SettingsCallback<[string]>;
+    setAppLanguagePreference: SettingsCallback<[unknown]>;
+    setAvatarProviderDialogOpen: SettingsCallback<[boolean]>;
+    setCloseToTrayPreference: SettingsCallback<[boolean]>;
+    setConfigTreeData: SettingsCallback<[Record<string, unknown>]>;
+    setDataTableStripedPreference: SettingsCallback<[boolean]>;
+    setDesktopNotificationsDialogOpen: SettingsCallback<[boolean]>;
+    setFeedFilterDialogOpen: SettingsCallback<[boolean]>;
+    setIntConfigPreference: SettingsCallback<
+        [string, number, { min?: number; max?: number; fallback?: number }]
+    >;
+    setNotificationLayoutPreference: SettingsCallback<[string]>;
+    setNotificationTtsTest: SettingsCallback<[string]>;
+    setNotificationTtsTestVisible: SettingsCallback<[boolean]>;
+    setPrefs: SetSettingsPrefs;
+    setPurgeDialogOpen: SettingsCallback<[boolean]>;
+    setRecentActionCooldownEnabledPreference: SettingsCallback<[boolean]>;
+    setRecentActionCooldownMinutesPreference: SettingsCallback<[number]>;
+    setSaveInstanceEmojiPreference: SettingsCallback<[boolean]>;
+    setSaveInstancePrintsPreference: SettingsCallback<[boolean]>;
+    setSaveInstanceStickersPreference: SettingsCallback<[boolean]>;
+    setScreenshotHelperCopyToClipboardPreference: SettingsCallback<[boolean]>;
+    setScreenshotHelperModifyFilenamePreference: SettingsCallback<[boolean]>;
+    setScreenshotHelperPreference: SettingsCallback<[boolean]>;
+    setShowNewDashboardButtonPreference: SettingsCallback<[boolean]>;
+    setStartAsMinimizedPreference: SettingsCallback<[boolean]>;
+    setStartAtWindowsStartupPreference: SettingsCallback<[boolean]>;
+    setTableDensityPreference: SettingsCallback<[unknown]>;
+    setTranslationApiEnabledPreference: SettingsCallback<[boolean]>;
+    setVrNotificationsDialogOpen: SettingsCallback<[boolean]>;
+    setWristFeedNotificationsDialogOpen: SettingsCallback<[boolean]>;
+    setYoutubeApiEnabledPreference: SettingsCallback<[boolean]>;
+    setZoomInput: SettingsCallback<[unknown]>;
+    speakNotificationTts: SettingsCallback<[unknown]>;
+    toggleLocalFavoriteFriendsGroup: SettingsCallback<[unknown, boolean]>;
+    ttsVoices: SpeechSynthesisVoice[];
+};
 
 export function buildSettingsPageStateSections({
     activeSettingsTab,
@@ -172,7 +284,7 @@ export function buildSettingsPageStateSections({
     youtubeApiKeyDraft,
     zoomInput,
     zoomLevel
-}: any) {
+}: BuildSettingsPageStateSectionsInput) {
     return {
         shell: {
             activeSettingsTab,
@@ -213,43 +325,45 @@ export function buildSettingsPageStateSections({
             resetTrustColors,
             saveTrustColor,
             setPrefs,
-            onLanguageChange: (value: any) => {
+            onLanguageChange: (value: unknown) => {
                 setAppLanguagePreference(value);
             },
-            onFontFamilyChange: (value: any) => {
+            onFontFamilyChange: (value: unknown) => {
                 if (value === 'custom') {
                     openCustomFontDialog();
                     return;
                 }
                 saveFontFamilyPreference(value);
             },
-            onCjkFontPackChange: (value: any) => {
+            onCjkFontPackChange: (value: unknown) => {
                 selectCjkFontPack(value);
             },
-            onZoomInputChange: (value: any) => {
+            onZoomInputChange: (value: unknown) => {
                 setZoomInput(value);
             },
-            onZoomBlur: (event: any) => {
+            onZoomBlur: (
+                event: { target?: { value?: unknown } } | null | undefined
+            ) => {
                 saveInterfaceZoomLevel(event?.target?.value ?? zoomInput);
             },
-            onTableDensityChange: (value: any) => {
+            onTableDensityChange: (value: unknown) => {
                 savePreferenceValue('tableDensity', value, () =>
                     setTableDensityPreference(value)
                 );
             },
-            onDataTableStripedChange: (checked: any) => {
+            onDataTableStripedChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 savePreferenceValue('dataTableStriped', enabled, () =>
                     setDataTableStripedPreference(enabled)
                 );
             },
-            onAccessibleStatusIndicatorsChange: (checked: any) => {
+            onAccessibleStatusIndicatorsChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 savePreferenceValue('accessibleStatusIndicators', enabled, () =>
                     setAccessibleStatusIndicatorsPreference(enabled)
                 );
             },
-            onShowInstanceIdInLocationChange: (checked: any) => {
+            onShowInstanceIdInLocationChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 saveBoolPreference(
                     'showInstanceIdInLocation',
@@ -257,7 +371,7 @@ export function buildSettingsPageStateSections({
                     enabled
                 );
             },
-            onAgeGatedInstancesVisibleChange: (checked: any) => {
+            onAgeGatedInstancesVisibleChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 saveBoolPreference(
                     'isAgeGatedInstancesVisible',
@@ -265,14 +379,14 @@ export function buildSettingsPageStateSections({
                     enabled
                 );
             },
-            onHideNicknamesChange: (checked: any) => {
+            onHideNicknamesChange: (checked: unknown) => {
                 saveBoolPreference(
                     'hideNicknames',
                     'hideNicknames',
                     !normalizeCheckedState(checked)
                 );
             },
-            onDisplayVrcPlusIconsAsAvatarChange: (checked: any) => {
+            onDisplayVrcPlusIconsAsAvatarChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 saveBoolPreference(
                     'displayVRCPlusIconsAsAvatar',
@@ -280,7 +394,7 @@ export function buildSettingsPageStateSections({
                     enabled
                 );
             },
-            onShowNewDashboardButtonChange: (checked: any) => {
+            onShowNewDashboardButtonChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 savePreferenceValue('showNewDashboardButton', enabled, () =>
                     setShowNewDashboardButtonPreference(enabled)
@@ -292,17 +406,17 @@ export function buildSettingsPageStateSections({
             onOpenTableLimits: () => {
                 openTableLimitsDialog();
             },
-            onHour12Change: (value: any) => {
+            onHour12Change: (value: unknown) => {
                 saveBoolPreference('dtHour12', 'dtHour12', value === '12');
             },
-            onIsoFormatChange: (checked: any) => {
+            onIsoFormatChange: (checked: unknown) => {
                 saveBoolPreference(
                     'dtIsoFormat',
                     'dtIsoFormat',
                     normalizeCheckedState(checked)
                 );
             },
-            onWeekStartsOnChange: (value: any) => {
+            onWeekStartsOnChange: (value: string) => {
                 const nextValue = Number.parseInt(value, 10);
                 savePreferenceValue('weekStartsOn', nextValue, () =>
                     setIntConfigPreference('weekStartsOn', nextValue, {
@@ -312,7 +426,7 @@ export function buildSettingsPageStateSections({
                     })
                 );
             },
-            onFeedTimeDisplayModeChange: (value: any) => {
+            onFeedTimeDisplayModeChange: (value: unknown) => {
                 const nextValue = normalizeFeedTimeDisplayMode(value);
                 saveStringPreference(
                     'feedTimeDisplayMode',
@@ -321,28 +435,28 @@ export function buildSettingsPageStateSections({
                 );
                 recordViewModeUsage('feedTimeDisplayMode', nextValue);
             },
-            onHideUserNotesChange: (checked: any) => {
+            onHideUserNotesChange: (checked: unknown) => {
                 saveBoolPreference(
                     'hideUserNotes',
                     'hideUserNotes',
                     !normalizeCheckedState(checked)
                 );
             },
-            onHideUserMemosChange: (checked: any) => {
+            onHideUserMemosChange: (checked: unknown) => {
                 saveBoolPreference(
                     'hideUserMemos',
                     'hideUserMemos',
                     !normalizeCheckedState(checked)
                 );
             },
-            onHideUnfriendsChange: (checked: any) => {
+            onHideUnfriendsChange: (checked: unknown) => {
                 saveBoolPreference(
                     'hideUnfriends',
                     'hideUnfriends',
                     normalizeCheckedState(checked)
                 );
             },
-            onRandomUserColoursChange: (checked: any) => {
+            onRandomUserColoursChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 saveBoolPreference(
                     'randomUserColours',
@@ -353,11 +467,11 @@ export function buildSettingsPageStateSections({
             onResetTrustColors: () => {
                 resetTrustColors();
             },
-            onSaveTrustColor: (key: any, value: any) => {
+            onSaveTrustColor: (key: string, value: string) => {
                 saveTrustColor(key, value);
             },
-            onTrustColorDraftChange: (key: any, value: any) => {
-                setPrefs((current: any) => ({
+            onTrustColorDraftChange: (key: string, value: string) => {
+                setPrefs((current) => ({
                     ...current,
                     trustColor: {
                         ...current.trustColor,
@@ -380,13 +494,13 @@ export function buildSettingsPageStateSections({
             setSaveInstanceStickersPreference,
             setSaveInstanceEmojiPreference,
             setPrefs,
-            onScreenshotHelperChange: (checked: any) => {
+            onScreenshotHelperChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 savePreferenceValue('screenshotHelper', enabled, () =>
                     setScreenshotHelperPreference(enabled)
                 );
             },
-            onScreenshotHelperModifyFilenameChange: (checked: any) => {
+            onScreenshotHelperModifyFilenameChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 savePreferenceValue(
                     'screenshotHelperModifyFilename',
@@ -394,7 +508,7 @@ export function buildSettingsPageStateSections({
                     () => setScreenshotHelperModifyFilenamePreference(enabled)
                 );
             },
-            onScreenshotHelperCopyToClipboardChange: (checked: any) => {
+            onScreenshotHelperCopyToClipboardChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 savePreferenceValue(
                     'screenshotHelperCopyToClipboard',
@@ -416,22 +530,22 @@ export function buildSettingsPageStateSections({
             onResetUgcFolder: () => {
                 resetUgcFolder();
             },
-            onSaveInstancePrintsChange: (checked: any) => {
+            onSaveInstancePrintsChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 savePreferenceValue('saveInstancePrints', enabled, () =>
                     setSaveInstancePrintsPreference(enabled)
                 );
             },
-            onCropInstancePrintsChange: (checked: any) => {
+            onCropInstancePrintsChange: (checked: unknown) => {
                 handleCropInstancePrintsChange(normalizeCheckedState(checked));
             },
-            onSaveInstanceStickersChange: (checked: any) => {
+            onSaveInstanceStickersChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 savePreferenceValue('saveInstanceStickers', enabled, () =>
                     setSaveInstanceStickersPreference(enabled)
                 );
             },
-            onSaveInstanceEmojiChange: (checked: any) => {
+            onSaveInstanceEmojiChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 savePreferenceValue('saveInstanceEmoji', enabled, () =>
                     setSaveInstanceEmojiPreference(enabled)
@@ -458,55 +572,55 @@ export function buildSettingsPageStateSections({
             avatarProviderConfigRef,
             applyAvatarProviderConfig,
             setAvatarProviderDialogOpen,
-            onDiscordActiveChange: (checked: any) => {
+            onDiscordActiveChange: (checked: unknown) => {
                 saveDiscordBoolPreference(
                     'discordActive',
                     normalizeCheckedState(checked)
                 );
             },
-            onDiscordWorldIntegrationChange: (checked: any) => {
+            onDiscordWorldIntegrationChange: (checked: unknown) => {
                 saveDiscordBoolPreference(
                     'discordWorldIntegration',
                     normalizeCheckedState(checked)
                 );
             },
-            onDiscordInstanceChange: (checked: any) => {
+            onDiscordInstanceChange: (checked: unknown) => {
                 saveDiscordBoolPreference(
                     'discordInstance',
                     normalizeCheckedState(checked)
                 );
             },
-            onDiscordShowPlatformChange: (checked: any) => {
+            onDiscordShowPlatformChange: (checked: unknown) => {
                 saveDiscordBoolPreference(
                     'discordShowPlatform',
                     normalizeCheckedState(checked)
                 );
             },
-            onDiscordShowPrivateDetailsChange: (checked: any) => {
+            onDiscordShowPrivateDetailsChange: (checked: unknown) => {
                 saveDiscordBoolPreference(
                     'discordHideInvite',
                     !normalizeCheckedState(checked)
                 );
             },
-            onDiscordJoinButtonChange: (checked: any) => {
+            onDiscordJoinButtonChange: (checked: unknown) => {
                 saveDiscordBoolPreference(
                     'discordJoinButton',
                     normalizeCheckedState(checked)
                 );
             },
-            onDiscordShowImagesChange: (checked: any) => {
+            onDiscordShowImagesChange: (checked: unknown) => {
                 saveDiscordBoolPreference(
                     'discordHideImage',
                     !normalizeCheckedState(checked)
                 );
             },
-            onDiscordWorldNameAsStatusChange: (checked: any) => {
+            onDiscordWorldNameAsStatusChange: (checked: unknown) => {
                 saveDiscordBoolPreference(
                     'discordWorldNameAsDiscordStatus',
                     normalizeCheckedState(checked)
                 );
             },
-            onTranslationApiEnabledChange: (checked: any) => {
+            onTranslationApiEnabledChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 saveIntegrationBoolPreference('translationAPI', enabled, () =>
                     setTranslationApiEnabledPreference(enabled)
@@ -515,7 +629,7 @@ export function buildSettingsPageStateSections({
             onOpenTranslationApiDialog: () => {
                 openTranslationApiDialog();
             },
-            onYoutubeApiEnabledChange: (checked: any) => {
+            onYoutubeApiEnabledChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 saveIntegrationBoolPreference('youtubeAPI', enabled, () =>
                     setYoutubeApiEnabledPreference(enabled)
@@ -524,7 +638,7 @@ export function buildSettingsPageStateSections({
             onOpenYoutubeApiDialog: () => {
                 openYoutubeApiDialog();
             },
-            onAvatarProviderEnabledChange: (checked: any) => {
+            onAvatarProviderEnabledChange: (checked: unknown) => {
                 saveAvatarProviderEnabled(normalizeCheckedState(checked));
             },
             onOpenAvatarProviderDialog: () => {
@@ -543,7 +657,7 @@ export function buildSettingsPageStateSections({
             setRecentActionCooldownMinutesPreference,
             toggleLocalFavoriteFriendsGroup,
             setPrefs,
-            onRecentActionCooldownEnabledChange: (checked: any) => {
+            onRecentActionCooldownEnabledChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 savePreferenceValue(
                     'recentActionCooldownEnabled',
@@ -551,13 +665,13 @@ export function buildSettingsPageStateSections({
                     () => setRecentActionCooldownEnabledPreference(enabled)
                 );
             },
-            onRecentActionCooldownMinutesChange: (value: any) => {
-                setPrefs((current: any) => ({
+            onRecentActionCooldownMinutesChange: (value: unknown) => {
+                setPrefs((current) => ({
                     ...current,
                     recentActionCooldownMinutes: value
                 }));
             },
-            onRecentActionCooldownMinutesBlur: (value: any) => {
+            onRecentActionCooldownMinutesBlur: (value: unknown) => {
                 const nextValue = normalizeRecentActionCooldownMinutes(value);
                 savePreferenceValue(
                     'recentActionCooldownMinutes',
@@ -566,8 +680,8 @@ export function buildSettingsPageStateSections({
                 );
             },
             onToggleLocalFavoriteFriendsGroup: (
-                groupKey: any,
-                checked: any
+                groupKey: unknown,
+                checked: unknown
             ) => {
                 toggleLocalFavoriteFriendsGroup(
                     groupKey,
@@ -633,7 +747,7 @@ export function buildSettingsPageStateSections({
             restartForAppDataDir,
             setConfigTreeData,
             migrateLegacyVrcxData,
-            onAnonymousUsageTelemetryChange: (checked: any) => {
+            onAnonymousUsageTelemetryChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 saveBoolPreference(
                     'anonymousUsageTelemetry',
@@ -716,3 +830,7 @@ export function buildSettingsPageStateSections({
         }
     };
 }
+
+export type SettingsPageStateSections = ReturnType<
+    typeof buildSettingsPageStateSections
+>;

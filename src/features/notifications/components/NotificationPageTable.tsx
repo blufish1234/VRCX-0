@@ -23,7 +23,7 @@ import type {
 type NotificationPageTableProps = {
     detail: string;
     loadStatus: NotificationLoadStatus;
-    onPageSizeChange: (value: number) => void;
+    onPageSizeChange: (value: string) => void;
     pageSizes: number[];
     pagination: {
         pageIndex: number;

@@ -4,7 +4,8 @@ import {
     readFriendRef,
     readFriendStatusSource,
     resolveSidebarStatusDotClassName,
-    timestampMsFromValue
+    timestampMsFromValue,
+    type SidebarFriendRecord
 } from '@/components/sidebar/friends-sidebar/friendsSidebarModel';
 import { userImage } from '@/services/entityMediaService';
 import { parseLocation } from '@/shared/utils/location';
@@ -19,7 +20,51 @@ export type UserHoverCardVariant =
     | 'offline'
     | 'profile-only';
 
-function statusKeyFromStatus(status: any) {
+type HoverCardRecord = Record<string, unknown> & {
+    $location?: unknown;
+    $travelingToLocation?: unknown;
+    $trustClass?: unknown;
+    $isModerator?: unknown;
+    $isTroll?: unknown;
+    $isProbableTroll?: unknown;
+    $userColour?: unknown;
+    developerType?: unknown;
+    displayName?: unknown;
+    id?: unknown;
+    last_login?: unknown;
+    location?: unknown;
+    note?: unknown;
+    state?: unknown;
+    stateBucket?: unknown;
+    status?: unknown;
+    statusDescription?: unknown;
+    tags?: unknown;
+    username?: unknown;
+};
+
+type UserHoverCardModelInput = {
+    seed?: HoverCardRecord | SidebarFriendRecord | null;
+    profile?: HoverCardRecord | null;
+    nowMs: number;
+};
+
+function recordOrEmpty(value: unknown): HoverCardRecord {
+    return value && typeof value === 'object' ? (value as HoverCardRecord) : {};
+}
+
+function locationTag(value: unknown) {
+    return value && typeof value === 'object'
+        ? (value as { tag?: unknown }).tag
+        : undefined;
+}
+
+function sidebarSeed(value: unknown): SidebarFriendRecord | null {
+    return value && typeof value === 'object'
+        ? (value as SidebarFriendRecord)
+        : null;
+}
+
+function statusKeyFromStatus(status: unknown) {
     const normalized = normalizeLocationStatus(status);
     if (normalized === 'join me' || normalized === 'joinme') {
         return 'join_me';
@@ -36,7 +81,7 @@ function statusKeyFromStatus(status: any) {
     return '';
 }
 
-function statusKeyFromPresence(status: any, state: any) {
+function statusKeyFromPresence(status: unknown, state: unknown) {
     if (normalizeLocationStatus(state) === 'active') {
         return 'active';
     }
@@ -47,9 +92,14 @@ function statusKeyFromPresence(status: any, state: any) {
     return '';
 }
 
-function resolveTrust(identity: any) {
-    const tags = Array.isArray(identity?.tags) ? identity.tags : [];
-    const trust = computeTrustLevel(tags, identity?.developerType || '');
+function resolveTrust(identity: HoverCardRecord) {
+    const tags = Array.isArray(identity?.tags)
+        ? identity.tags.filter((tag): tag is string => typeof tag === 'string')
+        : [];
+    const trust = computeTrustLevel(
+        tags,
+        String(identity?.developerType || '')
+    );
     const trustSource = {
         $trustClass: identity?.$trustClass || trust.trustClass,
         $isModerator: identity?.$isModerator ?? trust.isModerator,
@@ -59,7 +109,7 @@ function resolveTrust(identity: any) {
     return { trustSource, trustKey: resolveTrustColorKey(trustSource) };
 }
 
-function estimatedOnlineMs(state: any, lastLogin: any, nowMs: number) {
+function estimatedOnlineMs(state: unknown, lastLogin: unknown, nowMs: number) {
     if (normalizeLocationStatus(state) !== 'online') {
         return 0;
     }
@@ -70,35 +120,42 @@ function estimatedOnlineMs(state: any, lastLogin: any, nowMs: number) {
     return nowMs - lastLoginMs;
 }
 
-export function normalizeInstanceCounts(json: any) {
+export function normalizeInstanceCounts(json: unknown) {
     if (!json || typeof json !== 'object') {
         return null;
     }
-    const nUsers = Number(json.n_users ?? json.userCount);
+    const source = json as Record<string, unknown>;
+    const nUsers = Number(source.n_users ?? source.userCount);
     if (!Number.isFinite(nUsers)) {
         return null;
     }
-    const capacity = Number(json.capacity ?? json.recommendedCapacity);
+    const capacity = Number(source.capacity ?? source.recommendedCapacity);
     return { nUsers, capacity: Number.isFinite(capacity) ? capacity : 0 };
 }
 
-export function buildUserHoverCardModel({ seed, profile, nowMs }: any) {
-    const statusSource = seed ? readFriendStatusSource(seed) : null;
-    const ref = readFriendRef(seed) || {};
-    const identity = profile || ref || seed || {};
+export function buildUserHoverCardModel({
+    seed = null,
+    profile = null,
+    nowMs
+}: UserHoverCardModelInput) {
+    const seedRecord = sidebarSeed(seed);
+    const statusSource = seedRecord ? readFriendStatusSource(seedRecord) : null;
+    const ref = recordOrEmpty(readFriendRef(seedRecord));
+    const profileRecord = recordOrEmpty(profile);
+    const identity = profile ? profileRecord : ref;
 
     const state = normalizeLocationStatus(
         statusSource?.stateBucket ||
             statusSource?.state ||
-            profile?.stateBucket ||
-            profile?.state
+            profileRecord?.stateBucket ||
+            profileRecord?.state
     );
     const hasPresence = Boolean(statusSource) && Boolean(state);
 
     const rawLocation = normalizeId(
         statusSource?.location ||
-            statusSource?.$location?.tag ||
-            profile?.location
+            locationTag(statusSource?.$location) ||
+            profileRecord?.location
     );
     const isTraveling = normalizeLocationStatus(rawLocation) === 'traveling';
     const travelingTo = normalizeId(
@@ -126,12 +183,12 @@ export function buildUserHoverCardModel({ seed, profile, nowMs }: any) {
     const statusKey =
         hasPresence && state !== 'offline'
             ? statusKeyFromPresence(
-                  profile?.status || statusSource?.status,
+                  profileRecord?.status || statusSource?.status,
                   state
               )
             : '';
     const statusDotClassName = hasPresence
-        ? resolveSidebarStatusDotClassName(seed, null, false, {
+        ? resolveSidebarStatusDotClassName(seedRecord, null, false, {
               hideNonFriend: false
           })
         : '';
@@ -153,9 +210,9 @@ export function buildUserHoverCardModel({ seed, profile, nowMs }: any) {
         statusKey,
         statusDotClassName,
         statusDescription: String(
-            profile?.statusDescription || ref?.statusDescription || ''
+            profileRecord?.statusDescription || ref?.statusDescription || ''
         ).trim(),
-        note: String(profile?.note || '').trim(),
+        note: String(profileRecord?.note || '').trim(),
         onlineForMs: estimatedOnlineMs(state, identity?.last_login, nowMs),
         instanceEpoch:
             variant === 'in-instance'

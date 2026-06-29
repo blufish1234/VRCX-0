@@ -1,4 +1,5 @@
 import {
+    type DragEndEvent,
     KeyboardSensor,
     PointerSensor,
     useSensor,
@@ -46,8 +47,38 @@ import {
     removeKeyFromLayout,
     removeLayoutItem,
     resolveDragNode,
-    sameDragNode
+    sameDragNode,
+    type CustomNavDefinition,
+    type CustomNavDragNode,
+    type CustomNavFolderItem,
+    type CustomNavHiddenPlacement,
+    type CustomNavItemEntry,
+    type CustomNavLayout
 } from './custom-nav-dialog/customNavLayout';
+
+type HiddenNavItem = {
+    key: unknown;
+    label: string;
+};
+
+type CustomNavDialogProps = {
+    open: boolean;
+    layout: unknown;
+    hiddenKeys?: readonly unknown[];
+    defaultLayout: unknown;
+    defaultHiddenKeys?: readonly unknown[];
+    definitions?: CustomNavDefinition[];
+    onOpenChange: (open: boolean) => void;
+    onSave: (
+        layout: CustomNavLayout,
+        hiddenKeys: unknown[]
+    ) => void | Promise<void>;
+    onDashboardCreated?: (
+        dashboardId: string,
+        layout: CustomNavLayout,
+        hiddenKeys: unknown[]
+    ) => void | Promise<void>;
+};
 
 export function CustomNavDialog({
     open,
@@ -59,7 +90,7 @@ export function CustomNavDialog({
     onOpenChange,
     onSave,
     onDashboardCreated
-}: any) {
+}: CustomNavDialogProps) {
     const { t } = useTranslation();
     const prompt = useModalStore((state) => state.prompt);
     const confirm = useModalStore((state) => state.confirm);
@@ -67,8 +98,10 @@ export function CustomNavDialog({
     const updateDashboard = useDashboardStore((state) => state.updateDashboard);
     const deleteDashboard = useDashboardStore((state) => state.deleteDashboard);
     const getDashboard = useDashboardStore((state) => state.getDashboard);
-    const [localLayout, setLocalLayout] = useState(() => cloneLayout(layout));
-    const [localHiddenKeys, setLocalHiddenKeys] = useState(
+    const [localLayout, setLocalLayout] = useState<CustomNavLayout>(() =>
+        cloneLayout(layout)
+    );
+    const [localHiddenKeys, setLocalHiddenKeys] = useState<Set<unknown>>(
         () => new Set(hiddenKeys || [])
     );
     const [hiddenPlacement, setHiddenPlacement] = useState(() =>
@@ -91,30 +124,30 @@ export function CustomNavDialog({
         }
         setLocalLayout(cloneLayout(layout));
         setLocalHiddenKeys(
-            new Set((hiddenKeys || []).filter((key: any) => !isToolNavKey(key)))
+            new Set((hiddenKeys || []).filter((key) => !isToolNavKey(key)))
         );
         setHiddenPlacement(buildHiddenPlacementMap(defaultLayout, hiddenKeys));
     }, [defaultLayout, hiddenKeys, layout, open]);
 
-    const definitionMap = useMemo(
+    const definitionMap = useMemo<Map<unknown, CustomNavDefinition>>(
         () =>
             new Map(
                 (definitions || [])
-                    .filter((definition: any) => definition?.key)
-                    .map((definition: any) => [definition.key, definition])
+                    .filter((definition) => definition?.key)
+                    .map((definition) => [definition.key, definition])
             ),
         [definitions]
     );
 
-    const hiddenItems = useMemo(
+    const hiddenItems = useMemo<HiddenNavItem[]>(
         () =>
             (definitions || [])
                 .filter(
-                    (definition: any) =>
+                    (definition) =>
                         localHiddenKeys.has(definition.key) &&
                         !isToolNavKey(definition.key)
                 )
-                .map((definition: any) => ({
+                .map((definition) => ({
                     key: definition.key,
                     label: definitionLabel(definition, t)
                 })),
@@ -125,13 +158,16 @@ export function CustomNavDialog({
         [localLayout]
     );
     const sortableNodeIds = useMemo(
-        () => visibleNodes.map((node: any) => node.sortableId),
+        () => visibleNodes.map((node) => node.sortableId),
         [visibleNodes]
     );
 
-    function updateFolderItems(folderIndex: any, updater: any) {
-        setLocalLayout((current: any) =>
-            current.map((entry: any, index: any) =>
+    function updateFolderItems(
+        folderIndex: number,
+        updater: (items: CustomNavFolderItem[]) => CustomNavFolderItem[]
+    ) {
+        setLocalLayout((current) =>
+            current.map((entry, index) =>
                 index === folderIndex && entry.type === 'folder'
                     ? {
                           ...entry,
@@ -142,10 +178,14 @@ export function CustomNavDialog({
         );
     }
 
-    function updateEntryIcon(index: any, icon: any, fallbackIcon: any) {
+    function updateEntryIcon(
+        index: number,
+        icon: unknown,
+        fallbackIcon: unknown
+    ) {
         const normalizedIcon = normalizeNavIconKey(icon, fallbackIcon);
-        setLocalLayout((current: any) =>
-            current.map((entry: any, entryIndex: any) =>
+        setLocalLayout((current) =>
+            current.map((entry, entryIndex) =>
                 entryIndex === index
                     ? {
                           ...entry,
@@ -157,14 +197,14 @@ export function CustomNavDialog({
     }
 
     function updateFolderChildIcon(
-        folderIndex: any,
-        itemIndex: any,
-        icon: any,
-        fallbackIcon: any
+        folderIndex: number,
+        itemIndex: number,
+        icon: unknown,
+        fallbackIcon: unknown
     ) {
         const normalizedIcon = normalizeNavIconKey(icon, fallbackIcon);
-        updateFolderItems(folderIndex, (items: any) =>
-            items.map((item: any, index: any) => {
+        updateFolderItems(folderIndex, (items) =>
+            items.map((item, index) => {
                 if (index !== itemIndex) {
                     return item;
                 }
@@ -177,16 +217,19 @@ export function CustomNavDialog({
         );
     }
 
-    function moveItemByDrag(activeNode: any, targetNode: any) {
-        if (!activeNode || !targetNode) {
+    function moveItemByDrag(
+        activeNode: CustomNavDragNode | null,
+        targetNode: CustomNavDragNode | null
+    ) {
+        if (!activeNode || !targetNode || activeNode.type !== 'item') {
             return;
         }
-        setLocalLayout((current: any) => {
+        setLocalLayout((current) => {
             const nodes = buildVisibleNodes(current);
-            const sourceIndex = nodes.findIndex((node: any) =>
+            const sourceIndex = nodes.findIndex((node) =>
                 sameDragNode(node, activeNode)
             );
-            const targetIndex = nodes.findIndex((node: any) =>
+            const targetIndex = nodes.findIndex((node) =>
                 sameDragNode(node, targetNode)
             );
             const movingDown =
@@ -242,20 +285,28 @@ export function CustomNavDialog({
         });
     }
 
-    function moveFolderByDrag(activeNode: any, targetNode: any) {
-        if (!activeNode || !targetNode || targetNode.type === 'folder-drop') {
+    function moveFolderByDrag(
+        activeNode: CustomNavDragNode | null,
+        targetNode: CustomNavDragNode | null
+    ) {
+        if (
+            !activeNode ||
+            !targetNode ||
+            activeNode.type !== 'folder' ||
+            targetNode.type === 'folder-drop'
+        ) {
             return;
         }
-        setLocalLayout((current: any) => {
+        setLocalLayout((current) => {
             const nodes = buildVisibleNodes(current);
-            const sourceIndex = nodes.findIndex((node: any) =>
+            const sourceIndex = nodes.findIndex((node) =>
                 sameDragNode(node, activeNode)
             );
             let normalizedTargetNode = targetNode;
             if (targetNode.parentId) {
                 normalizedTargetNode =
                     nodes.find(
-                        (node: any) =>
+                        (node) =>
                             node.type === 'folder' &&
                             node.id === targetNode.parentId
                     ) || targetNode;
@@ -263,7 +314,7 @@ export function CustomNavDialog({
             if (normalizedTargetNode.parentId) {
                 return current;
             }
-            const targetIndex = nodes.findIndex((node: any) =>
+            const targetIndex = nodes.findIndex((node) =>
                 sameDragNode(node, normalizedTargetNode)
             );
             const movingDown =
@@ -288,7 +339,7 @@ export function CustomNavDialog({
         });
     }
 
-    function handleDragEnd(event: any) {
+    function handleDragEnd(event: DragEndEvent) {
         const activeNode = resolveDragNode(event.active?.id, visibleNodes);
         let targetNode = resolveDragNode(event.over?.id, visibleNodes);
 
@@ -301,11 +352,11 @@ export function CustomNavDialog({
         }
         if (activeNode.type === 'folder') {
             if (targetNode.parentId) {
+                const targetParentId = targetNode.parentId;
                 targetNode =
                     visibleNodes.find(
-                        (node: any) =>
-                            node.type === 'folder' &&
-                            node.id === targetNode.parentId
+                        (node) =>
+                            node.type === 'folder' && node.id === targetParentId
                     ) || targetNode;
             }
             moveFolderByDrag(activeNode, targetNode);
@@ -314,16 +365,21 @@ export function CustomNavDialog({
         moveItemByDrag(activeNode, targetNode);
     }
 
-    function hideItem(key: any) {
+    function hideItem(key: unknown) {
+        const normalizedKey = String(key || '');
         const result = removeKeyFromLayout(localLayout, key);
         setLocalLayout(result.layout);
         if (result.placement) {
-            setHiddenPlacement((current: any) =>
-                new Map(current).set(key, result.placement)
+            const placement = result.placement;
+            setHiddenPlacement((current) =>
+                new Map<string, CustomNavHiddenPlacement>(current).set(
+                    normalizedKey,
+                    placement
+                )
             );
         }
         if (!isToolNavKey(key)) {
-            setLocalHiddenKeys((current: any) => {
+            setLocalHiddenKeys((current) => {
                 const next = new Set(current);
                 next.add(key);
                 return next;
@@ -331,19 +387,20 @@ export function CustomNavDialog({
         }
     }
 
-    function showItem(key: any) {
-        const placement = hiddenPlacement.get(key) || null;
-        setLocalHiddenKeys((current: any) => {
+    function showItem(key: unknown) {
+        const normalizedKey = String(key || '');
+        const placement = hiddenPlacement.get(normalizedKey) || null;
+        setLocalHiddenKeys((current) => {
             const next = new Set(current);
             next.delete(key);
             return next;
         });
-        setHiddenPlacement((current: any) => {
-            const next = new Map(current);
-            next.delete(key);
+        setHiddenPlacement((current) => {
+            const next = new Map<string, CustomNavHiddenPlacement>(current);
+            next.delete(normalizedKey);
             return next;
         });
-        setLocalLayout((current: any) =>
+        setLocalLayout((current) =>
             insertKeyIntoLayout(current, key, placement)
         );
     }
@@ -359,7 +416,7 @@ export function CustomNavDialog({
         if (!result.ok) {
             return;
         }
-        setLocalLayout((current: any) => [
+        setLocalLayout((current) => [
             ...current,
             {
                 type: 'folder',
@@ -372,14 +429,14 @@ export function CustomNavDialog({
         ]);
     }
 
-    async function editFolder(folderIndex: any) {
+    async function editFolder(folderIndex: number) {
         const folder = localLayout[folderIndex];
         if (!folder || folder.type !== 'folder') {
             return;
         }
         const result = await prompt({
             title: t('nav_menu.custom_nav.edit_folder'),
-            inputValue: folder.name || '',
+            inputValue: String(folder.name || ''),
             confirmText: t('common.actions.confirm'),
             cancelText: t('nav_menu.custom_nav.cancel'),
             pattern: /\S+/
@@ -387,8 +444,8 @@ export function CustomNavDialog({
         if (!result.ok) {
             return;
         }
-        setLocalLayout((current: any) =>
-            current.map((entry: any, index: any) =>
+        setLocalLayout((current) =>
+            current.map((entry, index) =>
                 index === folderIndex
                     ? {
                           ...entry,
@@ -400,8 +457,8 @@ export function CustomNavDialog({
         );
     }
 
-    function deleteFolder(folderIndex: any) {
-        setLocalLayout((current: any) => {
+    function deleteFolder(folderIndex: number) {
+        setLocalLayout((current) => {
             const folder = current[folderIndex];
             if (!folder || folder.type !== 'folder') {
                 return current;
@@ -411,7 +468,7 @@ export function CustomNavDialog({
                 folderIndex,
                 1,
                 ...(folder.items || [])
-                    .map((item: any) => {
+                    .map((item): CustomNavItemEntry | null => {
                         const key = getFolderItemKey(item);
                         if (!key) {
                             return null;
@@ -426,7 +483,9 @@ export function CustomNavDialog({
                             ...(icon ? { icon } : {})
                         };
                     })
-                    .filter(Boolean)
+                    .filter(
+                        (entry): entry is CustomNavItemEntry => entry !== null
+                    )
             );
             return next;
         });
@@ -438,7 +497,10 @@ export function CustomNavDialog({
                 t('dashboard.default_name')
             );
             const key = `${DASHBOARD_NAV_KEY_PREFIX}${dashboard.id}`;
-            const nextLayout = [...localLayout, { type: 'item', key }];
+            const nextLayout: CustomNavLayout = [
+                ...localLayout,
+                { type: 'item', key }
+            ];
             setLocalLayout(nextLayout);
             await onDashboardCreated?.(dashboard.id, cleanLayout(nextLayout), [
                 ...localHiddenKeys
@@ -452,7 +514,7 @@ export function CustomNavDialog({
         }
     }
 
-    async function editDashboard(key: any) {
+    async function editDashboard(key: unknown) {
         const dashboardId = String(key || '').replace(
             DASHBOARD_NAV_KEY_PREFIX,
             ''
@@ -490,7 +552,7 @@ export function CustomNavDialog({
         }
     }
 
-    async function removeDashboard(key: any) {
+    async function removeDashboard(key: unknown) {
         const dashboardId = String(key || '').replace(
             DASHBOARD_NAV_KEY_PREFIX,
             ''
@@ -506,7 +568,7 @@ export function CustomNavDialog({
         try {
             await deleteDashboard(dashboardId);
             setLocalLayout(
-                (current: any) => removeKeyFromLayout(current, key).layout
+                (current) => removeKeyFromLayout(current, key).layout
             );
         } catch (error) {
             toast.error(
@@ -521,9 +583,7 @@ export function CustomNavDialog({
         setLocalLayout(cloneLayout(defaultLayout));
         setLocalHiddenKeys(
             new Set(
-                (defaultHiddenKeys || []).filter(
-                    (key: any) => !isToolNavKey(key)
-                )
+                (defaultHiddenKeys || []).filter((key) => !isToolNavKey(key))
             )
         );
         setHiddenPlacement(
@@ -552,9 +612,9 @@ export function CustomNavDialog({
                         hiddenItems={hiddenItems}
                         onDragEnd={handleDragEnd}
                         onFolderIconChange={(
-                            index: any,
-                            icon: any,
-                            fallbackIcon: any
+                            index: number,
+                            icon: unknown,
+                            fallbackIcon: unknown
                         ) =>
                             updateEntryIcon(
                                 index,
@@ -562,16 +622,16 @@ export function CustomNavDialog({
                                 fallbackIcon || DEFAULT_FOLDER_ICON
                             )
                         }
-                        onFolderEdit={(index: any) => {
+                        onFolderEdit={(index: number) => {
                             editFolder(index);
                         }}
                         onFolderDelete={deleteFolder}
                         onFolderChildIconChange={updateFolderChildIcon}
                         onHideItem={hideItem}
-                        onEditDashboard={(key: any) => {
+                        onEditDashboard={(key: unknown) => {
                             editDashboard(key);
                         }}
-                        onDeleteDashboard={(key: any) => {
+                        onDeleteDashboard={(key: unknown) => {
                             removeDashboard(key);
                         }}
                         onShowItem={showItem}

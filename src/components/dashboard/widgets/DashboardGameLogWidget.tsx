@@ -288,7 +288,7 @@ export function DashboardGameLogWidget({
                 setLoadStatus('ready');
                 setDetail('');
             })
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 if (!active) {
                     return;
                 }

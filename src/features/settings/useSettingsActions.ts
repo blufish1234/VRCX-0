@@ -54,6 +54,7 @@ import {
 } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
+import type { createDefaultSettingsPrefs } from './settingsDefaultPrefs';
 import {
     formatByteSize,
     isValidFontFamilyList,
@@ -63,7 +64,55 @@ import {
 import { useSettingsMaintenanceActions } from './useSettingsMaintenanceActions';
 import { useSettingsPreferenceActions } from './useSettingsPreferenceActions';
 
-export function useSettingsActions(deps: any) {
+type SettingsPreferenceActionDeps = Parameters<
+    typeof useSettingsPreferenceActions
+>[0];
+type SettingsMaintenanceActionDeps = Parameters<
+    typeof useSettingsMaintenanceActions
+>[0];
+type SettingsPagePrefsDraft = ReturnType<typeof createDefaultSettingsPrefs>;
+type SettingsPagePrefsSetter = (
+    value:
+        | SettingsPagePrefsDraft
+        | ((current: SettingsPagePrefsDraft) => SettingsPagePrefsDraft)
+) => void;
+type SettingsActionsDeps = Pick<
+    SettingsPreferenceActionDeps,
+    | 'commit'
+    | 'customFontDraft'
+    | 'localFavoriteFriendsGroups'
+    | 'prefs'
+    | 'setConfigTreeData'
+    | 'setCustomFontDialogOpen'
+    | 'setCustomFontDraft'
+    | 'setCustomFontOptions'
+    | 'setCustomFontOptionsLoading'
+    | 'setDiscordPrefs'
+    | 'setIntegrationPrefs'
+    | 'setLocalFavoriteFriendsGroups'
+    | 'setOnlineVisitCount'
+    | 'setSharedFeedFilters'
+    | 'setSqliteTableSizes'
+    | 'setTableLimitsDialogOpen'
+    | 'setTableLimitsDraft'
+    | 'setTablePageSizesDialogOpen'
+    | 'tableLimitsDraft'
+> &
+    Pick<
+        SettingsMaintenanceActionDeps,
+        | 'purgePeriod'
+        | 'setAppDataDirState'
+        | 'setCacheStats'
+        | 'setCacheStatsVisible'
+        | 'setPurgeDialogOpen'
+        | 'setPurgeInProgress'
+        | 'sharedFeedFilters'
+    > & {
+        setPrefs: SettingsPagePrefsSetter;
+        setRuntimeAppSnapshot: (value: unknown) => void;
+    };
+
+export function useSettingsActions(deps: SettingsActionsDeps) {
     const { t } = useTranslation();
     const confirm = useModalStore((state) => state.confirm);
     const prompt = useModalStore((state) => state.prompt);
@@ -158,6 +207,7 @@ export function useSettingsActions(deps: any) {
         toast,
         usePreferencesStore,
         useRuntimeStore,
+        setPrefs: deps.setPrefs as SettingsPreferenceActionDeps['setPrefs'],
         vrchatAuthRepository
     };
     const preferenceActions = useSettingsPreferenceActions(actionDeps);

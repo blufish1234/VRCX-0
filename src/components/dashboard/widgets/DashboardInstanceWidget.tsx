@@ -514,7 +514,7 @@ export function DashboardInstanceWidget({
                         : 'Using runtime location while local game-log history catches up.'
                 );
             })
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 if (!active) {
                     return;
                 }

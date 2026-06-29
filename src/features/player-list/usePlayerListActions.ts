@@ -7,12 +7,21 @@ import { resolveUserByDisplayName } from '@/services/userIdentityService';
 import { normalizeString } from '@/shared/utils/string';
 
 import { buildPlayerDialogSeedData } from './playerListRows';
+import type { PlayerListRecord, PlayerListRow } from './playerListTypes';
 
-export function usePlayerListActions({ currentUserEndpoint }: any) {
+function isRecord(value: unknown): value is PlayerListRecord {
+    return Boolean(value && typeof value === 'object');
+}
+
+export function usePlayerListActions({
+    currentUserEndpoint
+}: {
+    currentUserEndpoint?: string;
+}) {
     const { t } = useTranslation();
 
     const openPlayerRow = useCallback(
-        async (row: any) => {
+        async (row: PlayerListRow) => {
             const userId = normalizeString(
                 row?.userId || row?.userRef?.id || row?.ref?.id
             );
@@ -37,11 +46,9 @@ export function usePlayerListActions({ currentUserEndpoint }: any) {
                     endpoint: currentUserEndpoint
                 });
                 if (resolved?.userId) {
-                    const resolvedSeedData =
-                        resolved.seedData &&
-                        typeof resolved.seedData === 'object'
-                            ? resolved.seedData
-                            : {};
+                    const resolvedSeedData = isRecord(resolved.seedData)
+                        ? resolved.seedData
+                        : {};
                     openUserDialog({
                         seedData:
                             seedData || resolved.seedData

@@ -342,7 +342,7 @@ export function PreviousInstanceDetailsPanel({
                     details: Array.isArray(details) ? details : []
                 });
             })
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 if (!active) {
                     return;
                 }

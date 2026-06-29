@@ -2,13 +2,23 @@ import { useRef, useState } from 'react';
 
 import avatarSearchProviderRepository from '@/repositories/avatarSearchProviderRepository';
 
+type PreferenceAction = () => unknown | Promise<unknown>;
+type PreferenceRollback = void | (() => void);
+type AvatarProviderConfigDeps = {
+    commit: (
+        action: PreferenceAction,
+        optimistic?: () => PreferenceRollback
+    ) => Promise<boolean>;
+};
 type AvatarProviderConfig = Awaited<
     ReturnType<typeof avatarSearchProviderRepository.saveConfig>
 > & {
     [key: string]: unknown;
 };
 
-export function useAvatarProviderConfig({ commit }: any) {
+export type { AvatarProviderConfig };
+
+export function useAvatarProviderConfig({ commit }: AvatarProviderConfigDeps) {
     const [avatarProviderConfig, setAvatarProviderConfig] =
         useState<AvatarProviderConfig>({
             enabled: true,
@@ -16,15 +26,17 @@ export function useAvatarProviderConfig({ commit }: any) {
             selectedProvider: ''
         });
     const avatarProviderConfigRef = useRef(avatarProviderConfig);
-    const avatarProviderSaveQueueRef = useRef<Promise<any>>(Promise.resolve());
+    const avatarProviderSaveQueueRef = useRef<Promise<unknown>>(
+        Promise.resolve()
+    );
     const avatarProviderSaveSeqRef = useRef(0);
 
-    function applyAvatarProviderConfig(nextConfig: any) {
+    function applyAvatarProviderConfig(nextConfig: AvatarProviderConfig) {
         avatarProviderConfigRef.current = nextConfig;
         setAvatarProviderConfig(nextConfig);
     }
 
-    async function saveAvatarProviderConfig(nextConfig: any) {
+    async function saveAvatarProviderConfig(nextConfig: AvatarProviderConfig) {
         const saveSeq = avatarProviderSaveSeqRef.current + 1;
         avatarProviderSaveSeqRef.current = saveSeq;
         const saveTask = avatarProviderSaveQueueRef.current
@@ -39,34 +51,33 @@ export function useAvatarProviderConfig({ commit }: any) {
         return saved;
     }
 
-    function updateAvatarProvider(index: any, value: any) {
-        setAvatarProviderConfig((current: any) => ({
+    function updateAvatarProvider(index: number, value: string) {
+        setAvatarProviderConfig((current) => ({
             ...current,
-            providerList: current.providerList.map(
-                (provider: any, providerIndex: any) =>
-                    providerIndex === index ? value : provider
+            providerList: current.providerList.map((provider, providerIndex) =>
+                providerIndex === index ? value : provider
             )
         }));
         avatarProviderConfigRef.current = {
             ...avatarProviderConfigRef.current,
             providerList: avatarProviderConfigRef.current.providerList.map(
-                (provider: any, providerIndex: any) =>
+                (provider, providerIndex) =>
                     providerIndex === index ? value : provider
             )
         };
     }
 
-    function saveAvatarProviderField(index: any, value: any) {
+    function saveAvatarProviderField(index: number, value: string) {
         const currentConfig = avatarProviderConfigRef.current;
         const providerList = currentConfig.providerList.map(
-            (provider: any, providerIndex: any) =>
+            (provider, providerIndex) =>
                 providerIndex === index ? value : provider
         );
-        const nextConfig: any = {
+        const nextConfig: AvatarProviderConfig = {
             ...currentConfig,
             enabled:
                 currentConfig.enabled &&
-                providerList.some((provider: any) => provider.trim()),
+                providerList.some((provider) => provider.trim()),
             providerList
         };
         applyAvatarProviderConfig(nextConfig);
@@ -78,19 +89,19 @@ export function useAvatarProviderConfig({ commit }: any) {
     }
 
     function addAvatarProvider() {
-        const nextConfig: any = {
+        const nextConfig: AvatarProviderConfig = {
             ...avatarProviderConfigRef.current,
             providerList: [...avatarProviderConfigRef.current.providerList, '']
         };
         applyAvatarProviderConfig(nextConfig);
     }
 
-    function removeAvatarProvider(index: any) {
+    function removeAvatarProvider(index: number) {
         const currentConfig = avatarProviderConfigRef.current;
         const nextProviderList = currentConfig.providerList.filter(
-            (_: any, providerIndex: any) => providerIndex !== index
+            (_, providerIndex) => providerIndex !== index
         );
-        const nextConfig: any = {
+        const nextConfig: AvatarProviderConfig = {
             ...currentConfig,
             enabled: currentConfig.enabled && nextProviderList.length > 0,
             providerList: nextProviderList

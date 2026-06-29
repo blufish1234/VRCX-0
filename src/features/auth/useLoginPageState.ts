@@ -120,7 +120,7 @@ export function useLoginPageState() {
                     applySnapshot(nextSnapshot);
                 }
             })
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 toast.error(
                     error instanceof Error
                         ? error.message

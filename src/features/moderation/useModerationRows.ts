@@ -42,7 +42,7 @@ export function useModerationRows({
             userId: currentUserId,
             endpoint: currentEndpoint
         })
-            .then((response: any) => {
+            .then((response) => {
                 if (!active) {
                     return;
                 }

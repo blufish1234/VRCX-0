@@ -4,12 +4,12 @@ export function useModerationShiftKey() {
     const [shiftHeld, setShiftHeld] = useState(false);
 
     useEffect(() => {
-        const handleKeyDown = (event: any) => {
+        const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'Shift') {
                 setShiftHeld(true);
             }
         };
-        const handleKeyUp = (event: any) => {
+        const handleKeyUp = (event: KeyboardEvent) => {
             if (event.key === 'Shift') {
                 setShiftHeld(false);
             }

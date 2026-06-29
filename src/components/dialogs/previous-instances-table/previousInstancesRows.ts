@@ -3,7 +3,69 @@ import { parseLocation } from '@/shared/utils/location';
 
 const PREVIOUS_INSTANCE_COUNT_CAP = 10000;
 
-export function formatPreviousInstanceCount(count: any) {
+type PreviousInstanceLocation = Record<string, unknown> & {
+    groupName?: unknown;
+    location?: unknown;
+    ownerDisplayName?: unknown;
+    ownerUserId?: unknown;
+    owner_user_id?: unknown;
+    tag?: unknown;
+    userId?: unknown;
+    user_id?: unknown;
+    worldName?: unknown;
+};
+
+type PreviousInstanceRow = Record<string, unknown> & {
+    $location?: PreviousInstanceLocation | null;
+    created_at?: unknown;
+    createdAt?: unknown;
+    duration?: unknown;
+    groupName?: unknown;
+    id?: unknown;
+    location?: unknown;
+    ownerDisplayName?: unknown;
+    ownerId?: unknown;
+    ownerName?: unknown;
+    ownerUserId?: unknown;
+    owner_id?: unknown;
+    owner_user_id?: unknown;
+    time?: unknown;
+    userId?: unknown;
+    user_id?: unknown;
+    worldId?: unknown;
+    worldName?: unknown;
+};
+
+type PreviousInstancePlayerRow = PreviousInstanceRow & {
+    displayName?: unknown;
+    display_name?: unknown;
+};
+
+type PreviousInstanceKnownUser = {
+    [key: string]: unknown;
+    displayName?: unknown;
+    username?: unknown;
+};
+
+function textValue(value: unknown) {
+    return typeof value === 'string'
+        ? value
+        : value === null || value === undefined
+          ? ''
+          : String(value);
+}
+
+function dateInputValue(value: unknown): string | number {
+    if (value instanceof Date) {
+        return value.getTime();
+    }
+    if (typeof value === 'string' || typeof value === 'number') {
+        return value;
+    }
+    return value === null || value === undefined ? 0 : String(value);
+}
+
+export function formatPreviousInstanceCount(count: unknown) {
     const value = Number(count);
     if (!Number.isFinite(value) || value < 0) {
         return '0';
@@ -13,41 +75,45 @@ export function formatPreviousInstanceCount(count: any) {
         : String(Math.trunc(value));
 }
 
-export function createdTime(row: any) {
-    return new Date(row?.created_at || row?.createdAt || 0).getTime() || 0;
+export function createdTime(row: PreviousInstanceRow | null | undefined) {
+    return (
+        new Date(
+            dateInputValue(row?.created_at || row?.createdAt || 0)
+        ).getTime() || 0
+    );
 }
 
-export function rowLocation(row: any) {
-    return (
+export function rowLocation(row: PreviousInstanceRow | null | undefined) {
+    return textValue(
         row?.$location?.tag || row?.location || row?.worldId || row?.id || ''
     );
 }
 
-export function rowWorldId(row: any) {
+export function rowWorldId(row: PreviousInstanceRow | null | undefined) {
     const location = rowLocation(row);
     return parseLocation(location).worldId || '';
 }
 
-export function rowOwnerUserId(row: any) {
-    return (
+export function rowOwnerUserId(row: PreviousInstanceRow | null | undefined) {
+    return textValue(
         row?.$location?.userId ||
-        row?.$location?.user_id ||
-        row?.$location?.ownerUserId ||
-        row?.$location?.owner_user_id ||
-        row?.ownerUserId ||
-        row?.owner_user_id ||
-        row?.ownerId ||
-        row?.owner_id ||
-        row?.userId ||
-        row?.user_id ||
-        ''
+            row?.$location?.user_id ||
+            row?.$location?.ownerUserId ||
+            row?.$location?.owner_user_id ||
+            row?.ownerUserId ||
+            row?.owner_user_id ||
+            row?.ownerId ||
+            row?.owner_id ||
+            row?.userId ||
+            row?.user_id ||
+            ''
     );
 }
 
-export function rowLocationObject(row: any) {
+export function rowLocationObject(row: PreviousInstanceRow | null | undefined) {
     const location = rowLocation(row);
     const ownerUserId = rowOwnerUserId(row);
-    const baseLocation: any = {
+    const baseLocation: PreviousInstanceLocation = {
         ...parseLocation(location),
         tag: location,
         location,
@@ -82,17 +148,17 @@ export function rowLocationObject(row: any) {
     return baseLocation;
 }
 
-export function rowDuration(row: any) {
+export function rowDuration(row: PreviousInstanceRow | null | undefined) {
     const value = rowDurationValue(row);
     return Number.isFinite(value) && value > 0 ? timeToText(value) : '\u2014';
 }
 
-export function rowDurationValue(row: any) {
+export function rowDurationValue(row: PreviousInstanceRow | null | undefined) {
     const value = Number(row?.time || row?.duration || 0);
     return Number.isFinite(value) ? value : 0;
 }
 
-export function rowInstanceText(row: any) {
+export function rowInstanceText(row: PreviousInstanceRow | null | undefined) {
     return [
         row?.worldName,
         row?.groupName,
@@ -105,7 +171,7 @@ export function rowInstanceText(row: any) {
         .toLowerCase();
 }
 
-export function rowCreatorText(row: any) {
+export function rowCreatorText(row: PreviousInstanceRow | null | undefined) {
     return (
         row?.ownerDisplayName ||
         row?.ownerName ||
@@ -117,7 +183,7 @@ export function rowCreatorText(row: any) {
         .toLowerCase();
 }
 
-export function rowSearchText(row: any) {
+export function rowSearchText(row: PreviousInstanceRow | null | undefined) {
     return [
         row?.created_at,
         row?.createdAt,
@@ -137,7 +203,7 @@ export function rowSearchText(row: any) {
 }
 
 export function sortPreviousInstanceRows(
-    rows: any,
+    rows: readonly PreviousInstanceRow[] | null | undefined,
     sortKey = 'date',
     sortDesc = true
 ) {
@@ -145,31 +211,29 @@ export function sortPreviousInstanceRows(
         return [...(Array.isArray(rows) ? rows : [])];
     }
     const direction = sortDesc ? -1 : 1;
-    return [...(Array.isArray(rows) ? rows : [])].sort(
-        (left: any, right: any) => {
-            let result = 0;
-            if (sortKey === 'duration') {
-                result = rowDurationValue(left) - rowDurationValue(right);
-            } else if (sortKey === 'location') {
-                result = rowInstanceText(left).localeCompare(
-                    rowInstanceText(right)
-                );
-            } else if (sortKey === 'creator') {
-                result = rowCreatorText(left).localeCompare(
-                    rowCreatorText(right)
-                );
-            } else {
-                result = createdTime(left) - createdTime(right);
-            }
-            if (result === 0 && sortKey !== 'date') {
-                result = createdTime(left) - createdTime(right);
-            }
-            return result * direction;
+    return [...(Array.isArray(rows) ? rows : [])].sort((left, right) => {
+        let result = 0;
+        if (sortKey === 'duration') {
+            result = rowDurationValue(left) - rowDurationValue(right);
+        } else if (sortKey === 'location') {
+            result = rowInstanceText(left).localeCompare(
+                rowInstanceText(right)
+            );
+        } else if (sortKey === 'creator') {
+            result = rowCreatorText(left).localeCompare(rowCreatorText(right));
+        } else {
+            result = createdTime(left) - createdTime(right);
         }
-    );
+        if (result === 0 && sortKey !== 'date') {
+            result = createdTime(left) - createdTime(right);
+        }
+        return result * direction;
+    });
 }
 
-export function normalizePlayerRows(players: any) {
+export function normalizePlayerRows<T extends PreviousInstancePlayerRow>(
+    players: Map<unknown, T> | readonly T[] | null | undefined
+) {
     const rows =
         players instanceof Map
             ? Array.from(players.values())
@@ -177,39 +241,45 @@ export function normalizePlayerRows(players: any) {
               ? players
               : [];
     return [...rows].sort(
-        (left: any, right: any) =>
-            Number(right?.time || 0) - Number(left?.time || 0)
+        (left, right) => Number(right?.time || 0) - Number(left?.time || 0)
     );
 }
 
-export function playerDisplayName(row: any) {
-    return row?.displayName || row?.display_name || '\u2014';
+export function playerDisplayName(
+    row: PreviousInstancePlayerRow | null | undefined
+) {
+    return textValue(row?.displayName || row?.display_name || '\u2014');
 }
 
-export function playerUserId(row: any) {
-    return row?.userId || row?.user_id || '';
+export function playerUserId(
+    row: PreviousInstancePlayerRow | null | undefined
+) {
+    return textValue(row?.userId || row?.user_id || '');
 }
 
-function knownDisplayName(knownUser: any, userId: any) {
-    return knownUser?.displayName || knownUser?.username || userId;
+function knownDisplayName(
+    knownUser: PreviousInstanceKnownUser | null | undefined,
+    userId: string
+) {
+    return textValue(knownUser?.displayName || knownUser?.username || userId);
 }
 
-function needsKnownDisplayName(displayName: any, userId: any) {
+function needsKnownDisplayName(displayName: unknown, userId: string) {
     return !displayName || displayName === '\u2014' || displayName === userId;
 }
 
 export function normalizeInfoChartRows(
-    rows: any,
-    currentUserId: any,
-    friendsById: any,
-    favoriteIdSet: any,
-    knownUsersById: any = {}
+    rows: readonly PreviousInstancePlayerRow[] | null | undefined,
+    currentUserId: string,
+    friendsById: Record<string, unknown> | null | undefined,
+    favoriteIdSet: ReadonlySet<string>,
+    knownUsersById: Record<string, PreviousInstanceKnownUser> = {}
 ) {
     return (Array.isArray(rows) ? rows : [])
-        .map((row: any) => {
+        .map((row) => {
             const durationMs = Math.max(0, Number(row?.time || 0));
             const leaveMs = new Date(
-                row?.created_at || row?.createdAt || 0
+                dateInputValue(row?.created_at || row?.createdAt || 0)
             ).getTime();
             const userId = playerUserId(row);
             if (!Number.isFinite(leaveMs) || !userId) {

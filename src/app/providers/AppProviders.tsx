@@ -1,11 +1,11 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 
 import { queryClient } from '@/lib/queryClient';
 import { bindSQLiteErrorDialogService } from '@/services/sqliteErrorDialogService';
 import { TooltipProvider } from '@/ui/shadcn/tooltip';
 
-export function AppProviders({ children }: any) {
+export function AppProviders({ children }: { children: ReactNode }) {
     useEffect(() => bindSQLiteErrorDialogService(), []);
 
     return (

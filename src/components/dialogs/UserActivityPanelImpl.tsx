@@ -117,7 +117,9 @@ export function UserActivityPanel({
         isCurrentUser,
         userId
     });
-    const easterEggTimerRef = useRef<any>(null);
+    const easterEggTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+        null
+    );
 
     useEffect(
         () => () => {

@@ -1,13 +1,26 @@
 import { useTranslation } from 'react-i18next';
 
 import { LoadingState } from '@/components/layout/PageScaffold';
+import type { FriendRecord } from '@/domain/friends/friendRosterTypes';
 
+import type { useFriendsLocationsPageController } from '../useFriendsLocationsPageController';
 import {
     FriendsLocationCardItem,
     FriendsLocationsEmptyState,
     FriendsLocationsFavoriteGroupHeader,
     FriendsLocationsSectionHeader
 } from './FriendsLocationsViewParts';
+
+type FriendsLocationsPageControllerState = ReturnType<
+    typeof useFriendsLocationsPageController
+>;
+
+type FriendsLocationsVirtualListProps = Pick<
+    FriendsLocationsPageControllerState,
+    'derived' | 'filters' | 'load' | 'runtime' | 'scroll'
+> & {
+    locationCommands: FriendsLocationsPageControllerState['actions'];
+};
 
 export function FriendsLocationsVirtualList({
     derived,
@@ -16,7 +29,7 @@ export function FriendsLocationsVirtualList({
     locationCommands,
     runtime,
     scroll
-}: any) {
+}: FriendsLocationsVirtualListProps) {
     const { t } = useTranslation();
 
     return (
@@ -47,7 +60,7 @@ export function FriendsLocationsVirtualList({
                         height: `${derived.positionedRows.totalHeight}px`
                     }}
                 >
-                    {derived.visibleVirtualRows.map((row: any) => (
+                    {derived.visibleVirtualRows.map((row) => (
                         <div
                             key={row.key}
                             className="absolute right-0 left-0 box-border"
@@ -89,7 +102,7 @@ export function FriendsLocationsVirtualList({
                                         gridTemplateColumns: `repeat(${derived.cardGridColumns}, minmax(${derived.cardGridMinWidth}px, 1fr))`
                                     }}
                                 >
-                                    {row.friends.map((friend: any) => (
+                                    {row.friends.map((friend: FriendRecord) => (
                                         <FriendsLocationCardItem
                                             key={`${row.section.key}:${friend.id}`}
                                             section={row.section}

@@ -1,7 +1,14 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import type { Cell, Header, RowData } from '@tanstack/react-table';
 import { flexRender } from '@tanstack/react-table';
 import { GripVerticalIcon } from 'lucide-react';
+import type {
+    CSSProperties,
+    ComponentProps,
+    KeyboardEvent,
+    MouseEvent
+} from 'react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/ui/shadcn/button';
@@ -10,12 +17,17 @@ import { TableCell, TableHead } from '@/ui/shadcn/table';
 import { useDataTableColumnDnd } from './dataTableColumnDndContext';
 import { isColumnReorderable } from './tableColumnLayout';
 
-function resolveSize(value: any) {
+type DragHandleProps = Partial<ComponentProps<typeof Button>>;
+
+function resolveSize(value: unknown) {
     const size = Number(value);
     return Number.isFinite(size) && size > 0 ? `${size}px` : undefined;
 }
 
-function resizeHeaderFromKeyboard(event: any, header: any) {
+function resizeHeaderFromKeyboard<TData extends RowData>(
+    event: KeyboardEvent<HTMLButtonElement>,
+    header: Header<TData, unknown>
+) {
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
         return;
     }
@@ -34,13 +46,19 @@ function resizeHeaderFromKeyboard(event: any, header: any) {
         Math.max(minSize, header.column.getSize() + delta)
     );
 
-    table.setColumnSizing((current: any) => ({
+    table.setColumnSizing((current) => ({
         ...current,
         [header.column.id]: nextSize
     }));
 }
 
-function ResizableTableHeadContent({ header, dragHandleProps }: any) {
+function ResizableTableHeadContent<TData extends RowData>({
+    header,
+    dragHandleProps
+}: {
+    header: Header<TData, unknown>;
+    dragHandleProps?: DragHandleProps;
+}) {
     const canResize = header.column.getCanResize();
     const minSize = header.column.columnDef.minSize ?? 20;
     const maxSize = header.column.columnDef.maxSize ?? Number.MAX_SAFE_INTEGER;
@@ -95,7 +113,15 @@ function ResizableTableHeadContent({ header, dragHandleProps }: any) {
     );
 }
 
-function ResizableTableHeadBase({ header, className = '', style }: any) {
+function ResizableTableHeadBase<TData extends RowData>({
+    header,
+    className = '',
+    style
+}: {
+    header: Header<TData, unknown>;
+    className?: string;
+    style?: CSSProperties;
+}) {
     return (
         <TableHead
             className={cn('group relative select-none', className)}
@@ -109,7 +135,15 @@ function ResizableTableHeadBase({ header, className = '', style }: any) {
     );
 }
 
-function SortableResizableTableHead({ header, className = '', style }: any) {
+function SortableResizableTableHead<TData extends RowData>({
+    header,
+    className = '',
+    style
+}: {
+    header: Header<TData, unknown>;
+    className?: string;
+    style?: CSSProperties;
+}) {
     const {
         attributes,
         listeners,
@@ -120,11 +154,12 @@ function SortableResizableTableHead({ header, className = '', style }: any) {
         isDragging
     } = useSortable({ id: header.column.id });
 
-    const dragHandleProps: any = {
+    const dragHandleProps: DragHandleProps = {
         ...attributes,
         ...listeners,
         ref: setActivatorNodeRef,
-        onClick: (event: any) => event.stopPropagation()
+        onClick: (event: MouseEvent<HTMLButtonElement>) =>
+            event.stopPropagation()
     };
 
     return (
@@ -150,12 +185,17 @@ function SortableResizableTableHead({ header, className = '', style }: any) {
     );
 }
 
-export function ResizableTableHead({
+export function ResizableTableHead<TData extends RowData>({
     header,
     className = '',
     style,
     enableColumnReorder = false
-}: any) {
+}: {
+    header: Header<TData, unknown>;
+    className?: string;
+    style?: CSSProperties;
+    enableColumnReorder?: boolean;
+}) {
     if (enableColumnReorder && isColumnReorderable(header?.column)) {
         return (
             <SortableResizableTableHead
@@ -175,7 +215,15 @@ export function ResizableTableHead({
     );
 }
 
-export function ResizableTableCell({ cell, className = '', style }: any) {
+export function ResizableTableCell<TData extends RowData>({
+    cell,
+    className = '',
+    style
+}: {
+    cell: Cell<TData, unknown>;
+    className?: string;
+    style?: CSSProperties;
+}) {
     const columnDnd = useDataTableColumnDnd();
 
     if (columnDnd.enabled && isColumnReorderable(cell?.column)) {
@@ -201,7 +249,15 @@ export function ResizableTableCell({ cell, className = '', style }: any) {
     );
 }
 
-function SortableResizableTableCell({ cell, className = '', style }: any) {
+function SortableResizableTableCell<TData extends RowData>({
+    cell,
+    className = '',
+    style
+}: {
+    cell: Cell<TData, unknown>;
+    className?: string;
+    style?: CSSProperties;
+}) {
     const { setNodeRef, transform, transition, isDragging } = useSortable({
         id: cell.column.id
     });

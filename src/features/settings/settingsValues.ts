@@ -52,7 +52,11 @@ export type CustomFontDraft = {
     override: string;
 };
 
-export function parseWebJson(response: any) {
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object');
+}
+
+export function parseWebJson(response: { data?: unknown } | null | undefined) {
     if (response?.data && typeof response.data === 'object') {
         return response.data;
     }
@@ -62,7 +66,7 @@ export function parseWebJson(response: any) {
     return {};
 }
 
-export function buildOpenAiModelsEndpoint(endpoint: any) {
+export function buildOpenAiModelsEndpoint(endpoint: string | undefined) {
     const baseEndpoint = endpoint || DEFAULT_TRANSLATION_ENDPOINT;
     try {
         const url = new URL(baseEndpoint);
@@ -89,47 +93,52 @@ export function buildOpenAiModelsEndpoint(endpoint: any) {
     }
 }
 
-export function normalizeSharedFeedFilters(value: any = {}) {
+export function normalizeSharedFeedFilters(value: unknown = {}) {
+    const record = isRecord(value) ? value : {};
+    const noty = isRecord(record.noty) ? record.noty : {};
     return {
         noty: {
             ...sharedFeedFiltersDefaults.noty,
-            ...(value?.noty && typeof value.noty === 'object' ? value.noty : {})
+            ...noty
         }
     };
 }
 
-export function normalizeTablePageSizes(input: any) {
+export function normalizeTablePageSizes(input: unknown): number[] {
     const source = Array.isArray(input) ? input : TABLE_PAGE_SIZE_DEFAULTS;
     const values = source
-        .map((value: any) => Number.parseInt(value, 10))
+        .map((value) => Number.parseInt(String(value), 10))
         .filter(
-            (value: any) => Number.isFinite(value) && value > 0 && value <= 1000
+            (value) => Number.isFinite(value) && value > 0 && value <= 1000
         );
     const uniqueSorted = Array.from(new Set(values)).sort(
-        (left: any, right: any) => left - right
+        (left, right) => left - right
     );
     return uniqueSorted.length ? uniqueSorted : [...TABLE_PAGE_SIZE_DEFAULTS];
 }
 
-export function buildTablePageSizeOptions(draftSizes: any) {
+export function buildTablePageSizeOptions(draftSizes: unknown) {
     return normalizeTablePageSizes([
         ...TABLE_PAGE_SIZE_SUGGESTIONS,
         ...(Array.isArray(draftSizes) ? draftSizes : [])
     ]);
 }
 
-export function filterTablePageSizeOptions(options: any, query: any) {
+export function filterTablePageSizeOptions(
+    options: readonly number[] | null | undefined,
+    query: unknown
+) {
     const searchTerm = String(query || '').trim();
     if (!searchTerm) {
         return Array.isArray(options) ? options : [];
     }
-    return (Array.isArray(options) ? options : []).filter((size: any) =>
+    return (Array.isArray(options) ? options : []).filter((size) =>
         String(size).includes(searchTerm)
     );
 }
 
-export function parseIntegerInput(value: any, fallback: any) {
-    const parsed = Number.parseInt(value, 10);
+export function parseIntegerInput(value: unknown, fallback: number) {
+    const parsed = Number.parseInt(String(value), 10);
     return Number.isFinite(parsed) ? parsed : fallback;
 }
 
@@ -137,7 +146,7 @@ export function normalizeCheckedState(value: unknown): boolean {
     return value === true;
 }
 
-export function isValidFontFamilyList(value: any): boolean {
+export function isValidFontFamilyList(value: unknown): boolean {
     const normalized = String(value ?? '').trim();
     if (!normalized || normalized.length > MAX_CUSTOM_FONT_FAMILY_LENGTH) {
         return false;
@@ -145,10 +154,10 @@ export function isValidFontFamilyList(value: any): boolean {
 
     return normalized
         .split(',')
-        .every((entry: any) => FONT_FAMILY_TOKEN_PATTERN.test(entry.trim()));
+        .every((entry) => FONT_FAMILY_TOKEN_PATTERN.test(entry.trim()));
 }
 
-export function quoteCssFontFamilyName(value: any): string {
+export function quoteCssFontFamilyName(value: unknown): string {
     const name = String(value ?? '').trim();
     if (!name) {
         return '';
@@ -187,7 +196,9 @@ export function composeCustomFontFamily(
     return parts.join(', ');
 }
 
-export function createCustomFontDraftFromPrefs(prefs: any): CustomFontDraft {
+export function createCustomFontDraftFromPrefs(
+    prefs: Record<string, unknown> | null | undefined
+): CustomFontDraft {
     const primary = String(prefs?.customFontPrimary ?? '').trim();
     const secondary = String(prefs?.customFontSecondary ?? '').trim();
     const override = String(prefs?.customFontOverride ?? '').trim();
@@ -215,7 +226,7 @@ export function createCustomFontDraftFromPrefs(prefs: any): CustomFontDraft {
     };
 }
 
-export function formatByteSize(value: any) {
+export function formatByteSize(value: unknown) {
     const bytes = Number(value);
     if (!Number.isFinite(bytes) || bytes <= 0) {
         return '0 B';

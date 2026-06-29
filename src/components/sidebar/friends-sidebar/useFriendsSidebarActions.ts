@@ -18,6 +18,29 @@ import { normalizeString as normalizeId } from '@/shared/utils/string';
 import { useModalStore } from '@/state/modalStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
+import type { StatusPreset } from './FriendsSidebarActionItems';
+import type { SidebarFriendRecord } from './friendsSidebarModel';
+
+type ModalStoreActions = ReturnType<typeof useModalStore.getState>;
+type CurrentUserRecord = Record<string, unknown> & {
+    statusDescription?: unknown;
+};
+
+type FriendsSidebarActionsInput = {
+    canInviteFromCurrentLocation?: boolean;
+    confirm: ModalStoreActions['confirm'];
+    currentEndpoint?: string | null;
+    currentInviteLocation?: unknown;
+    currentUser?: CurrentUserRecord | null;
+    currentUserId?: string | null;
+    prompt: ModalStoreActions['prompt'];
+};
+
+type SaveCurrentUserPatchMessages = {
+    successMessage: string;
+    errorMessage: string;
+};
+
 export function useFriendsSidebarActions({
     canInviteFromCurrentLocation,
     confirm,
@@ -26,11 +49,11 @@ export function useFriendsSidebarActions({
     currentUser,
     currentUserId,
     prompt
-}: any) {
+}: FriendsSidebarActionsInput) {
     const { t } = useTranslation();
     const boopPrompt = useModalStore((state) => state.boopPrompt);
 
-    function openFriend(friend: any) {
+    function openFriend(friend: SidebarFriendRecord) {
         openUserDialog({
             userId: friend.id,
             title: friend.displayName || friend.username || undefined,
@@ -38,7 +61,7 @@ export function useFriendsSidebarActions({
         });
     }
 
-    async function launchFriendLocation(location: any) {
+    async function launchFriendLocation(location: unknown) {
         const parsedLocation = parseLocation(location);
         if (
             !parsedLocation.isRealInstance ||
@@ -51,7 +74,7 @@ export function useFriendsSidebarActions({
             const opened = await tryOpenLaunchLocation(
                 location,
                 parsedLocation.shortName,
-                currentEndpoint
+                currentEndpoint || undefined
             );
             if (opened) {
                 toast.success(
@@ -73,7 +96,7 @@ export function useFriendsSidebarActions({
         }
     }
 
-    async function selfInviteToFriendLocation(location: any) {
+    async function selfInviteToFriendLocation(location: unknown) {
         const parsedLocation = parseLocation(location);
         if (
             !parsedLocation.isRealInstance ||
@@ -86,7 +109,7 @@ export function useFriendsSidebarActions({
             await selfInviteToInstance(
                 location,
                 parsedLocation.shortName,
-                currentEndpoint
+                currentEndpoint || undefined
             );
             toast.success(t('message.invite.self_sent'));
         } catch (error) {
@@ -100,7 +123,7 @@ export function useFriendsSidebarActions({
         }
     }
 
-    async function sendFriendInvite(friend: any) {
+    async function sendFriendInvite(friend: SidebarFriendRecord) {
         const friendId = normalizeId(friend?.id);
         if (!friendId || friendId === normalizeId(currentUserId)) {
             return;
@@ -143,7 +166,7 @@ export function useFriendsSidebarActions({
             const inviteLocation = parsedLocation.tag || currentInviteLocation;
             await sendInviteToLocation({
                 receiverUserId: friendId,
-                endpoint: currentEndpoint,
+                endpoint: currentEndpoint || undefined,
                 instanceId: inviteLocation,
                 worldId: parsedLocation.worldId,
                 rsvp: true
@@ -159,7 +182,7 @@ export function useFriendsSidebarActions({
         }
     }
 
-    async function requestFriendInvite(friend: any) {
+    async function requestFriendInvite(friend: SidebarFriendRecord) {
         const friendId = normalizeId(friend?.id);
         if (!friendId || friendId === normalizeId(currentUserId)) {
             return;
@@ -176,7 +199,7 @@ export function useFriendsSidebarActions({
         try {
             await sendRequestInviteToUser({
                 receiverUserId: friendId,
-                endpoint: currentEndpoint
+                endpoint: currentEndpoint || undefined
             });
             recordRecentAction(friendId, 'Request Invite');
             toast.success(t('side_panel.success.invite_request_sent'));
@@ -191,14 +214,14 @@ export function useFriendsSidebarActions({
         }
     }
 
-    async function sendFriendBoop(friend: any) {
+    async function sendFriendBoop(friend: SidebarFriendRecord) {
         const friendId = normalizeId(friend?.id);
         if (!friendId || friendId === normalizeId(currentUserId)) {
             return;
         }
         try {
             const result = await boopPrompt({
-                endpoint: currentEndpoint,
+                endpoint: currentEndpoint || undefined,
                 targetLabel: friend?.displayName || friend?.username || friendId
             });
             if (!result.ok) {
@@ -207,7 +230,7 @@ export function useFriendsSidebarActions({
             await sendBoopToUser({
                 userId: friendId,
                 emojiId: result.value,
-                endpoint: currentEndpoint
+                endpoint: currentEndpoint || undefined
             });
             toast.success(t('side_panel.success.boop_sent'));
         } catch (error) {
@@ -220,8 +243,8 @@ export function useFriendsSidebarActions({
     }
 
     async function saveCurrentUserPatch(
-        patch: any,
-        { successMessage, errorMessage }: any
+        patch: Record<string, unknown>,
+        { successMessage, errorMessage }: SaveCurrentUserPatchMessages
     ) {
         if (!currentUserId) {
             toast.error(
@@ -234,7 +257,7 @@ export function useFriendsSidebarActions({
         try {
             const nextUser = await userProfileRepository.updateCurrentUser({
                 userId: currentUserId,
-                endpoint: currentEndpoint,
+                endpoint: currentEndpoint || undefined,
                 params: patch
             });
             if (nextUser?.id) {
@@ -258,7 +281,7 @@ export function useFriendsSidebarActions({
         }
     }
 
-    async function changeCurrentUserStatus(status: any) {
+    async function changeCurrentUserStatus(status: string) {
         await saveCurrentUserPatch(
             { status },
             {
@@ -272,7 +295,7 @@ export function useFriendsSidebarActions({
         );
     }
 
-    async function setCurrentUserStatusDescription(statusDescription: any) {
+    async function setCurrentUserStatusDescription(statusDescription: string) {
         await saveCurrentUserPatch(
             { statusDescription },
             {
@@ -289,7 +312,7 @@ export function useFriendsSidebarActions({
     async function editCurrentUserStatusDescription() {
         const result = await prompt({
             title: t('component.friends_sidebar.modal.edit_status_description'),
-            inputValue: currentUser?.statusDescription || '',
+            inputValue: String(currentUser?.statusDescription || ''),
             multiline: true,
             confirmText: t('common.actions.save'),
             cancelText: t('common.actions.cancel')
@@ -297,14 +320,14 @@ export function useFriendsSidebarActions({
         if (!result.ok) {
             return;
         }
-        await setCurrentUserStatusDescription(result.value);
+        await setCurrentUserStatusDescription(String(result.value || ''));
     }
 
-    async function applyCurrentUserStatusPreset(preset: any) {
+    async function applyCurrentUserStatusPreset(preset: StatusPreset) {
         if (!preset?.status) {
             return;
         }
-        const patch: any = { status: preset.status };
+        const patch: Record<string, unknown> = { status: preset.status };
         if (Object.prototype.hasOwnProperty.call(preset, 'statusDescription')) {
             patch.statusDescription = preset.statusDescription || '';
         }

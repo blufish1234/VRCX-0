@@ -6,6 +6,28 @@ import { asString, safeJsonParse, safeJsonStringify } from './baseRepository';
 type ConfigEntries = Array<[string, unknown]>;
 type ConfigObject = Record<string, unknown> | unknown[] | null;
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function normalizeConfigReadEntry(row: unknown): [string, string] | null {
+    if (Array.isArray(row)) {
+        const [key, value] = row;
+        return typeof key === 'string' && value != null
+            ? [key, String(value)]
+            : null;
+    }
+
+    if (!isRecord(row)) {
+        return null;
+    }
+
+    const { key, value } = row;
+    return typeof key === 'string' && value != null
+        ? [key, String(value)]
+        : null;
+}
+
 class ConfigRepository {
     #cache = new Map<string, string>();
     #ready = false;
@@ -40,8 +62,9 @@ class ConfigRepository {
 
         const rows = await commands.appConfigListValues();
         for (const row of rows) {
-            if (row.key && row.value != null) {
-                this.#cache.set(row.key, row.value);
+            const entry = normalizeConfigReadEntry(row);
+            if (entry) {
+                this.#cache.set(entry[0], entry[1]);
             }
         }
 

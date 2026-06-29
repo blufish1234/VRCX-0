@@ -10,11 +10,21 @@ import { normalizeString } from '@/shared/utils/string';
 import { normalizeLanguageOptionsFromConfig } from '@/shared/utils/userLanguage';
 
 import { resolvePlayerRowUserId } from './playerListRows';
+import type {
+    PlayerListProfileRecord,
+    PlayerListSourceRow
+} from './playerListTypes';
 
-function buildPlayerProfileIds(playerRows: any, currentUserId: any) {
+type LanguageOption = { key: string; value: string };
+type ProfileQueryResult = { data?: unknown };
+
+function buildPlayerProfileIds(
+    playerRows: readonly PlayerListSourceRow[],
+    currentUserId: unknown
+) {
     const currentUserKey = normalizeString(currentUserId);
-    const ids = [];
-    const seen = new Set();
+    const ids: string[] = [];
+    const seen = new Set<string>();
 
     for (const row of Array.isArray(playerRows) ? playerRows : []) {
         const userId = resolvePlayerRowUserId(row);
@@ -28,17 +38,22 @@ function buildPlayerProfileIds(playerRows: any, currentUserId: any) {
     return ids;
 }
 
-function mapProfileQueryResults(userIds: any, results: any) {
-    const profilesByUserId: any = {};
+function mapProfileQueryResults(
+    userIds: readonly string[],
+    results: readonly ProfileQueryResult[]
+) {
+    const profilesByUserId: Record<string, PlayerListProfileRecord> = {};
 
     for (const [index, result] of results.entries()) {
         if (!result.data) {
             continue;
         }
 
-        const profile = userProfileRepository.normalize(result.data);
+        const profile = userProfileRepository.normalize(
+            result.data
+        ) as PlayerListProfileRecord | null;
         const userId = normalizeString(profile?.id || userIds[index]);
-        if (userId) {
+        if (userId && profile) {
             profilesByUserId[userId] = profile;
         }
     }
@@ -50,8 +65,14 @@ export function usePlayerListProfileData({
     currentUserEndpoint,
     currentUserId,
     playerSourceRows
-}: any) {
-    const [languageOptions, setLanguageOptions] = useState<any[]>([]);
+}: {
+    currentUserEndpoint?: string;
+    currentUserId?: unknown;
+    playerSourceRows: PlayerListSourceRow[];
+}) {
+    const [languageOptions, setLanguageOptions] = useState<LanguageOption[]>(
+        []
+    );
 
     useEffect(() => {
         let active = true;
@@ -59,7 +80,7 @@ export function usePlayerListProfileData({
 
         vrchatAuthRepository
             .getConfig({ endpoint: currentUserEndpoint })
-            .then((response: any) => {
+            .then((response) => {
                 if (!active) {
                     return;
                 }
@@ -80,8 +101,7 @@ export function usePlayerListProfileData({
     }, [currentUserEndpoint]);
 
     const languageOptionsMap = useMemo(
-        () =>
-            new Map(languageOptions.map((option: any) => [option.key, option])),
+        () => new Map(languageOptions.map((option) => [option.key, option])),
         [languageOptions]
     );
     const playerProfileIds = useMemo(
@@ -92,7 +112,7 @@ export function usePlayerListProfileData({
         endpoint: currentUserEndpoint
     });
     const profilesByUserId = useQueries({
-        queries: playerProfileIds.map((userId: any) => {
+        queries: playerProfileIds.map((userId) => {
             return {
                 enabled: Boolean(userId),
                 gcTime: 300_000,
@@ -113,7 +133,7 @@ export function usePlayerListProfileData({
                 staleTime: 0
             };
         }),
-        combine: (results: any) =>
+        combine: (results: ProfileQueryResult[]) =>
             mapProfileQueryResults(playerProfileIds, results)
     });
 

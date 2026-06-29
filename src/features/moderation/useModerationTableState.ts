@@ -1,3 +1,4 @@
+import type { PaginationState } from '@tanstack/react-table';
 import { useEffect, useRef, useState } from 'react';
 
 import {
@@ -53,7 +54,7 @@ export function useModerationTableState({
     const [columnOrderLocked, setColumnOrderLocked] = useState(
         () => persistedState.columnOrderLocked === true
     );
-    const [pagination, setPagination] = useState(() => ({
+    const [pagination, setPagination] = useState<PaginationState>(() => ({
         pageIndex: 0,
         pageSize: resolveModerationPageSize(
             persistedState.pageSize,
@@ -68,7 +69,7 @@ export function useModerationTableState({
             getTablePageSizesPreference(MODERATION_DEFAULT_PAGE_SIZES),
             getTablePageSizePreference(20)
         ])
-            .then(([nextPageSizes, nextPageSize]: any) => {
+            .then(([nextPageSizes, nextPageSize]) => {
                 if (!active) {
                     return;
                 }
@@ -94,7 +95,7 @@ export function useModerationTableState({
                       )
                     : resolvedConfiguredPageSize;
                 setPageSizes(resolvedPageSizes);
-                setPagination((current: any) => ({
+                setPagination((current) => ({
                     ...current,
                     pageSize: resolvedActivePageSize
                 }));
@@ -113,7 +114,7 @@ export function useModerationTableState({
             tablePageSizesPreference
         );
         setPageSizes(resolvedPageSizes);
-        setPagination((current: any) => {
+        setPagination((current) => {
             const pageSize = resolveModerationPageSize(
                 current.pageSize,
                 resolvedPageSizes
@@ -162,7 +163,7 @@ export function useModerationTableState({
     }, [columnOrder, columnOrderLocked, columnSizing, columnVisibility]);
 
     useEffect(() => {
-        setPagination((current: any) => ({
+        setPagination((current) => ({
             ...current,
             pageIndex: 0
         }));
@@ -174,14 +175,14 @@ export function useModerationTableState({
             Math.ceil(filteredRowsLength / pagination.pageSize) - 1
         );
         if (pagination.pageIndex > maxPageIndex) {
-            setPagination((current: any) => ({
+            setPagination((current) => ({
                 ...current,
                 pageIndex: maxPageIndex
             }));
         }
     }, [filteredRowsLength, pagination.pageIndex, pagination.pageSize]);
 
-    function handlePageSizeChange(value: any) {
+    function handlePageSizeChange(value: unknown) {
         const nextPageSize = resolveModerationPageSize(
             value,
             pageSizes,

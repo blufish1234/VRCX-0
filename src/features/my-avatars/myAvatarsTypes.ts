@@ -1,3 +1,5 @@
+import type { AvatarProfileRecord } from '@/repositories/avatarProfileRepository';
+
 export type MyAvatarsLoadStatus = 'idle' | 'running' | 'ready' | 'error';
 
 export type MyAvatarsViewMode = 'grid' | 'table';
@@ -11,22 +13,24 @@ export type MyAvatarsAuthTarget = {
 
 export type MyAvatarTag = {
     tag: string;
-    [key: string]: any;
+    color?: string | null;
 };
 
-export type MyAvatarRow = {
+type MyAvatarUnityPackage = Record<string, unknown>;
+
+export type MyAvatarRow = Partial<AvatarProfileRecord> & {
     id?: string;
     name?: string;
     releaseStatus?: string;
     thumbnailImageUrl?: string;
     imageUrl?: string;
-    unityPackages?: any[];
+    unityPackages?: MyAvatarUnityPackage[];
     version?: number;
     updated_at?: string;
     created_at?: string;
     $tags?: MyAvatarTag[];
     $timeSpent?: number;
-    [key: string]: any;
+    [key: string]: unknown;
 };
 
 export type MyAvatarAction =

@@ -1,5 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import {
+    useEffect,
+    useRef,
+    useState,
+    type ComponentProps,
+    type ReactNode
+} from 'react';
 
+import type { SidebarFriendRecord } from '@/components/sidebar/friends-sidebar/friendsSidebarModel';
 import { cn } from '@/lib/utils';
 import { nextHoverCardToken, useHoverCardStore } from '@/state/hoverCardStore';
 import {
@@ -16,6 +23,17 @@ const MODAL_OVERLAY_SELECTOR =
 const MODAL_CONTENT_SELECTOR =
     '[data-slot="dialog-content"],[data-slot="alert-dialog-content"],[data-slot="sheet-content"]';
 
+type UserHoverCardProps = {
+    userId?: unknown;
+    seed?: SidebarFriendRecord | Record<string, unknown> | null;
+    openDelay?: number;
+    closeDelay?: number;
+    side?: ComponentProps<typeof HoverCardContent>['side'];
+    align?: ComponentProps<typeof HoverCardContent>['align'];
+    disabled?: boolean;
+    children: ReactNode;
+};
+
 export function UserHoverCard({
     userId,
     seed = null,
@@ -25,7 +43,7 @@ export function UserHoverCard({
     align = 'center',
     disabled = false,
     children
-}: any) {
+}: UserHoverCardProps) {
     const [open, setOpen] = useState(false);
     const [scrollClosed, setScrollClosed] = useState(false);
     const [token] = useState(nextHoverCardToken);
