@@ -40,6 +40,13 @@
             "saved": "保存しました",
             "allow_writes": "書き込み操作を許可",
             "allow_writes_description": "メモやお気に入りの変更を許可します。既定はオフ。悪意あるフレンドの自己紹介に誘導される恐れがあります。",
+            "playbook_mode": "分析モード",
+            "playbook_mode_description": "アシスタントがツールをどう使って回答するかを制御します。通常は自動でOK。ガイド：非力なローカルモデルを最適なツールへ導き、回答を安定させます。オープン：全ツールを開放し、強力なモデルが自由に、より深く分析できます。",
+            "playbook_mode_auto": "自動（エンドポイント基準）",
+            "playbook_mode_guided": "ガイド（ローカル / 非力なモデル）",
+            "playbook_mode_open": "オープン（強力なモデル）",
+            "disable_thinking": "思考を無効化",
+            "disable_thinking_description": "モデルの隠れた推論チェーンをスキップします（例：Qwen の /no_think）。ツール駆動のローカルモデルに推奨——大幅に高速化し、この用途では品質低下はほぼありません。",
             "privacy_title": "プライバシー",
             "privacy_local": "リクエストはこの PC 上のローカルエンドポイントに送信され、交流データは外部に出ません。",
             "privacy_remote": "オンラインの AI サービスを使うとデータが漏れる可能性があります。慎重に操作してください。"

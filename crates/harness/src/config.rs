@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use vrcx_0_integrations::llm::LlmClient;
 use vrcx_0_persistence::config::ConfigRepository;
 
@@ -8,8 +9,35 @@ pub const ASSISTANT_API_KEY_CONFIG_KEY: &str = "assistant.apiKey";
 pub const ASSISTANT_MODEL_CONFIG_KEY: &str = "assistant.model";
 pub const ASSISTANT_ALLOW_WRITES_CONFIG_KEY: &str = "assistant.allowWrites";
 pub const ASSISTANT_DISABLE_THINKING_CONFIG_KEY: &str = "assistant.disableThinking";
+pub const ASSISTANT_PLAYBOOK_MODE_CONFIG_KEY: &str = "assistant.playbookMode";
 
 const DEFAULT_BASE_URL: &str = "https://api.openai.com/v1";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "lowercase")]
+pub enum PlaybookMode {
+    Auto,
+    Guided,
+    Open,
+}
+
+impl PlaybookMode {
+    fn parse(raw: &str) -> Self {
+        match raw.trim() {
+            "guided" => Self::Guided,
+            "open" => Self::Open,
+            _ => Self::Auto,
+        }
+    }
+
+    pub(crate) fn as_config_str(self) -> &'static str {
+        match self {
+            Self::Auto => "auto",
+            Self::Guided => "guided",
+            Self::Open => "open",
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct AssistantConfig {
@@ -18,6 +46,7 @@ pub struct AssistantConfig {
     pub model: String,
     pub allow_writes: bool,
     pub disable_thinking: bool,
+    pub playbook_mode: PlaybookMode,
 }
 
 impl AssistantConfig {
@@ -27,12 +56,15 @@ impl AssistantConfig {
         let model = config.get_string(ASSISTANT_MODEL_CONFIG_KEY, "")?;
         let allow_writes = config.get_bool(ASSISTANT_ALLOW_WRITES_CONFIG_KEY, false)?;
         let disable_thinking = config.get_bool(ASSISTANT_DISABLE_THINKING_CONFIG_KEY, true)?;
+        let playbook_mode =
+            PlaybookMode::parse(&config.get_string(ASSISTANT_PLAYBOOK_MODE_CONFIG_KEY, "auto")?);
         Ok(Self {
             base_url: base_url.trim().to_string(),
             api_key: deobfuscate_api_key(api_key.trim()),
             model: model.trim().to_string(),
             allow_writes,
             disable_thinking,
+            playbook_mode,
         })
     }
 
@@ -45,6 +77,14 @@ impl AssistantConfig {
     pub fn is_local(&self) -> bool {
         let lowered = self.base_url.to_ascii_lowercase();
         lowered.contains("localhost") || lowered.contains("127.0.0.1") || lowered.contains("[::1]")
+    }
+
+    pub fn should_apply_playbook(&self) -> bool {
+        match self.playbook_mode {
+            PlaybookMode::Guided => true,
+            PlaybookMode::Open => false,
+            PlaybookMode::Auto => self.is_local(),
+        }
     }
 
     pub fn build_client(&self) -> Result<LlmClient, HarnessError> {

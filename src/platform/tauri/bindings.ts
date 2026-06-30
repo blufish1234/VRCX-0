@@ -319,13 +319,17 @@ export const commands = {
         baseUrl: string,
         apiKey: string | null,
         model: string,
-        allowWrites: boolean
+        allowWrites: boolean,
+        playbookMode: PlaybookMode,
+        disableThinking: boolean
     ): Promise<AssistantConfigStatus> {
         return await TAURI_INVOKE('app__assistant_set_config', {
             baseUrl,
             apiKey,
             model,
-            allowWrites
+            allowWrites,
+            playbookMode,
+            disableThinking
         });
     },
     async appOverlayActivityDefinitionsGet(): Promise<
@@ -2841,6 +2845,8 @@ export type AssistantConfigStatus = {
     model: string;
     isLocal: boolean;
     allowWrites: boolean;
+    playbookMode: PlaybookMode;
+    disableThinking: boolean;
 };
 export type AssistantDeltaEvent = {
     sessionId: string;
@@ -3635,6 +3641,7 @@ export type ParsedLocation = {
     strict: boolean;
     ageGate: boolean;
 };
+export type PlaybookMode = 'auto' | 'guided' | 'open';
 export type PlayerDetail = {
     id?: string;
     displayName?: string;

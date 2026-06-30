@@ -40,6 +40,13 @@
             "saved": "Saved",
             "allow_writes": "Allow write actions",
             "allow_writes_description": "Let the assistant edit notes and favorites. Off by default; a crafted friend bio could trick it into unwanted changes.",
+            "playbook_mode": "Analysis mode",
+            "playbook_mode_description": "Controls how the assistant uses tools to answer. Auto is the default. Guided: steers a weaker local model to the most relevant tool for a steadier answer. Open: opens every tool so a stronger model can analyze freely and dig deeper.",
+            "playbook_mode_auto": "Auto (by endpoint)",
+            "playbook_mode_guided": "Guided (local / weak models)",
+            "playbook_mode_open": "Open (strong models)",
+            "disable_thinking": "Disable thinking",
+            "disable_thinking_description": "Skip the model's hidden reasoning chain (e.g. Qwen /no_think). Recommended for tool-driven local models — much faster with little quality loss here.",
             "privacy_title": "Privacy",
             "privacy_local": "Requests go to a local endpoint on this machine. Your social data does not leave your computer.",
             "privacy_remote": "Using an online AI service may expose your data. Proceed with caution."

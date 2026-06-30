@@ -40,6 +40,13 @@
             "saved": "Salvo",
             "allow_writes": "Permitir ações de escrita",
             "allow_writes_description": "Permite que o assistente edite notas e favoritos. Desativado por padrão; a bio manipulada de um amigo poderia induzi-lo a alterações indesejadas.",
+            "playbook_mode": "Modo de análise",
+            "playbook_mode_description": "Controla como o assistente usa as ferramentas para responder. Auto por padrão. Guiado: direciona um modelo local mais fraco para a ferramenta mais relevante, para uma resposta mais confiável. Aberto: abre todas as ferramentas para que um modelo mais forte analise livremente e com mais profundidade.",
+            "playbook_mode_auto": "Auto (pelo endpoint)",
+            "playbook_mode_guided": "Guiado (modelos locais / fracos)",
+            "playbook_mode_open": "Aberto (modelos fortes)",
+            "disable_thinking": "Desativar o raciocínio",
+            "disable_thinking_description": "Pula a cadeia de raciocínio oculta do modelo (ex.: /no_think do Qwen). Recomendado para modelos locais baseados em ferramentas — muito mais rápido e com pouca perda de qualidade aqui.",
             "privacy_title": "Privacidade",
             "privacy_local": "As requisições vão para um endpoint local nesta máquina. Seus dados sociais não saem do seu computador.",
             "privacy_remote": "Usar um serviço de IA online pode expor seus dados. Prossiga com cautela."

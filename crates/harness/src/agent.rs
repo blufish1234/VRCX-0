@@ -9,6 +9,7 @@ use vrcx_0_mcp::{InProcessMcpTools, ToolCallOutcome};
 
 use crate::entities::{extract_entities, surfaced_entities, Entity};
 use crate::events::AssistantEmitter;
+use crate::playbook;
 use crate::session::{ActiveTurn, Message, Role, SessionStore, TurnStatus};
 
 const MAX_TOOL_ROUNDS: usize = 6;
@@ -78,15 +79,34 @@ pub(crate) struct TurnContext {
     pub locale: Option<String>,
     pub cancel: CancellationToken,
     pub disable_thinking: bool,
+    pub apply_playbook: bool,
 }
 
 pub(crate) async fn run_turn(ctx: TurnContext) {
-    let mut working = build_context(&ctx);
+    let user_text = latest_user_message(&ctx).unwrap_or_default();
+    let route = if ctx.apply_playbook {
+        match playbook::classify_keyword(&user_text) {
+            Some(pb) => Some(pb),
+            None => tokio::select! {
+                pb = playbook::classify_llm(&ctx.client, &user_text) => pb,
+                _ = ctx.cancel.cancelled() => return finish_cancelled(&ctx),
+            },
+        }
+    } else {
+        None
+    };
+    let playbook_tools = route
+        .map(|pb| pb.filter_tools(ctx.tool_defs.as_slice()))
+        .filter(|tools| !tools.is_empty());
+    let route = route.filter(|_| playbook_tools.is_some());
+    let mut working = build_context(&ctx, route);
+    let tool_defs = playbook_tools
+        .as_deref()
+        .unwrap_or(ctx.tool_defs.as_slice());
     let mut collected: Vec<Entity> = Vec::new();
     let mut final_answer = String::new();
     let mut used_tools = false;
     let mut last_tool_summary: Option<String> = None;
-    let user_text = latest_user_message(&ctx).unwrap_or_default();
     let mut dispatched_tools = HashSet::new();
 
     for _round in 0..MAX_TOOL_ROUNDS {
@@ -96,11 +116,9 @@ pub(crate) async fn run_turn(ctx: TurnContext) {
 
         let turn = {
             let emitter = &ctx.emitter;
-            let stream = ctx
-                .client
-                .stream_chat(&working, ctx.tool_defs.as_slice(), |delta| {
-                    emitter.delta(delta);
-                });
+            let stream = ctx.client.stream_chat(&working, tool_defs, |delta| {
+                emitter.delta(delta);
+            });
             tokio::pin!(stream);
             tokio::select! {
                 result = &mut stream => result,
@@ -236,11 +254,14 @@ user's local time.",
     )
 }
 
-fn build_context(ctx: &TurnContext) -> Vec<ChatMessage> {
+fn build_context(ctx: &TurnContext, route: Option<playbook::Playbook>) -> Vec<ChatMessage> {
     let mut working = vec![
         ChatMessage::system(SYSTEM_PROMPT),
         ChatMessage::system(current_time_directive(Local::now().fixed_offset())),
     ];
+    if let Some(pb) = route {
+        working.push(ChatMessage::system(pb.constraint_prompt()));
+    }
     if ctx.disable_thinking {
         working.push(ChatMessage::system("/no_think"));
     }

@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use tauri::State;
-use vrcx_0_harness::{AssistantConfigStatus, Session, SessionSummary};
+use vrcx_0_harness::{AssistantConfigStatus, PlaybookMode, Session, SessionSummary};
 
 use crate::error::AppError;
 use crate::state::AppState;
@@ -114,10 +114,19 @@ pub async fn app__assistant_set_config(
     apiKey: Option<String>,
     model: String,
     allowWrites: bool,
+    playbookMode: PlaybookMode,
+    disableThinking: bool,
 ) -> Result<AssistantConfigStatus, AppError> {
     state
         .assistant()
         .await?
-        .set_config(baseUrl, apiKey, model, allowWrites)
+        .set_config(
+            baseUrl,
+            apiKey,
+            model,
+            allowWrites,
+            playbookMode,
+            disableThinking,
+        )
         .map_err(AppError::from)
 }

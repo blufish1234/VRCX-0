@@ -40,6 +40,13 @@
             "saved": "저장됨",
             "allow_writes": "쓰기 작업 허용",
             "allow_writes_description": "메모와 즐겨찾기 변경을 허용합니다. 기본값은 꺼짐. 악의적인 친구의 소개글에 속아 변경될 수 있습니다.",
+            "playbook_mode": "분석 모드",
+            "playbook_mode_description": "어시스턴트가 도구를 사용해 답하는 방식을 제어합니다. 기본값은 자동. 가이드: 약한 로컬 모델을 가장 알맞은 도구로 이끌어 답변을 더 안정적으로 만듭니다. 개방: 모든 도구를 열어 강한 모델이 자유롭게, 더 깊이 분석합니다.",
+            "playbook_mode_auto": "자동 (엔드포인트 기준)",
+            "playbook_mode_guided": "가이드 (로컬 / 약한 모델)",
+            "playbook_mode_open": "개방 (강한 모델)",
+            "disable_thinking": "사고 비활성화",
+            "disable_thinking_description": "모델의 숨겨진 추론 과정을 건너뜁니다(예: Qwen의 /no_think). 도구 기반 로컬 모델에 권장 — 훨씬 빠르며 이 용도에서는 품질 손실이 거의 없습니다.",
             "privacy_title": "개인정보",
             "privacy_local": "요청은 이 PC의 로컬 엔드포인트로 전송되며 소셜 데이터는 컴퓨터를 벗어나지 않습니다.",
             "privacy_remote": "온라인 AI 서비스를 사용하면 데이터가 유출될 수 있습니다. 신중하게 사용하세요."

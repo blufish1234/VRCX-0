@@ -12,8 +12,10 @@ use vrcx_0_runtime_host::RuntimeHostState;
 
 use crate::agent::{run_turn, TurnContext};
 use crate::config::{
-    obfuscate_api_key, AssistantConfig, ASSISTANT_ALLOW_WRITES_CONFIG_KEY,
-    ASSISTANT_API_KEY_CONFIG_KEY, ASSISTANT_BASE_URL_CONFIG_KEY, ASSISTANT_MODEL_CONFIG_KEY,
+    obfuscate_api_key, AssistantConfig, PlaybookMode, ASSISTANT_ALLOW_WRITES_CONFIG_KEY,
+    ASSISTANT_API_KEY_CONFIG_KEY, ASSISTANT_BASE_URL_CONFIG_KEY,
+    ASSISTANT_DISABLE_THINKING_CONFIG_KEY, ASSISTANT_MODEL_CONFIG_KEY,
+    ASSISTANT_PLAYBOOK_MODE_CONFIG_KEY,
 };
 
 /// Tools that mutate state (local DB or the VRChat account). They are hidden
@@ -45,6 +47,8 @@ pub struct AssistantConfigStatus {
     pub model: String,
     pub is_local: bool,
     pub allow_writes: bool,
+    pub playbook_mode: PlaybookMode,
+    pub disable_thinking: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -80,6 +84,8 @@ impl AssistantController {
             model: config.model.clone(),
             is_local: config.is_local(),
             allow_writes: config.allow_writes,
+            playbook_mode: config.playbook_mode,
+            disable_thinking: config.disable_thinking,
         })
     }
 
@@ -89,9 +95,17 @@ impl AssistantController {
         api_key: Option<String>,
         model: String,
         allow_writes: bool,
+        playbook_mode: PlaybookMode,
+        disable_thinking: bool,
     ) -> Result<AssistantConfigStatus, HarnessError> {
         self.config
             .set_bool(ASSISTANT_ALLOW_WRITES_CONFIG_KEY, allow_writes)?;
+        self.config
+            .set_bool(ASSISTANT_DISABLE_THINKING_CONFIG_KEY, disable_thinking)?;
+        self.config.set_string(
+            ASSISTANT_PLAYBOOK_MODE_CONFIG_KEY,
+            playbook_mode.as_config_str(),
+        )?;
         let previous_base_url = self.config.get_string(ASSISTANT_BASE_URL_CONFIG_KEY, "")?;
         let base_url = base_url.trim();
         self.config
@@ -224,6 +238,7 @@ impl AssistantController {
             locale,
             cancel,
             disable_thinking: assistant_config.disable_thinking,
+            apply_playbook: assistant_config.should_apply_playbook(),
         };
 
         let cleanup = CancelCleanup {

@@ -4,7 +4,8 @@ import { toast } from 'sonner';
 
 import {
     commands,
-    type AssistantConfigStatus
+    type AssistantConfigStatus,
+    type PlaybookMode
 } from '@/platform/tauri/bindings';
 import { recordAssistantApiKeyConfigured } from '@/services/telemetry/telemetryAssistantUsage';
 import { Button } from '@/ui/shadcn/button';
@@ -31,6 +32,8 @@ export function AssistantSettingsGroup() {
     const [models, setModels] = useState<string[]>([]);
     const [detecting, setDetecting] = useState(false);
     const [allowWrites, setAllowWrites] = useState(false);
+    const [playbookMode, setPlaybookMode] = useState<PlaybookMode>('auto');
+    const [disableThinking, setDisableThinking] = useState(true);
 
     useEffect(() => {
         let active = true;
@@ -44,6 +47,8 @@ export function AssistantSettingsGroup() {
                 setBaseUrl(next.baseUrl);
                 setModel(next.model);
                 setAllowWrites(next.allowWrites);
+                setPlaybookMode(next.playbookMode);
+                setDisableThinking(next.disableThinking);
             })
             .catch(() => {});
         return () => {
@@ -83,7 +88,9 @@ export function AssistantSettingsGroup() {
                 baseUrl,
                 hasNewApiKey ? apiKey : null,
                 model,
-                allowWrites
+                allowWrites,
+                playbookMode,
+                disableThinking
             );
             if (hasNewApiKey) {
                 recordAssistantApiKeyConfigured();
@@ -175,6 +182,45 @@ export function AssistantSettingsGroup() {
                 <Switch
                     checked={allowWrites}
                     onCheckedChange={setAllowWrites}
+                />
+            </Field>
+            <Field
+                label={t('assistant.settings.playbook_mode')}
+                description={t('assistant.settings.playbook_mode_description')}
+            >
+                <Select
+                    value={playbookMode}
+                    onValueChange={(value) =>
+                        setPlaybookMode(value as PlaybookMode)
+                    }
+                >
+                    <SelectTrigger className="w-full max-w-md">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectGroup>
+                            <SelectItem value="auto">
+                                {t('assistant.settings.playbook_mode_auto')}
+                            </SelectItem>
+                            <SelectItem value="guided">
+                                {t('assistant.settings.playbook_mode_guided')}
+                            </SelectItem>
+                            <SelectItem value="open">
+                                {t('assistant.settings.playbook_mode_open')}
+                            </SelectItem>
+                        </SelectGroup>
+                    </SelectContent>
+                </Select>
+            </Field>
+            <Field
+                label={t('assistant.settings.disable_thinking')}
+                description={t(
+                    'assistant.settings.disable_thinking_description'
+                )}
+            >
+                <Switch
+                    checked={disableThinking}
+                    onCheckedChange={setDisableThinking}
                 />
             </Field>
             <Field
