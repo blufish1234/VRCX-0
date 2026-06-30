@@ -98,9 +98,15 @@ pub(crate) async fn run_turn(ctx: TurnContext) {
         .map(|pb| pb.filter_tools(ctx.tool_defs.as_slice()))
         .filter(|tools| !tools.is_empty());
     let route = route.filter(|_| playbook_tools.is_some());
+    // On a classify miss while a playbook mode is active, fall back to the
+    // curated weak-model toolset (full minus advanced/non-answer tools) rather
+    // than the whole surface. Open mode keeps everything.
+    let fallback_tools = (ctx.apply_playbook && playbook_tools.is_none())
+        .then(|| playbook::weak_fallback_tools(ctx.tool_defs.as_slice()));
     let mut working = build_context(&ctx, route);
     let tool_defs = playbook_tools
         .as_deref()
+        .or(fallback_tools.as_deref())
         .unwrap_or(ctx.tool_defs.as_slice());
     let mut collected: Vec<Entity> = Vec::new();
     let mut final_answer = String::new();

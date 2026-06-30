@@ -27,6 +27,23 @@ impl Playbook {
     }
 }
 
+/// Tools kept out of a weak model's fallback toolset when no playbook matched:
+/// the raw mutual-friend graph (an answer-shaped tool supersedes it for the
+/// common question and weak models drown in its nodes+edges) and the
+/// graph-refresh action (infrastructure, not a question to answer). Strong
+/// models in open mode are never narrowed and keep these.
+const WEAK_FALLBACK_DENYLIST: &[&str] = &["get_social_graph", "refresh_mutual_graph"];
+
+/// Drop the advanced/non-answer tools above from the full toolset. Used only on
+/// a classify miss while a playbook mode is active; open mode keeps everything.
+pub(crate) fn weak_fallback_tools(tools: &[ToolDefinition]) -> Vec<ToolDefinition> {
+    tools
+        .iter()
+        .filter(|tool| !WEAK_FALLBACK_DENYLIST.contains(&tool.name.as_str()))
+        .cloned()
+        .collect()
+}
+
 struct Intent {
     label: &'static str,
     description: &'static str,
@@ -298,6 +315,26 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn weak_fallback_drops_advanced_keeps_leaf_and_analyze() {
+        let tools = vec![
+            tool("get_social_graph"),
+            tool("refresh_mutual_graph"),
+            tool("get_friend_circles"),
+            tool("find_user"),
+            tool("get_copresence_summary"),
+        ];
+        let names: Vec<String> = weak_fallback_tools(&tools)
+            .into_iter()
+            .map(|definition| definition.name)
+            .collect();
+        assert!(!names.contains(&"get_social_graph".to_string()));
+        assert!(!names.contains(&"refresh_mutual_graph".to_string()));
+        assert!(names.contains(&"get_friend_circles".to_string()));
+        assert!(names.contains(&"find_user".to_string()));
+        assert!(names.contains(&"get_copresence_summary".to_string()));
     }
 
     #[test]
