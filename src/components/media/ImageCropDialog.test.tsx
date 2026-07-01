@@ -91,7 +91,6 @@ vi.mock('@/ui/shadcn/checkbox', async () => {
     };
 });
 
-// lucide-react icons
 vi.mock('lucide-react', async () => {
     const React = await import('react');
     const Icon = (props: any) => React.createElement('span', props);

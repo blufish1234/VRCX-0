@@ -460,7 +460,7 @@ async function restoreAuthSnapshotOnFailure(
             await webRepository.clearAuthCookies();
         }
     } catch {
-        // ignore cleanup failure and still surface the original auth error
+        // no-op
     }
 
     await resetCurrentUserRuntimeAuth();

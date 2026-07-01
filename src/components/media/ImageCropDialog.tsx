@@ -204,8 +204,6 @@ export function ImageCropDialog({
         setCroppedAreaPixels(pixels);
     }, []);
 
-    // toolbar
-
     const rotateBy = useCallback(
         (delta: number) =>
             setRotation((r) => (((r + delta) % 360) + 360) % 360),
@@ -242,8 +240,6 @@ export function ImageCropDialog({
         []
     );
     const reset = resetTransforms;
-
-    // confirm
 
     async function confirmCrop() {
         const img = originalImgRef.current;
@@ -326,8 +322,6 @@ export function ImageCropDialog({
             <TooltipContent>{label}</TooltipContent>
         </Tooltip>
     );
-
-    // render
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
