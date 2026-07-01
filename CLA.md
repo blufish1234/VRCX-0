@@ -11,8 +11,9 @@ contributions.
 This Agreement allows VRCX-0 to be distributed under its open-source license and,
 where the Maintainer chooses, under other license terms.
 
-By making a Contribution to the Project after signing this Agreement, You accept
-and agree to the following terms for Your present and future Contributions.
+By signing this Agreement, You accept and agree to the following terms for all of
+Your Contributions to the Project, including any You made before signing and any
+You make afterward.
 
 ## 1. Definitions
 
@@ -146,8 +147,8 @@ version may be recorded in the Project repository, including under:
 `signatures/version1/cla.json`
 
 You only need to sign this version once. After signing, this Agreement applies to
-Your future Contributions to the Project unless a later written agreement says
-otherwise.
+all of Your Contributions to the Project, whether made before or after You sign,
+unless a later written agreement says otherwise.
 
 ## 10. CLA Version
 
