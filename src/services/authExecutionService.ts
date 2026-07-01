@@ -744,12 +744,7 @@ export async function executeSavedCredentialLogin(
     } catch (error) {
         const normalizedError: AuthExecutionError =
             error instanceof Error ? error : new Error(String(error));
-        if (
-            userId &&
-            isVrchatInvalidCredentialsError(normalizedError, {
-                credentialSubmission: true
-            })
-        ) {
+        if (userId && isVrchatInvalidCredentialsError(normalizedError)) {
             await webRepository.clearCookies();
             await resetCurrentUserRuntimeAuth();
             setSignedOutSessionState();
