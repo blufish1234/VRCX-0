@@ -1,3 +1,5 @@
+import { compareReleaseVersions } from '@/shared/utils/releaseVersion';
+
 export type TelemetryErrorDetailKind =
     | 'load_fail'
     | 'render_crash'
@@ -141,7 +143,10 @@ export function serializeTelemetryErrorDetails(
         .sort(
             (a, b) =>
                 b.count - a.count ||
-                (a.appVersion ?? '').localeCompare(b.appVersion ?? '') ||
+                compareReleaseVersions(
+                    a.appVersion ?? '',
+                    b.appVersion ?? ''
+                ) ||
                 a.signature.localeCompare(b.signature)
         )
         .slice(0, limit);
