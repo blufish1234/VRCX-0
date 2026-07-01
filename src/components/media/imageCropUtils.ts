@@ -34,6 +34,26 @@ export function isNoopCrop(
     );
 }
 
+// react-easy-crop's `transform` prop replaces its default entirely, so the pan
+// (translate), rotation (rotateZ) and zoom (scale) must be rebuilt here or the
+// preview loses them; the flips are layered on top as rotateY/rotateX.
+export function buildMediaTransform(
+    cropX: number,
+    cropY: number,
+    rotation: number,
+    flipH: boolean,
+    flipV: boolean,
+    zoom: number
+): string {
+    return [
+        `translate(${cropX}px, ${cropY}px)`,
+        `rotateZ(${rotation}deg)`,
+        `rotateY(${flipH ? 180 : 0}deg)`,
+        `rotateX(${flipV ? 180 : 0}deg)`,
+        `scale(${zoom})`
+    ].join(' ');
+}
+
 function applyTransforms(
     img: HTMLImageElement | HTMLCanvasElement,
     angleDeg: number,

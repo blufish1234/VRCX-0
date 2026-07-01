@@ -10,7 +10,14 @@ import {
     ZoomIn,
     ZoomOut
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+    type ReactNode,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState
+} from 'react';
 import Cropper, { type Area } from 'react-easy-crop';
 import { useTranslation } from 'react-i18next';
 
@@ -27,13 +34,16 @@ import {
 } from '@/ui/shadcn/dialog';
 import { Field, FieldGroup, FieldLabel } from '@/ui/shadcn/field';
 import { Input } from '@/ui/shadcn/input';
+import { Slider } from '@/ui/shadcn/slider';
 import { Spinner } from '@/ui/shadcn/spinner';
 
-import { cropImage, prepareImage } from './imageCropUtils';
+import { buildMediaTransform, cropImage, prepareImage } from './imageCropUtils';
 
-const ZOOM_MIN = 1;
-const ZOOM_MAX = 8;
-const ZOOM_STEP = 0.2;
+const ZOOM_MIN = 0.3;
+const ZOOM_MAX = 5;
+const ZOOM_DEFAULT = 1;
+const ZOOM_FACTOR = 1.2;
+const LOG_ZOOM_MAX = Math.log(ZOOM_MAX);
 const CONTAINER_STYLE = {
     containerStyle: { borderRadius: '0.5rem' }
 } as const;
@@ -58,7 +68,7 @@ export function ImageCropDialog({
     const [previewSrc, setPreviewSrc] = useState<string>('');
     const [cropperReady, setCropperReady] = useState(false);
     const [crop, setCrop] = useState({ x: 0, y: 0 });
-    const [zoom, setZoom] = useState(ZOOM_MIN);
+    const [zoom, setZoom] = useState(ZOOM_DEFAULT);
     const [rotation, setRotation] = useState(0);
     const [flipH, setFlipH] = useState(false);
     const [flipV, setFlipV] = useState(false);
@@ -81,9 +91,15 @@ export function ImageCropDialog({
         cropWhiteBorderField?.defaultChecked !== false;
     const aspect = Number(aspectRatio) || 1;
 
+    // Fixed mode keeps the image covering the crop frame (min zoom == fill); only
+    // free mode lets it shrink below the frame, mirroring the original's
+    // image-restriction stencil/none split.
+    const minZoom = fitWhole ? ZOOM_MIN : ZOOM_DEFAULT;
+    const logZoomMin = Math.log(minZoom);
+
     const resetTransforms = useCallback(() => {
         setCrop({ x: 0, y: 0 });
-        setZoom(ZOOM_MIN);
+        setZoom(ZOOM_DEFAULT);
         setRotation(0);
         setFlipH(false);
         setFlipV(false);
@@ -173,18 +189,31 @@ export function ImageCropDialog({
     const doFlipH = useCallback(() => setFlipH((v) => !v), []);
     const doFlipV = useCallback(() => setFlipV((v) => !v), []);
     const zoomIn = useCallback(
-        () => setZoom((z) => Math.min(ZOOM_MAX, +(z + ZOOM_STEP).toFixed(3))),
+        () => setZoom((z) => Math.min(ZOOM_MAX, z * ZOOM_FACTOR)),
         []
     );
     const zoomOut = useCallback(
-        () => setZoom((z) => Math.max(ZOOM_MIN, +(z - ZOOM_STEP).toFixed(3))),
+        () => setZoom((z) => Math.max(minZoom, z / ZOOM_FACTOR)),
+        [minZoom]
+    );
+    const onZoomSlider = useCallback(
+        (values: number[]) => {
+            const pct = values[0] ?? 0;
+            setZoom(
+                Math.exp(logZoomMin + (pct / 100) * (LOG_ZOOM_MAX - logZoomMin))
+            );
+        },
+        [logZoomMin]
+    );
+    const toggleFit = useCallback(
+        () =>
+            setFitWhole((f) => {
+                // Leaving free mode: clamp back so the image still fills the frame.
+                if (f) setZoom((z) => Math.max(z, ZOOM_DEFAULT));
+                return !f;
+            }),
         []
     );
-    const toggleFit = useCallback(() => {
-        setFitWhole((f) => !f);
-        setZoom(ZOOM_MIN);
-        setCrop({ x: 0, y: 0 });
-    }, []);
     const reset = resetTransforms;
 
     // confirm
@@ -226,75 +255,35 @@ export function ImageCropDialog({
     }
 
     const mediaTransform = useMemo(
-        () =>
-            [
-                `translate(${crop.x}px, ${crop.y}px)`,
-                `rotateZ(${rotation}deg)`,
-                `rotateY(${flipH ? 180 : 0}deg)`,
-                `rotateX(${flipV ? 180 : 0}deg)`,
-                `scale(${zoom})`
-            ].join(' '),
+        () => buildMediaTransform(crop.x, crop.y, rotation, flipH, flipV, zoom),
         [crop.x, crop.y, rotation, flipH, flipV, zoom]
     );
 
     const fitLabel = t(
-        fitWhole ? 'dialog.image_crop.mode_free' : 'dialog.image_crop.mode_fit'
+        fitWhole ? 'dialog.image_crop.mode_fit' : 'dialog.image_crop.mode_free'
     );
+    const toolsDisabled = !previewSrc || isConfirming;
+    const zoomSliderValue =
+        ((Math.log(zoom) - logZoomMin) / (LOG_ZOOM_MAX - logZoomMin)) * 100;
 
-    const tools = [
-        {
-            key: 'rotate_left',
-            onClick: rotateLeft,
-            label: t('dialog.image_crop.rotate_left'),
-            icon: <RotateCcw className="h-4 w-4" />
-        },
-        {
-            key: 'rotate_right',
-            onClick: rotateRight,
-            label: t('dialog.image_crop.rotate_right'),
-            icon: <RotateCw className="h-4 w-4" />
-        },
-        {
-            key: 'flip_h',
-            onClick: doFlipH,
-            label: t('dialog.image_crop.flip_h'),
-            icon: <FlipHorizontal2 className="h-4 w-4" />
-        },
-        {
-            key: 'flip_v',
-            onClick: doFlipV,
-            label: t('dialog.image_crop.flip_v'),
-            icon: <FlipVertical2 className="h-4 w-4" />
-        },
-        {
-            key: 'zoom_in',
-            onClick: zoomIn,
-            label: t('dialog.image_crop.zoom_in'),
-            icon: <ZoomIn className="h-4 w-4" />
-        },
-        {
-            key: 'zoom_out',
-            onClick: zoomOut,
-            label: t('dialog.image_crop.zoom_out'),
-            icon: <ZoomOut className="h-4 w-4" />
-        },
-        {
-            key: 'fit',
-            onClick: toggleFit,
-            label: fitLabel,
-            icon: fitWhole ? (
-                <Minimize2 className="h-4 w-4" />
-            ) : (
-                <Maximize2 className="h-4 w-4" />
-            )
-        },
-        {
-            key: 'reset',
-            onClick: reset,
-            label: t('dialog.image_crop.reset'),
-            icon: <RefreshCcw className="h-4 w-4" />
-        }
-    ];
+    const renderTool = (
+        key: string,
+        onClick: () => void,
+        label: string,
+        icon: ReactNode
+    ) => (
+        <Button
+            key={key}
+            variant="outline"
+            size="icon"
+            onClick={onClick}
+            disabled={toolsDisabled}
+            title={label}
+            aria-label={label}
+        >
+            {icon}
+        </Button>
+    );
 
     // render
 
@@ -327,7 +316,7 @@ export function ImageCropDialog({
                                     zoom={zoom}
                                     rotation={rotation}
                                     aspect={aspect}
-                                    minZoom={ZOOM_MIN}
+                                    minZoom={minZoom}
                                     maxZoom={ZOOM_MAX}
                                     objectFit={fitWhole ? 'contain' : 'cover'}
                                     restrictPosition={!fitWhole}
@@ -352,19 +341,68 @@ export function ImageCropDialog({
                                 defaultValue: 'Image crop toolbar'
                             })}
                         >
-                            {tools.map((tool) => (
-                                <Button
-                                    key={tool.key}
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={tool.onClick}
-                                    disabled={!previewSrc}
-                                    title={tool.label}
-                                    aria-label={tool.label}
-                                >
-                                    {tool.icon}
-                                </Button>
-                            ))}
+                            {renderTool(
+                                'rotate_left',
+                                rotateLeft,
+                                t('dialog.image_crop.rotate_left'),
+                                <RotateCcw className="h-4 w-4" />
+                            )}
+                            {renderTool(
+                                'rotate_right',
+                                rotateRight,
+                                t('dialog.image_crop.rotate_right'),
+                                <RotateCw className="h-4 w-4" />
+                            )}
+                            {renderTool(
+                                'flip_h',
+                                doFlipH,
+                                t('dialog.image_crop.flip_h'),
+                                <FlipHorizontal2 className="h-4 w-4" />
+                            )}
+                            {renderTool(
+                                'flip_v',
+                                doFlipV,
+                                t('dialog.image_crop.flip_v'),
+                                <FlipVertical2 className="h-4 w-4" />
+                            )}
+                            {renderTool(
+                                'zoom_out',
+                                zoomOut,
+                                t('dialog.image_crop.zoom_out'),
+                                <ZoomOut className="h-4 w-4" />
+                            )}
+                            <Slider
+                                className="w-28"
+                                min={0}
+                                max={100}
+                                step={1}
+                                value={[zoomSliderValue]}
+                                disabled={toolsDisabled}
+                                onValueChange={onZoomSlider}
+                                aria-label={t('dialog.image_crop.zoom_in')}
+                            />
+                            {renderTool(
+                                'zoom_in',
+                                zoomIn,
+                                t('dialog.image_crop.zoom_in'),
+                                <ZoomIn className="h-4 w-4" />
+                            )}
+                            {renderTool(
+                                'fit',
+                                toggleFit,
+                                fitLabel,
+                                fitWhole ? (
+                                    <Minimize2 className="h-4 w-4" />
+                                ) : (
+                                    <Maximize2 className="h-4 w-4" />
+                                )
+                            )}
+                            {renderTool(
+                                'reset',
+                                reset,
+                                t('dialog.image_crop.reset'),
+                                <RefreshCcw className="h-4 w-4" />
+                            )}
                         </div>
                     </FieldGroup>
 

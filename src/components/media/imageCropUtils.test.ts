@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { computeCropRect, isNoopCrop } from './imageCropUtils';
+import {
+    buildMediaTransform,
+    computeCropRect,
+    isNoopCrop
+} from './imageCropUtils';
 
 describe('computeCropRect', () => {
     it('returns preview-space pixels unchanged when previewScale is 1', () => {
@@ -46,5 +50,29 @@ describe('isNoopCrop', () => {
         expect(
             isNoopCrop({ x: 0, y: 0, width: 960, height: 540 }, 1920, 1080)
         ).toBe(false);
+    });
+});
+
+describe('buildMediaTransform', () => {
+    it('always keeps pan, rotation and zoom so the preview is not lost', () => {
+        const out = buildMediaTransform(10, -20, 90, false, false, 2);
+        expect(out).toContain('translate(10px, -20px)');
+        expect(out).toContain('rotateZ(90deg)');
+        expect(out).toContain('scale(2)');
+    });
+
+    it('applies horizontal and vertical flips independently', () => {
+        expect(buildMediaTransform(0, 0, 0, true, false, 1)).toContain(
+            'rotateY(180deg)'
+        );
+        expect(buildMediaTransform(0, 0, 0, false, true, 1)).toContain(
+            'rotateX(180deg)'
+        );
+    });
+
+    it('uses 0deg flips when not flipped', () => {
+        const out = buildMediaTransform(0, 0, 0, false, false, 1);
+        expect(out).toContain('rotateY(0deg)');
+        expect(out).toContain('rotateX(0deg)');
     });
 });

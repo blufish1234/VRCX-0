@@ -70,6 +70,14 @@ vi.mock('@/ui/shadcn/input', async () => {
     };
 });
 
+vi.mock('@/ui/shadcn/slider', async () => {
+    const React = await import('react');
+
+    return {
+        Slider: (props: any) => React.createElement('input', props)
+    };
+});
+
 vi.mock('@/ui/shadcn/checkbox', async () => {
     const React = await import('react');
 
