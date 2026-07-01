@@ -48,8 +48,7 @@ works of them.
 
 You also grant the Maintainer the right to license, sublicense, and distribute
 Your Contributions and derivative works of them under any license terms the
-Maintainer chooses, including open-source, commercial, proprietary, or
-closed-source license terms.
+Maintainer chooses.
 
 You retain ownership of the copyright in Your Contributions. This Agreement is a
 license, not an assignment.
@@ -100,8 +99,7 @@ identify the source, author if known, applicable license terms, and any
 restrictions of which You are personally aware.
 
 Third-party material whose license is incompatible with relicensing by the
-Maintainer, including material that cannot be used in proprietary or
-closed-source distributions, must not be submitted as part of a Contribution
+Maintainer under other terms must not be submitted as part of a Contribution
 unless the Maintainer has expressly agreed in writing.
 
 ## 6. Support and Warranty Disclaimer
