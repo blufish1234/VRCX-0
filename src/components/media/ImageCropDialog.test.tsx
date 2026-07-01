@@ -104,6 +104,7 @@ vi.mock('lucide-react', async () => {
         RefreshCcw: Icon,
         RotateCcw: Icon,
         RotateCw: Icon,
+        Upload: Icon,
         ZoomIn: Icon,
         ZoomOut: Icon
     };
