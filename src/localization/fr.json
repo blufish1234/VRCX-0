@@ -720,6 +720,10 @@
             },
             "dynamic": {
                 "value_copied": "{value} copié"
+            },
+            "context": {
+                "hide_user": "Masquer du Feed",
+                "unhide_user": "Ne plus masquer du Feed"
             }
         },
         "friends_locations": {
@@ -1872,6 +1876,15 @@
                 },
                 "favorites": {
                     "header": "Favoris"
+                },
+                "hidden_feed": {
+                    "header": "Utilisateurs masqués du Feed",
+                    "description": "Masque les utilisateurs sélectionnés du Feed sans supprimer les données enregistrées.",
+                    "add": "Ajouter un utilisateur",
+                    "search_placeholder": "Rechercher des utilisateurs",
+                    "empty": "Aucun utilisateur masqué du Feed.",
+                    "remove": "Retirer l'utilisateur masqué",
+                    "unknown_user": "Utilisateur inconnu"
                 }
             },
             "vr": {

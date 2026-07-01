@@ -733,6 +733,10 @@
             },
             "dynamic": {
                 "value_copied": "{value}をコピーしました"
+            },
+            "context": {
+                "hide_user": "Feedから非表示",
+                "unhide_user": "Feedの非表示を解除"
             }
         },
         "friends_locations": {
@@ -1881,6 +1885,15 @@
                 },
                 "favorites": {
                     "header": "お気に入り"
+                },
+                "hidden_feed": {
+                    "header": "Feedで非表示のユーザー",
+                    "description": "保存済みデータを削除せずに、選択したユーザーをFeedから非表示にします。",
+                    "add": "ユーザーを追加",
+                    "search_placeholder": "ユーザーを検索",
+                    "empty": "Feedで非表示のユーザーはいません。",
+                    "remove": "非表示ユーザーを削除",
+                    "unknown_user": "不明なユーザー"
                 }
             },
             "vr": {

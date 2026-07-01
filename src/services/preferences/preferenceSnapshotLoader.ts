@@ -11,6 +11,7 @@ import {
     normalizeAutoDeletePrintsLimit,
     normalizeDefaultLaunchMode,
     normalizeFeedTimeDisplayMode,
+    normalizeFeedHiddenUsers,
     normalizeTableLimits,
     normalizeTablePageSize,
     normalizeTablePageSizes,
@@ -139,6 +140,7 @@ export async function loadPreferenceSnapshot() {
         maxTableSize,
         searchLimit,
         localFavoriteFriendsGroups,
+        feedHiddenUsers,
         sharedFeedFilters,
         overlayActivityFilters,
         vrNotificationActivityFilters,
@@ -261,6 +263,7 @@ export async function loadPreferenceSnapshot() {
             DEFAULT_TABLE_LIMITS.searchLimit
         ),
         configRepository.getArray('localFavoriteFriendsGroups', []),
+        configRepository.getString('feedHiddenUsers', '[]'),
         configRepository.getString(
             'sharedFeedFilters',
             JSON.stringify(DEFAULT_PREFERENCES.sharedFeedFilters)
@@ -436,6 +439,7 @@ export async function loadPreferenceSnapshot() {
         localFavoriteFriendsGroups: normalizeStringList(
             localFavoriteFriendsGroups
         ),
+        feedHiddenUsers: normalizeFeedHiddenUsers(feedHiddenUsers),
         sharedFeedFilters: parsedSharedFeedFilters,
         overlayActivityFilters: parseOverlayActivityFiltersPreference(
             overlayActivityFilters,

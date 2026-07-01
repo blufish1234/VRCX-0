@@ -51,7 +51,11 @@
         },
         "feed": {
             "favorites_only_tooltip": "Lọc mỗi yêu thích",
-            "search_placeholder": "Tìm kiếm"
+            "search_placeholder": "Tìm kiếm",
+            "context": {
+                "hide_user": "Ẩn khỏi Feed",
+                "unhide_user": "Bỏ ẩn khỏi Feed"
+            }
         },
         "game_log": {
             "filter_placeholder": "Lọc",
@@ -215,6 +219,17 @@
                 "wrist_overlay": "Overlay trên cổ tay",
                 "discord_presence": "Hiển thị trên Discord",
                 "advanced": "Nâng cao"
+            },
+            "social": {
+                "hidden_feed": {
+                    "header": "Người dùng bị ẩn trong Feed",
+                    "description": "Ẩn người dùng đã chọn khỏi Feed mà không xóa dữ liệu đã lưu.",
+                    "add": "Thêm người dùng",
+                    "search_placeholder": "Tìm người dùng",
+                    "empty": "Không có người dùng nào bị ẩn trong Feed.",
+                    "remove": "Xóa người dùng bị ẩn",
+                    "unknown_user": "Người dùng không xác định"
+                }
             },
             "general": {
                 "general": {

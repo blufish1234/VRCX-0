@@ -733,6 +733,10 @@
             },
             "dynamic": {
                 "value_copied": "已复制{value}"
+            },
+            "context": {
+                "hide_user": "从 Feed 隐藏",
+                "unhide_user": "从 Feed 取消隐藏"
             }
         },
         "friends_locations": {
@@ -1885,6 +1889,15 @@
                 },
                 "favorites": {
                     "header": "收藏"
+                },
+                "hidden_feed": {
+                    "header": "Feed 隐藏用户",
+                    "description": "从 Feed 视图隐藏所选用户，但不会删除已保存数据。",
+                    "add": "添加用户",
+                    "search_placeholder": "搜索用户",
+                    "empty": "Feed 中没有隐藏用户。",
+                    "remove": "移除隐藏用户",
+                    "unknown_user": "未知用户"
                 }
             },
             "vr": {

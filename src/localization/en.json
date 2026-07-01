@@ -733,6 +733,10 @@
             },
             "dynamic": {
                 "value_copied": "{value} copied"
+            },
+            "context": {
+                "hide_user": "Hide from Feed",
+                "unhide_user": "Unhide from Feed"
             }
         },
         "friends_locations": {
@@ -1885,6 +1889,15 @@
                 },
                 "favorites": {
                     "header": "Favorites"
+                },
+                "hidden_feed": {
+                    "header": "Hidden Feed Users",
+                    "description": "Hide selected users from Feed without deleting saved data.",
+                    "add": "Add user",
+                    "search_placeholder": "Search users",
+                    "empty": "No hidden Feed users.",
+                    "remove": "Remove hidden user",
+                    "unknown_user": "Unknown user"
                 }
             },
             "vr": {

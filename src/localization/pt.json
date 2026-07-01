@@ -720,6 +720,10 @@
             },
             "dynamic": {
                 "value_copied": "{value} copiado"
+            },
+            "context": {
+                "hide_user": "Ocultar do Feed",
+                "unhide_user": "Mostrar no Feed"
             }
         },
         "friends_locations": {
@@ -1872,6 +1876,15 @@
                 },
                 "favorites": {
                     "header": "Favoritos"
+                },
+                "hidden_feed": {
+                    "header": "Usuários ocultos no Feed",
+                    "description": "Oculta usuários selecionados no Feed sem excluir dados salvos.",
+                    "add": "Adicionar usuário",
+                    "search_placeholder": "Pesquisar usuários",
+                    "empty": "Nenhum usuário oculto no Feed.",
+                    "remove": "Remover usuário oculto",
+                    "unknown_user": "Usuário desconhecido"
                 }
             },
             "vr": {

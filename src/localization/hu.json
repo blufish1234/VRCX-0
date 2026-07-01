@@ -51,7 +51,11 @@
         },
         "feed": {
             "favorites_only_tooltip": "Csak a kedvencek szűrése",
-            "search_placeholder": "Keresés"
+            "search_placeholder": "Keresés",
+            "context": {
+                "hide_user": "Elrejtés a Feedből",
+                "unhide_user": "Megjelenítés a Feedben"
+            }
         },
         "game_log": {
             "filter_placeholder": "Szűrés",
@@ -215,6 +219,17 @@
                 "wrist_overlay": "Csukló átfedés",
                 "discord_presence": "Discord jelenlét",
                 "advanced": "Haladó"
+            },
+            "social": {
+                "hidden_feed": {
+                    "header": "Rejtett Feed-felhasználók",
+                    "description": "Elrejti a kijelölt felhasználókat a Feed nézetből a mentett adatok törlése nélkül.",
+                    "add": "Felhasználó hozzáadása",
+                    "search_placeholder": "Felhasználók keresése",
+                    "empty": "Nincsenek rejtett felhasználók a Feed nézetben.",
+                    "remove": "Rejtett felhasználó eltávolítása",
+                    "unknown_user": "Ismeretlen felhasználó"
+                }
             },
             "general": {
                 "general": {

@@ -220,6 +220,7 @@ export function useSettingsPageState() {
 
     const {
         applyPreferenceSnapshotToLocalState,
+        addFeedHiddenUser,
         savePreferenceValue,
         saveBoolPreference,
         saveStringPreference,
@@ -253,6 +254,7 @@ export function useSettingsPageState() {
         migrateLegacyVrcxData,
         openAppDataDirSelector,
         resetAppDataDir,
+        removeFeedHiddenUser,
         restartForAppDataDir,
         updateSharedFeedFilter,
         resetSharedFeedFilters,
@@ -376,6 +378,7 @@ export function useSettingsPageState() {
 
     return buildSettingsPageStateSections({
         activeSettingsTab,
+        addFeedHiddenUser,
         addAvatarProvider,
         appDataDirState,
         applyAvatarProviderConfig,
@@ -434,6 +437,7 @@ export function useSettingsPageState() {
         refreshRuntimeAppSnapshot,
         refreshSqliteTableSizes,
         remoteFavoriteFriendGroupOptions,
+        removeFeedHiddenUser,
         removeAvatarProvider,
         resetAppDataDir,
         resetSharedFeedFilters,

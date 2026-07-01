@@ -62,6 +62,10 @@
                 "Status": "Статус",
                 "Avatar": "Аватар",
                 "Bio": "Био"
+            },
+            "context": {
+                "hide_user": "Скрыть из Feed",
+                "unhide_user": "Показать в Feed"
             }
         },
         "game_log": {
@@ -349,6 +353,17 @@
                 "discord_presence": "Отображение в Discord",
                 "pictures": "Фотографии",
                 "advanced": "Расширенные"
+            },
+            "social": {
+                "hidden_feed": {
+                    "header": "Скрытые пользователи Feed",
+                    "description": "Скрывает выбранных пользователей в Feed без удаления сохраненных данных.",
+                    "add": "Добавить пользователя",
+                    "search_placeholder": "Поиск пользователей",
+                    "empty": "В Feed нет скрытых пользователей.",
+                    "remove": "Удалить скрытого пользователя",
+                    "unknown_user": "Неизвестный пользователь"
+                }
             },
             "general": {
                 "general": {

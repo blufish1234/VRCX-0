@@ -96,6 +96,10 @@
                 "Status": "Status",
                 "Avatar": "Awatar",
                 "Bio": "Bio"
+            },
+            "context": {
+                "hide_user": "Ukryj z Feed",
+                "unhide_user": "Pokaż w Feed"
             }
         },
         "friends_locations": {
@@ -449,6 +453,17 @@
                 "discord_presence": "Status Discord",
                 "pictures": "Obrazki",
                 "advanced": "Zaawansowane"
+            },
+            "social": {
+                "hidden_feed": {
+                    "header": "Ukryci użytkownicy w Feed",
+                    "description": "Ukrywa wybranych użytkowników w Feed bez usuwania zapisanych danych.",
+                    "add": "Dodaj użytkownika",
+                    "search_placeholder": "Szukaj użytkowników",
+                    "empty": "Brak ukrytych użytkowników w Feed.",
+                    "remove": "Usuń ukrytego użytkownika",
+                    "unknown_user": "Nieznany użytkownik"
+                }
             },
             "general": {
                 "general": {

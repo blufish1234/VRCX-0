@@ -51,7 +51,11 @@
         },
         "feed": {
             "favorites_only_tooltip": "Zobrazit pouze oblíbené",
-            "search_placeholder": "Vyhledat"
+            "search_placeholder": "Vyhledat",
+            "context": {
+                "hide_user": "Skrýt z Feedu",
+                "unhide_user": "Zobrazit ve Feedu"
+            }
         },
         "game_log": {
             "filter_placeholder": "Filtrovat",
@@ -221,6 +225,17 @@
                 "wrist_overlay": "Náramkový overlay",
                 "discord_presence": "Discord Presence",
                 "advanced": "Pokročilé"
+            },
+            "social": {
+                "hidden_feed": {
+                    "header": "Skrytí uživatelé ve Feedu",
+                    "description": "Skryje vybrané uživatele ve Feedu bez odstranění uložených dat.",
+                    "add": "Přidat uživatele",
+                    "search_placeholder": "Hledat uživatele",
+                    "empty": "Ve Feedu nejsou skryti žádní uživatelé.",
+                    "remove": "Odebrat skrytého uživatele",
+                    "unknown_user": "Neznámý uživatel"
+                }
             },
             "general": {
                 "general": {

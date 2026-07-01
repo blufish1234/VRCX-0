@@ -61,6 +61,10 @@
                 "Status": "สถานะ",
                 "Avatar": "อวาตาร์",
                 "Bio": "ข้อมูลประวัติ"
+            },
+            "context": {
+                "hide_user": "ซ่อนจาก Feed",
+                "unhide_user": "เลิกซ่อนจาก Feed"
             }
         },
         "game_log": {
@@ -324,6 +328,17 @@
                 "discord_presence": "สถานะ Discord",
                 "pictures": "รูปภาพ",
                 "advanced": "ขั้นสูง"
+            },
+            "social": {
+                "hidden_feed": {
+                    "header": "ผู้ใช้ที่ซ่อนใน Feed",
+                    "description": "ซ่อนผู้ใช้ที่เลือกใน Feed โดยไม่ลบข้อมูลที่บันทึกไว้",
+                    "add": "เพิ่มผู้ใช้",
+                    "search_placeholder": "ค้นหาผู้ใช้",
+                    "empty": "ไม่มีผู้ใช้ที่ซ่อนใน Feed",
+                    "remove": "นำผู้ใช้ที่ซ่อนออก",
+                    "unknown_user": "ผู้ใช้ที่ไม่รู้จัก"
+                }
             },
             "general": {
                 "general": {
