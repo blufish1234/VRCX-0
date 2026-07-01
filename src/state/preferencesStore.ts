@@ -360,6 +360,7 @@ export const DEFAULT_PREFERENCES: PreferenceInputSnapshot = Object.freeze({
     translationAPI: false,
     bioLanguage: 'en',
     translationAPIType: 'google',
+    translationEndpointId: '',
     translationAPIEndpoint: DEFAULT_TRANSLATION_ENDPOINT,
     translationAPIModel: DEFAULT_TRANSLATION_MODEL,
     translationAPIPrompt: '',
@@ -547,6 +548,7 @@ export function normalizePreferenceSnapshot(snapshot: unknown = {}) {
         translationAPIType: normalizeTranslationApiType(
             next.translationAPIType
         ),
+        translationEndpointId: String(next.translationEndpointId || ''),
         translationAPIEndpoint:
             next.translationAPIEndpoint || DEFAULT_TRANSLATION_ENDPOINT,
         translationAPIModel:

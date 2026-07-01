@@ -180,11 +180,11 @@ export function useSettingsPageState() {
     const commit = useSettingsCommit();
 
     const {
-        availableTranslationModels,
         discordPrefs,
         fetchTranslationModels,
         integrationPrefs,
         integrationStatus,
+        llmEndpoints,
         openTranslationApiDialog,
         openYoutubeApiDialog,
         saveDiscordBoolPreference,
@@ -382,7 +382,6 @@ export function useSettingsPageState() {
         avatarProviderConfig,
         avatarProviderConfigRef,
         avatarProviderDialogOpen,
-        availableTranslationModels,
         cacheStats,
         cacheStatsVisible,
         clearVrcxCache,
@@ -404,6 +403,7 @@ export function useSettingsPageState() {
         handleGameLogDisabledChange,
         integrationPrefs,
         integrationStatus,
+        llmEndpoints,
         locale,
         localFavoriteFriendGroupOptions,
         localFavoriteFriendsGroups,

@@ -44,6 +44,20 @@ pub(crate) fn ensure_assistant_tables(db: &DatabaseService) -> Result<(), Error>
         "surfaced_entities",
         "TEXT NOT NULL DEFAULT '[]'",
     )?;
+    add_column_if_missing(db, "assistant_session", "endpoint_id", "TEXT")?;
+    add_column_if_missing(db, "assistant_session", "model", "TEXT")?;
+    add_column_if_missing(
+        db,
+        "assistant_session",
+        "allow_writes",
+        "INTEGER NOT NULL DEFAULT 0",
+    )?;
+    add_column_if_missing(
+        db,
+        "assistant_session",
+        "playbook_mode",
+        "TEXT NOT NULL DEFAULT 'auto'",
+    )?;
     Ok(())
 }
 

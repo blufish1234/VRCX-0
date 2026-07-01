@@ -119,6 +119,7 @@ export function createDefaultSettingsPrefs() {
         translationAPI: false,
         bioLanguage: 'en',
         translationAPIType: 'google',
+        translationEndpointId: '',
         translationAPIEndpoint: DEFAULT_TRANSLATION_ENDPOINT,
         translationAPIModel: DEFAULT_TRANSLATION_MODEL,
         translationAPIPrompt: '',

@@ -149,6 +149,7 @@ export async function loadPreferenceSnapshot() {
         translationAPI,
         bioLanguage,
         translationAPIType,
+        translationEndpointId,
         translationAPIEndpoint,
         translationAPIModel,
         translationAPIPrompt,
@@ -273,6 +274,7 @@ export async function loadPreferenceSnapshot() {
         configRepository.getBool('translationAPI', false),
         configRepository.getString('bioLanguage', 'en'),
         configRepository.getString('translationAPIType', 'google'),
+        configRepository.getString('translationEndpointId', ''),
         configRepository.getString(
             'translationAPIEndpoint',
             DEFAULT_TRANSLATION_ENDPOINT
@@ -453,6 +455,7 @@ export async function loadPreferenceSnapshot() {
         translationAPI: Boolean(translationAPI),
         bioLanguage: normalizeBioLanguage(bioLanguage),
         translationAPIType: normalizeTranslationApiType(translationAPIType),
+        translationEndpointId: String(translationEndpointId || ''),
         translationAPIEndpoint:
             translationAPIEndpoint || DEFAULT_TRANSLATION_ENDPOINT,
         translationAPIModel: translationAPIModel || DEFAULT_TRANSLATION_MODEL,

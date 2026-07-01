@@ -10,7 +10,7 @@
         "example_1": "Com quem mais joguei esta semana?",
         "example_2": "De quem estou me distanciando?",
         "example_3": "Qual o melhor horário para encontrar meus amigos online?",
-        "not_configured": "Defina seu modelo e chave de API nas Configurações para começar.",
+        "not_configured": "Select an LLM Endpoint and model to start.",
         "tool_running": "Chamando {{name}}…",
         "entities_title": "Mencionados",
         "entities_empty": "Pessoas e mundos mencionados nas respostas aparecem aqui.",
@@ -48,6 +48,16 @@
             "privacy_title": "Privacidade",
             "privacy_local": "As requisições vão para um endpoint local nesta máquina. Seus dados sociais não saem do seu computador.",
             "privacy_remote": "Usar um serviço de IA online pode expor seus dados. Prossiga com cautela."
+        },
+        "runtime": {
+            "title": "Runtime",
+            "connection": "Conexão",
+            "connection_unset": "Sem endpoint",
+            "model": "Modelo",
+            "model_unset": "Nenhum modelo salvo para este endpoint",
+            "playbook_mode": "Modo de análise",
+            "allow_writes": "Permitir ações de escrita",
+            "manage_endpoints": "Gerenciar endpoints LLM"
         }
     },
     "user_hover_card": {
@@ -1574,7 +1584,9 @@
                 "app_launcher": "Inicializador de Aplicativos",
                 "app_launcher_description": "Gerencie aplicativos e atalhos que iniciam automaticamente quando o VRChat é iniciado.",
                 "registry_backup": "Backup de Registro do VRChat",
-                "registry_backup_description": "Criar ou restaurar um backup de registro do VRChat"
+                "registry_backup_description": "Criar ou restaurar um backup de registro do VRChat",
+                "llm_endpoints": "Endpoints LLM",
+                "llm_endpoints_description": "Gerencie as conexões compatíveis com OpenAI para Social AI e tradução."
             },
             "vrchat_log": {
                 "title": "Visualizador de Logs do VRChat",
@@ -1772,6 +1784,37 @@
                     "too_many_favorites": "{favorites} favorite print(s) exceed the favorite limit of {max} by {over}. Auto-delete will not remove favorite prints.",
                     "too_many_favorites_event": "Auto-delete could not get below the configured limit because favorite prints are filling the list. {remaining} print(s) remain."
                 }
+            },
+            "llm_endpoints": {
+                "title": "Endpoints LLM",
+                "description": "Conexões compartilhadas compatíveis com OpenAI para Social AI e tradução.",
+                "endpoint_count": "{count} endpoints",
+                "model_count": "{count} modelos",
+                "add": "Adicionar endpoint",
+                "empty_description": "Adicione um endpoint compatível com OpenAI para Social AI e tradução compatível com OpenAI.",
+                "name": "Nome",
+                "base_url": "URL base",
+                "models": "Modelos",
+                "key": "Chave",
+                "actions": "Ações",
+                "no_models": "Sem modelos",
+                "key_saved": "Salva",
+                "key_empty": "Vazia",
+                "detect_models": "Detectar modelos",
+                "edit": "Editar endpoint",
+                "delete": "Excluir endpoint",
+                "api_key": "Chave de API",
+                "clear_key": "Limpar chave",
+                "key_preserve_placeholder": "Deixe em branco para manter a chave salva",
+                "saved": "Endpoint salvo",
+                "save_failed": "Falha ao salvar o endpoint",
+                "load_failed": "Falha ao carregar os endpoints",
+                "base_url_required": "A URL base é obrigatória.",
+                "models_detected": "{count} modelos detectados",
+                "no_models_detected": "Nenhum modelo detectado",
+                "detect_failed": "Falha ao detectar modelos",
+                "deleted": "Endpoint excluído",
+                "delete_failed": "Falha ao excluir o endpoint"
             }
         },
         "profile": {
@@ -4734,20 +4777,16 @@
             "msg_test_success": "Teste bem-sucedido",
             "msg_test_failed": "Teste falhou",
             "openai": {
-                "endpoint": "Endpoint da API",
-                "api_key": "Chave de API (Opcional)",
                 "model": "Nome do Modelo",
                 "prompt_optional": "Prompt (Opcional)",
-                "prompt_optional_description": "Prompt de sistema opcional para APIs de tradução compatíveis com OpenAI."
+                "prompt_optional_description": "Prompt de sistema opcional para APIs de tradução compatíveis com OpenAI.",
+                "connection": "Endpoint LLM",
+                "connection_description": "Usado pela tradução compatível com OpenAI.",
+                "connection_placeholder": "Selecione um endpoint"
             },
             "deepl": {
-                "api_key": "Chave de API DeepL"
-            },
-            "fetch_models": "Buscar Modelos",
-            "fetching_models": "Buscando...",
-            "msg_endpoint_required": "Por favor, preencha o endpoint primeiro",
-            "msg_models_fetched": "Encontrados {count} modelos",
-            "msg_no_models_found": "Nenhum modelo encontrado"
+                "api_key": "Chave de API do DeepL"
+            }
         },
         "notification_position": {
             "header": "Posição da Notificação",
