@@ -9,8 +9,7 @@ the project maintainer, while contributors retain ownership of their own
 contributions.
 
 This Agreement allows VRCX-0 to be distributed under its open-source license and,
-where the Maintainer chooses, under other license terms, including proprietary or
-closed-source distributions such as mobile builds.
+where the Maintainer chooses, under other license terms.
 
 By making a Contribution to the Project after signing this Agreement, You accept
 and agree to the following terms for Your present and future Contributions.
