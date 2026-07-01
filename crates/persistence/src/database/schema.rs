@@ -304,7 +304,7 @@ pub(crate) fn add_legacy_indexes(db: &DatabaseService) -> Result<(), Error> {
     Ok(())
 }
 
-pub(crate) const VRCX0_SCHEMA_VERSION: i64 = 17;
+pub(crate) const VRCX0_SCHEMA_VERSION: i64 = 18;
 
 const VRCX0_SCHEMA_VERSION_KEY: &str = "VRCX_0_databaseVersion";
 const UPSTREAM_DATABASE_VERSION_KEY: &str = "databaseVersion";
@@ -366,7 +366,12 @@ mod schema_version_tests {
     #[test]
     fn backfills_marker_from_existing_vrcx0_database() {
         let db = test_db("schema-version-backfill");
-        crate::config::set_string(&db, UPSTREAM_DATABASE_VERSION_KEY, "17").unwrap();
+        crate::config::set_string(
+            &db,
+            UPSTREAM_DATABASE_VERSION_KEY,
+            &VRCX0_SCHEMA_VERSION.to_string(),
+        )
+        .unwrap();
 
         backfill_vrcx0_schema_version(&db).unwrap();
 
@@ -399,7 +404,7 @@ mod schema_version_tests {
     #[test]
     fn backfill_is_noop_when_marker_already_set() {
         let db = test_db("schema-version-existing-marker");
-        set_vrcx0_schema_version(&db, 17).unwrap();
+        set_vrcx0_schema_version(&db, VRCX0_SCHEMA_VERSION).unwrap();
         crate::config::set_string(&db, UPSTREAM_DATABASE_VERSION_KEY, "99").unwrap();
 
         backfill_vrcx0_schema_version(&db).unwrap();
