@@ -4580,7 +4580,7 @@
             "emoji_loop_pingpong": "桌球循環",
             "flipbook_info": "選擇一張 1024×1024 的 PNG 精靈圖來製作動態表情符號，可用的影格格線大小為：4、16 或 64（最大 FPS 為 64，最多 64 個影格）",
             "note": "注意",
-            "crop_print_border": "裁切列印邊框",
+            "crop_print_border": "重傳時裁切原有邊框",
             "upload_options": "上傳選項",
             "consume_bundle": "使用",
             "item": "物品",

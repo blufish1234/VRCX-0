@@ -4575,7 +4575,7 @@
             "emoji_loop_pingpong": "ピンポンループ",
             "flipbook_info": "アニメーション絵文字として使用する1024x1024px の PNG スプライトシート画像を選択 (最大 64FPS)",
             "note": "ノート",
-            "crop_print_border": "プリントの外枠をトリミング",
+            "crop_print_border": "再アップロード時に既存の枠をトリミング",
             "upload_options": "アップロードオプション",
             "consume_bundle": "バンドルを消費",
             "item": "アイテム",

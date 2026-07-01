@@ -1,5 +1,3 @@
-import { bytesToBase64 } from './binary';
-
 export interface ImageUploadValidationOptions {
     maxSize?: number;
 }
@@ -37,15 +35,16 @@ export function withUploadTimeout<T>(promise: Promise<T>): Promise<T> {
     });
 }
 
-export async function readBlobAsBytes(blob: Blob): Promise<Uint8Array> {
-    return new Uint8Array(await blob.arrayBuffer());
-}
-
-/**
- * File -> base64
- */
 export async function readFileAsBase64(blob: Blob): Promise<string> {
-    return bytesToBase64(await readBlobAsBytes(blob));
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () =>
+            reject(reader.error ?? new Error('Failed to read file.'));
+        reader.onload = () => resolve(String(reader.result ?? ''));
+        reader.readAsDataURL(blob);
+    });
+    const comma = dataUrl.indexOf(',');
+    return comma === -1 ? '' : dataUrl.slice(comma + 1);
 }
 
 export function validateImageUploadFile(

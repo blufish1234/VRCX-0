@@ -4506,7 +4506,7 @@
             "emoji_loop_pingpong": "루프 탁구",
             "flipbook_info": "애니메이션 이모티콘으로 사용할 1024x1024 PNG 스프라이트 시트를 선택하세요. 사용 가능한 프레임 그리드 크기: 4, 16 또는 64(최대 FPS 64, 최대 프레임 64)",
             "note": "참고",
-            "crop_print_border": "인쇄 테두리 자르기",
+            "crop_print_border": "재업로드 시 기존 테두리 자르기",
             "upload_options": "업로드 옵션",
             "consume_bundle": "소비하다",
             "item": "품목",

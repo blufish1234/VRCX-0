@@ -4567,7 +4567,7 @@
             "emoji_loop_pingpong": "Animé en boucle",
             "flipbook_info": "Sélectionnez une image PNG 1024x1024 pour l'utiliser comme emoji animé : 4, 16 ou 64 (64 FPS max, 64 frames max).",
             "note": "Notes",
-            "crop_print_border": "Rogner la bordure de l'impression",
+            "crop_print_border": "Rogner la bordure existante (réenvoi)",
             "upload_options": "Options de téléversement",
             "consume_bundle": "Consommer",
             "item": "Objet",

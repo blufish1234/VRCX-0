@@ -4567,7 +4567,7 @@
             "emoji_loop_pingpong": "Bucle PingPong",
             "flipbook_info": "Selecciona una hoja de sprites PNG de 1024x1024 para usar como un emoji animado, tamaños de cuadrícula de cuadros disponibles: 4, 16 o 64 (máx FPS 64, máx cuadros 64)",
             "note": "Nota",
-            "crop_print_border": "Recortar borde de la impresión",
+            "crop_print_border": "Recortar borde existente (resubida)",
             "upload_options": "Opciones de subida",
             "consume_bundle": "Consumir",
             "item": "Objeto",

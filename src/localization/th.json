@@ -1327,7 +1327,7 @@
             "emoji_loop_pingpong": "วนลูปแบบ PingPong",
             "flipbook_info": "เลือก spritesheet PNG ขนาด 1024x1024 เพื่อใช้เป็นอีโมจิเคลื่อนไหว, ขนาดตารางเฟรมที่มี: 4, 16 หรือ 64 (FPS สูงสุด 64, เฟรมสูงสุด 64)",
             "note": "หมายเหตุ",
-            "crop_print_border": "ตัดขอบ Print",
+            "crop_print_border": "ตัดขอบเดิม (อัปโหลดซ้ำ)",
             "consume_bundle": "ใช้"
         },
         "gallery_select": {

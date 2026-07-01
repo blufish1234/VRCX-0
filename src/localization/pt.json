@@ -4567,7 +4567,7 @@
             "emoji_loop_pingpong": "Loop PingPong",
             "flipbook_info": "Selecione um spritesheet PNG 1024x1024 para usar como emoji animado; tamanhos de grade de frames disponíveis: 4, 16 ou 64 (máx. FPS 64, máx. frames 64)",
             "note": "Nota",
-            "crop_print_border": "Cortar Borda do Print",
+            "crop_print_border": "Cortar borda existente (reenvio)",
             "upload_options": "Opções de upload",
             "consume_bundle": "Consumir",
             "item": "Item",

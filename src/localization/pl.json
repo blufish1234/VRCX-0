@@ -1521,7 +1521,7 @@
             "emoji_loop_pingpong": "Pętla Ping Pong",
             "flipbook_info": "Wybierz spritesheet PNG 1024x1024, aby użyć go jako animowane emoji. Dostępne rozmiary siatki: 4, 16, lub 64 (maks. 64 FPS, maks. 64 klatek)",
             "note": "Note",
-            "crop_print_border": "Crop Print Border",
+            "crop_print_border": "Przytnij istniejącą ramkę (ponowne przesłanie)",
             "consume_bundle": "Consume",
             "item": "Przedmiot",
             "sticker": "Naklejka",

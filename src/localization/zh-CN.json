@@ -4580,7 +4580,7 @@
             "emoji_loop_pingpong": "往返循环播放",
             "flipbook_info": "选择一个 1024x1024 的 PNG 精灵表作为动画表情（最大 FPS 为64）",
             "note": "备注",
-            "crop_print_border": "裁剪白边",
+            "crop_print_border": "重传时裁剪原有边框",
             "upload_options": "上传选项",
             "consume_bundle": "拆开",
             "item": "物品",
