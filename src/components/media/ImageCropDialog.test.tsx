@@ -2,6 +2,19 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('react-easy-crop/react-easy-crop.css', () => ({}));
+
+vi.mock('react-easy-crop', async () => {
+    const R = await import('react');
+    return {
+        default: (props: any) =>
+            R.createElement('div', {
+                'data-testid': 'easy-crop',
+                'data-image': props.image
+            })
+    };
+});
+
 vi.mock('react-i18next', () => ({
     useTranslation: () => ({
         t: (key: string) => key
@@ -70,11 +83,21 @@ vi.mock('@/ui/shadcn/checkbox', async () => {
     };
 });
 
-vi.mock('@/ui/shadcn/slider', async () => {
+// lucide-react icons
+vi.mock('lucide-react', async () => {
     const React = await import('react');
+    const Icon = (props: any) => React.createElement('span', props);
 
     return {
-        Slider: (props: any) => React.createElement('input', props)
+        FlipHorizontal2: Icon,
+        FlipVertical2: Icon,
+        Maximize2: Icon,
+        Minimize2: Icon,
+        RefreshCcw: Icon,
+        RotateCcw: Icon,
+        RotateCw: Icon,
+        ZoomIn: Icon,
+        ZoomOut: Icon
     };
 });
 
