@@ -4804,25 +4804,27 @@
             "msg_test_failed": "Invalid YouTube API key"
         },
         "translation_api": {
-            "header": "Bio Translation API",
-            "description": "Enter your Google translate API Key",
+            "header": "Configure Translator API",
             "guide": "Guide",
             "mode": "Provider",
-            "mode_google": "Google Translate",
-            "mode_openai": "OpenAI",
-            "mode_deepl": "DeepL Free API",
+            "mode_google": "Google Translate API",
+            "mode_openai": "OpenAI compatible API",
+            "mode_deepl": "DeepL API",
             "test": "Test",
             "save": "Save",
             "msg_fill_endpoint_model": "Please fill endpoint and model",
             "msg_settings_saved": "Translation settings saved",
             "msg_test_success": "Test succeeded",
             "msg_test_failed": "Test failed",
+            "google": {
+                "api_key": "Google API Key"
+            },
             "openai": {
                 "model": "Model Name",
-                "prompt_optional": "Prompt (Optional)",
-                "prompt_optional_description": "Optional system prompt for OpenAI-compatible translation APIs.",
+                "prompt_optional": "System Prompt (Optional)",
+                "prompt_optional_description": "Filling this field would override the default system prompt. Only fill in if you know what you are doing. ",
                 "connection": "LLM Endpoint",
-                "connection_description": "Used by OpenAI-compatible translation.",
+                "connection_description": "Only OpenAI-compatible endpoints are supported.",
                 "connection_placeholder": "Select an endpoint"
             },
             "deepl": {

@@ -8,7 +8,6 @@ import { Button } from '@/ui/shadcn/button';
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle
@@ -78,7 +77,7 @@ export function TranslationApiDialog({
     const apiKeyLabel =
         translationProvider === 'deepl'
             ? t('dialog.translation_api.deepl.api_key')
-            : t('dialog.translation_api.description');
+            : t('dialog.translation_api.google.api_key');
     const apiKeyPlaceholder =
         translationProvider === 'deepl'
             ? 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:fx'
@@ -94,9 +93,6 @@ export function TranslationApiDialog({
                     <DialogTitle>
                         {t('dialog.translation_api.header')}
                     </DialogTitle>
-                    <DialogDescription>
-                        {t('dialog.translation_api.description')}
-                    </DialogDescription>
                 </DialogHeader>
                 <FieldGroup>
                     <Field
