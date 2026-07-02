@@ -11,4 +11,5 @@ pub mod overlay_activity;
 pub mod realtime;
 pub mod registry_backup;
 pub mod social_baseline;
+pub mod telemetry;
 pub mod vr_overlay;

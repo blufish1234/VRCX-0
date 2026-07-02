@@ -1109,6 +1109,7 @@ fn start_host_services(app: &tauri::AppHandle, state: &AppState) {
         .runtime_context
         .tasks
         .set_executor(TauriRuntimeTaskExecutor);
+    state.start_telemetry_runtime();
     state.start_shell_neutral_services();
 
     if is_host_capability_available(HostCapability::Ipc) {

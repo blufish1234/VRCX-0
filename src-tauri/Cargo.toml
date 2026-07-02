@@ -43,7 +43,7 @@ tauri-plugin-dialog = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-autostart = "2"
-sys-locale = "0.3"
+sys-locale.workspace = true
 tauri-plugin-window-state = "2"
 percent-encoding = { workspace = true }
 tauri-plugin-updater = "2.10.1"

@@ -6861,6 +6861,7 @@ name = "vrcx-0-integrations"
 version = "0.1.0"
 dependencies = [
  "futures-util",
+ "regex",
  "reqwest",
  "serde",
  "serde_json",
@@ -6936,16 +6937,20 @@ name = "vrcx-0-runtime-host"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "iana-time-zone",
  "serde",
  "serde_json",
  "specta",
+ "sys-locale",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
+ "uuid",
  "vrcx-0-application",
  "vrcx-0-core",
  "vrcx-0-host",
  "vrcx-0-i18n",
+ "vrcx-0-integrations",
  "vrcx-0-media",
  "vrcx-0-persistence",
  "vrcx-0-vr-overlay",

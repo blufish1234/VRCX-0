@@ -256,6 +256,9 @@ export const commands = {
     async appEnsureMainWindow(): Promise<null> {
         return await TAURI_INVOKE('app__ensure_main_window');
     },
+    async appTelemetryRecordEvent(event: TelemetryClientEvent): Promise<null> {
+        return await TAURI_INVOKE('app__telemetry_record_event', { event });
+    },
     async appMcpServerStatus(): Promise<McpServerStatus> {
         return await TAURI_INVOKE('app__mcp_server_status');
     },
@@ -4018,6 +4021,23 @@ export type TauriUpdateMetadata = {
     body: string | null;
     rawJson: JsonValue;
 };
+export type TelemetryClientEvent =
+    | { type: 'pageVisit'; route: string }
+    | {
+          type: 'routeError';
+          error_class: string;
+          name: string | null;
+          summary: string | null;
+      }
+    | { type: 'viewModeSwitch'; dimension: string; value: string }
+    | { type: 'assistantOpen' }
+    | { type: 'assistantApiKeyConfigured' }
+    | {
+          type: 'assistantToolError';
+          source: string | null;
+          summary: string | null;
+      }
+    | { type: 'assistantTurnError'; code: string; summary: string | null };
 export type TurnStatus = 'running' | 'done' | 'error' | 'cancelled';
 export type UserMemoOutput = { userId: string; editedAt: string; memo: string };
 export type UserNoteOutput = {
