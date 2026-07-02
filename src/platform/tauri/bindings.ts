@@ -100,17 +100,8 @@ export const commands = {
     async assetBundleGetCacheSize(): Promise<number> {
         return await TAURI_INVOKE('asset_bundle__get_cache_size');
     },
-    async logWatcherGet(): Promise<string[][]> {
-        return await TAURI_INVOKE('log_watcher__get');
-    },
     async logWatcherGetCurrentLocation(): Promise<LogLocationSnapshot | null> {
         return await TAURI_INVOKE('log_watcher__get_current_location');
-    },
-    async logWatcherSetDateTill(date: string): Promise<null> {
-        return await TAURI_INVOKE('log_watcher__set_date_till', { date });
-    },
-    async logWatcherReset(): Promise<null> {
-        return await TAURI_INVOKE('log_watcher__reset');
     },
     async logWatcherVrcClosedGracefully(): Promise<boolean> {
         return await TAURI_INVOKE('log_watcher__vrc_closed_gracefully');
